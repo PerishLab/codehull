@@ -421,6 +421,169 @@ try {
     }
   });
 
+  io.print("==> act 9: planning and delivery");
+  await check("projects, releases, branch protection, packages", async () => {
+    const made = await want("/repo", {
+      name: "product",
+      visibility: "private",
+      owner: bob.id,
+      trunk: "main",
+      archived: false,
+    }, bob.head);
+    const repo = num(made.id);
+    const project = num(
+      (await want("/project", {
+        title: "roadmap",
+        closed: false,
+        repo,
+      }, bob.head)).id,
+    );
+    const column = num(
+      (await want("/column", {
+        title: "todo",
+        sort: 1,
+        project,
+      }, bob.head)).id,
+    );
+    const issue = num(
+      (await want("/issue", {
+        title: "card",
+        body: "",
+        closed: false,
+        repo,
+        author: bob.id,
+      }, bob.head)).id,
+    );
+    await want(`/column/${column}/cards`, { right: issue, spot: 3 }, bob.head);
+
+    await want("/release", {
+      tag: "v1.0",
+      title: "one",
+      body: "notes",
+      draft: false,
+      repo,
+      author: bob.id,
+    }, bob.head);
+    const dup = await post("/release", {
+      tag: "v1.0",
+      title: "dup",
+      body: "",
+      draft: true,
+      repo,
+      author: bob.id,
+    }, bob.head);
+    if (dup.status !== 409) {
+      throw new Error(`release tag not scoped-unique ${dup.status}`);
+    }
+
+    await want("/shield", {
+      branch: "main",
+      force: false,
+      approvals: 2,
+      repo,
+    }, bob.head);
+    await want("/package", {
+      name: "libcore",
+      kind: "cargo",
+      version: "0.1.0",
+      repo,
+    }, bob.head);
+
+    const owned = await query(`from Release where repo = "${repo}"`, bob.head);
+    if ((owned.bags as Record<string, unknown[]>).release.length !== 1) {
+      throw new Error("owner cannot see own release");
+    }
+    const blind = await query(`from Package where repo = "${repo}"`, cy.head);
+    const seen = (blind.bags as Record<string, unknown[]>).package;
+    if (Array.isArray(seen) && seen.length !== 0) {
+      throw new Error("stranger sees private package");
+    }
+  });
+
+  io.print("==> act 10: trimmings");
+  await check("fork, archive, milestone, assignees, blocks, stars, email", async () => {
+    const up = num(
+      (await want("/repo", {
+        name: "upstream",
+        visibility: "public",
+        owner: ada.id,
+        trunk: "main",
+        archived: false,
+      }, ada.head)).id,
+    );
+    const fork = num(
+      (await want("/repo", {
+        name: "fork",
+        visibility: "public",
+        owner: bob.id,
+        trunk: "main",
+        archived: false,
+        fork: up,
+      }, bob.head)).id,
+    );
+    const forks = await query(`from Repo where fork = "${up}"`, bob.head);
+    if ((forks.bags as Record<string, unknown[]>).repo.length !== 1) {
+      throw new Error("fork not linked");
+    }
+    const arch = await fetch(`${base}/repo/${fork}`, {
+      method: "PATCH",
+      headers: { "content-type": "application/json", ...bob.head },
+      body: JSON.stringify({ archived: true }),
+    });
+    if (!arch.ok) {
+      throw new Error(`archive ${arch.status}`);
+    }
+
+    const mile = num(
+      (await want("/milestone", {
+        title: "v2",
+        due: 0,
+        closed: false,
+        repo: fork,
+      }, bob.head)).id,
+    );
+    const issue = num(
+      (await want("/issue", {
+        title: "planned",
+        body: "",
+        closed: false,
+        repo: fork,
+        author: bob.id,
+        milestone: mile,
+      }, bob.head)).id,
+    );
+    await want(`/issue/${issue}/assignees`, { right: bob.id }, bob.head);
+    const other = num(
+      (await want("/issue", {
+        title: "blocker",
+        body: "",
+        closed: false,
+        repo: fork,
+        author: bob.id,
+      }, bob.head)).id,
+    );
+    await want(`/issue/${issue}/blocks`, { right: other }, bob.head);
+    const pack = await query(
+      `from Issue where id = "${issue}" link assignees link blocks`,
+      bob.head,
+    );
+    const bags = pack.bags as Record<string, unknown[]>;
+    if (bags["issue.assignees"].length !== 1 || bags["issue.blocks"].length !== 1) {
+      throw new Error("assignee or block missing");
+    }
+
+    await want(`/actor/${bob.id}/stars`, { right: up }, bob.head);
+    const stars = await query(`from Actor where stars has "${up}" count`, bob.head);
+    if (stars.count !== 1) {
+      throw new Error("star not counted");
+    }
+    await want("/email", {
+      mail: "bob@lab.dev",
+      primary: true,
+      actor: bob.id,
+    }, bob.head);
+  });
+
   io.print("==> act 7: suspension");
   await check("suspended operator is refused", async () => {
     const made = await want(

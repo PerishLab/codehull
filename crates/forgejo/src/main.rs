@@ -6,6 +6,7 @@ use axum::routing::post;
 use axum::{Extension, Json, Router};
 use keel::Ends;
 use keel::adapt::pg::Postgres;
+use keel::atom::url as link;
 use keel::atom::{int, string};
 use keel::config;
 use keel::resource;
@@ -33,6 +34,28 @@ struct Actor {
     watches: Repo,
     #[relation(Actor, many2many)]
     follows: Actor,
+}
+
+#[resource]
+struct UserKey {
+    #[field(string)]
+    title: string,
+    #[field(string, unique)]
+    print: string,
+    #[field(string)]
+    kind: string,
+    #[relation(Actor, many2one, root)]
+    owner: Actor,
+}
+
+#[resource]
+struct Mirror {
+    #[field(url)]
+    remote: link,
+    #[field(int)]
+    interval: int,
+    #[relation(Repo, one2one, root)]
+    repo: Repo,
 }
 
 #[resource]
@@ -89,6 +112,68 @@ struct Label {
     name: string,
     #[field(string)]
     color: string,
+    #[relation(Repo, many2one, root)]
+    repo: Repo,
+}
+
+#[resource]
+struct Project {
+    #[field(string)]
+    title: string,
+    #[field(bool)]
+    closed: bool,
+    #[relation(Repo, many2one, root)]
+    repo: Repo,
+}
+
+#[resource]
+struct Column {
+    #[field(string)]
+    title: string,
+    #[field(int)]
+    sort: int,
+    #[relation(Project, many2one, root)]
+    project: Project,
+    #[relation(Issue, many2many, spot = int)]
+    cards: Issue,
+}
+
+#[resource]
+struct Release {
+    #[field(string, unique = repo)]
+    tag: string,
+    #[field(string)]
+    title: string,
+    #[field(string)]
+    body: string,
+    #[field(bool)]
+    draft: bool,
+    #[relation(Repo, many2one, root)]
+    repo: Repo,
+    #[relation(Actor, many2one)]
+    author: Actor,
+}
+
+#[resource]
+struct Shield {
+    #[field(string, unique = repo)]
+    branch: string,
+    #[field(bool)]
+    force: bool,
+    #[field(int)]
+    approvals: int,
+    #[relation(Repo, many2one, root)]
+    repo: Repo,
+}
+
+#[resource]
+struct Package {
+    #[field(string, unique = repo)]
+    name: string,
+    #[field(string)]
+    kind: string,
+    #[field(string)]
+    version: string,
     #[relation(Repo, many2one, root)]
     repo: Repo,
 }
@@ -253,11 +338,18 @@ fn shape() -> Graph {
     let mut graph = Graph::new();
     graph
         .plug::<Actor>()
+        .plug::<UserKey>()
+        .plug::<Mirror>()
         .plug::<Email>()
         .plug::<Team>()
         .plug::<Topic>()
         .plug::<Repo>()
         .plug::<Label>()
+        .plug::<Project>()
+        .plug::<Column>()
+        .plug::<Release>()
+        .plug::<Shield>()
+        .plug::<Package>()
         .plug::<Runner>()
         .plug::<Run>()
         .plug::<Secret>()
