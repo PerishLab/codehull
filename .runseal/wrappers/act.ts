@@ -193,6 +193,107 @@ try {
     }
   });
 
+  io.print("==> act 3: issue search and review");
+  await check("issue search by like", async () => {
+    const pub = await want("/repo", {
+      name: "site",
+      visibility: "public",
+      owner: ada.id,
+      trunk: "main",
+      archived: false,
+    }, ada.head);
+    const repo = num(pub.id);
+    await want("/issue", {
+      title: "fix the login bug",
+      body: "",
+      closed: false,
+      repo,
+      author: bob.id,
+    }, bob.head);
+    await want("/issue", {
+      title: "add dark mode",
+      body: "",
+      closed: false,
+      repo,
+      author: bob.id,
+    }, bob.head);
+    const hit = await query(
+      'from Issue where title like "LOGIN" and closed = "false"',
+      bob.head,
+    );
+    const rows = (hit.bags as Record<string, unknown[]>).issue;
+    if (!Array.isArray(rows) || rows.length !== 1) {
+      throw new Error(`search expected 1, got ${rows?.length}`);
+    }
+  });
+
+  await check("pull review round-trip", async () => {
+    const pub = await want("/repo", {
+      name: "app",
+      visibility: "public",
+      owner: bob.id,
+      trunk: "main",
+      archived: false,
+    }, bob.head);
+    const repo = num(pub.id);
+    const issue = num(
+      (await want("/issue", {
+        title: "PR: feature",
+        body: "",
+        closed: false,
+        repo,
+        author: bob.id,
+      }, bob.head)).id,
+    );
+    const pull = num(
+      (await want("/pull", {
+        base: "main",
+        head: "feat",
+        merged: false,
+        issue,
+      }, bob.head)).id,
+    );
+    const review = num(
+      (await want("/review", {
+        state: "approve",
+        body: "lgtm",
+        pull,
+        reviewer: cy.id,
+      }, cy.head)).id,
+    );
+    await want("/note", {
+      path: "src/main.rs",
+      line: 10,
+      body: "nit",
+      review,
+    }, cy.head);
+    const mine = await query(
+      `from Review where reviewer = "${cy.id}"`,
+      cy.head,
+    );
+    const seen = (mine.bags as Record<string, unknown[]>).review;
+    if (!Array.isArray(seen) || seen.length < 1) {
+      throw new Error("reviewer cannot see own review");
+    }
+    const merge = await fetch(`${base}/pull/${pull}`, {
+      method: "PATCH",
+      headers: { "content-type": "application/json", ...bob.head },
+      body: JSON.stringify({ merged: true }),
+    });
+    if (!merge.ok) {
+      throw new Error(`merge ${merge.status}`);
+    }
+    const grab = await fetch(`${base}/pull/${pull}`, {
+      method: "PATCH",
+      headers: { "content-type": "application/json", ...cy.head },
+      body: JSON.stringify({ merged: false }),
+    });
+    await grab.body?.cancel();
+    if (grab.status !== 403 && grab.status !== 404) {
+      throw new Error(`stranger merge ${grab.status}`);
+    }
+  });
+
   if (s3) {
     io.print("==> act 5: blobs");
     await bucket(s3);

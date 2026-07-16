@@ -171,6 +171,18 @@ struct Review {
     reviewer: Actor,
 }
 
+#[resource]
+struct Note {
+    #[field(string)]
+    path: string,
+    #[field(int)]
+    line: int,
+    #[field(string)]
+    body: string,
+    #[relation(Review, many2one, root)]
+    review: Review,
+}
+
 keel_gate::gate!(Actor);
 
 keel_relay::relay!(Actor);
@@ -191,7 +203,8 @@ fn shape() -> Graph {
         .plug::<Comment>()
         .plug::<Reaction>()
         .plug::<Pull>()
-        .plug::<Review>();
+        .plug::<Review>()
+        .plug::<Note>();
     plug(&mut graph);
     wire(&mut graph);
     stock(&mut graph);
@@ -324,7 +337,7 @@ fn seed<S: Store>(core: &Arc<Core<S>>) -> Result<(), keel::adapt::Error> {
         return Ok(());
     }
     let sudo = core.sudo();
-    let rows: [(&str, &str, &str, &str); 14] = [
+    let rows: [(&str, &str, &str, &str); 16] = [
         ("anon", "put", "Actor", r#"pred kind = "user""#),
         ("anon", "see", "Actor", "all"),
         ("all", "put", "Actor", r#"pred kind = "org""#),
@@ -339,6 +352,8 @@ fn seed<S: Store>(core: &Arc<Core<S>>) -> Result<(), keel::adapt::Error> {
         ("all", "see", "Reaction", r#"pred actor = "@me""#),
         ("all", "put", "Asset", r#"pred owner = "@me""#),
         ("all", "see", "Asset", r#"pred owner = "@me""#),
+        ("all", "put", "Review", r#"pred reviewer = "@me""#),
+        ("all", "see", "Review", r#"pred reviewer = "@me""#),
     ];
     for (who, verb, unit, scope) in rows {
         sudo.put(

@@ -21,3 +21,4 @@
 - `stock` — plug the Asset unit into the graph (keel-blob macro).
 - `hoard` — build the Vault from `KEEL_S3` env, or None (blob disabled).
 - `bucket` — act helper: ensure the MinIO bucket exists via mc.
+- Act 3 covers issue search (`like`) and PR review round-trip (Pull one2one Issue, Review, Note, gated merge).
