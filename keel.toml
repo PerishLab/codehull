@@ -5,7 +5,7 @@ prefix = ""
 
 [store]
 kind = "file"
-path = ".local/forgejo.sqlite"
+path = ".local/codehull.sqlite"
 
 [identity]
 unit = "Actor"

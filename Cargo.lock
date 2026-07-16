@@ -165,6 +165,20 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0c9ea0ac24bc397ab3c98583a3c9ba74fa56b09a4449bbe172b9b1ddb016027a"
 
 [[package]]
+name = "codehull"
+version = "0.1.0"
+dependencies = [
+ "axum",
+ "keel",
+ "keel-blob",
+ "keel-gate",
+ "keel-relay",
+ "postgres",
+ "serde_json",
+ "tokio",
+]
+
+[[package]]
 name = "const-oid"
 version = "0.10.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -285,20 +299,6 @@ name = "find-msvc-tools"
 version = "0.1.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5baebc0774151f905a1a2cc41989300b1e6fbb29aff0ceffa1064fdd3088d582"
-
-[[package]]
-name = "forgejo"
-version = "0.1.0"
-dependencies = [
- "axum",
- "keel",
- "keel-blob",
- "keel-gate",
- "keel-relay",
- "postgres",
- "serde_json",
- "tokio",
-]
 
 [[package]]
 name = "form_urlencoded"

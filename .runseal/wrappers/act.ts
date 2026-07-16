@@ -28,17 +28,17 @@ await Deno.writeTextFile(
   `[listen]\nhost = "${host}"\nport = ${port}\nprefix = ""\n\n[store]\nkind = "memory"\n\n[identity]\nunit = "Actor"\n\n[cache]\nkind = "memory"\n`,
 );
 
-io.print("==> build forgejo");
+io.print("==> build codehull");
 await bin("cargo").run(["build", "--locked"], { cwd: root });
 
-io.print(`==> boot forgejo on ${base}`);
+io.print(`==> boot codehull on ${base}`);
 const pg = Deno.env.get("KEEL_PG");
 const s3 = Deno.env.get("KEEL_S3");
 const env: Record<string, string> = pg ? { KEEL_PG: pg, KEEL_FRESH: "1" } : {};
 if (s3) {
   env.KEEL_S3 = s3;
-  env.KEEL_S3_KEY = Deno.env.get("KEEL_S3_KEY") ?? "forgejo";
-  env.KEEL_S3_SECRET = Deno.env.get("KEEL_S3_SECRET") ?? "forgejo123";
+  env.KEEL_S3_KEY = Deno.env.get("KEEL_S3_KEY") ?? "codehull";
+  env.KEEL_S3_SECRET = Deno.env.get("KEEL_S3_SECRET") ?? "codehull123";
 }
 if (pg) {
   io.print("==> store: postgres");
@@ -856,7 +856,7 @@ async function bucket(_endpoint: string): Promise<void> {
       "mc",
       "mb",
       "-p",
-      "local/forgejo",
+      "local/codehull",
     ],
     stdout: "null",
     stderr: "null",
@@ -872,8 +872,8 @@ async function bucket(_endpoint: string): Promise<void> {
       "set",
       "local",
       "http://127.0.0.1:9000",
-      "forgejo",
-      "forgejo123",
+      "codehull",
+      "codehull123",
     ],
     stdout: "null",
     stderr: "null",

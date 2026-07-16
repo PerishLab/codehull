@@ -1,4 +1,4 @@
-# forgejo
+# codehull
 
 Forgejo on keel: the absorption touchstone.
 
@@ -27,7 +27,7 @@ delete.
 
 ```sh
 cargo run -- .
-# sudo token prints once on first boot; store is .local/forgejo.sqlite
+# sudo token prints once on first boot; store is .local/codehull.sqlite
 curl -s -X POST 127.0.0.1:3400/register -H 'content-type: application/json' -d '{"login":"ada"}'
 ```
 

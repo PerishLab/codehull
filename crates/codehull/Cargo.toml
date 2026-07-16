@@ -1,5 +1,5 @@
 [package]
-name = "forgejo"
+name = "codehull"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -8,7 +8,7 @@ description = "Forgejo on keel: the absorption touchstone"
 publish = false
 
 [[bin]]
-name = "forgejo"
+name = "codehull"
 path = "src/main.rs"
 
 [dependencies]

@@ -1,12 +1,12 @@
 [workspace]
 resolver = "3"
-members = ["crates/forgejo"]
+members = ["crates/codehull"]
 
 [workspace.package]
 version = "0.1.0"
 edition = "2024"
 license = "MIT"
-repository = "https://git.perish.top/PerishLab/forgejo"
+repository = "https://git.perish.top/PerishLab/codehull"
 
 [workspace.dependencies]
 axum = "0.8"

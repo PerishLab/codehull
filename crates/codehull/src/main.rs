@@ -469,7 +469,7 @@ async fn serve<S: Store + 'static>(core: Arc<Core<S>>, cfg: &config::Config) {
         Ok(bound) => bound,
         Err(err) => halt("listen", &err.to_string()),
     };
-    eprintln!("forgejo: ready on http://{addr}");
+    eprintln!("codehull: ready on http://{addr}");
     if let Err(err) = axum::serve(bound, router).await {
         halt("serve", &err.to_string());
     }
@@ -491,12 +491,12 @@ fn fresh(url: &str) {
 
 fn hoard<S: Store + 'static>(core: &Arc<Core<S>>) -> Option<Vault<S>> {
     let endpoint = env::var("KEEL_S3").ok()?;
-    let key = env::var("KEEL_S3_KEY").unwrap_or_else(|_| "forgejo".into());
-    let secret = env::var("KEEL_S3_SECRET").unwrap_or_else(|_| "forgejo123".into());
+    let key = env::var("KEEL_S3_KEY").unwrap_or_else(|_| "codehull".into());
+    let secret = env::var("KEEL_S3_SECRET").unwrap_or_else(|_| "codehull123".into());
     match Vault::open(
         core.clone(),
         &endpoint,
-        "forgejo",
+        "codehull",
         "us-east-1",
         &key,
         &secret,
@@ -507,7 +507,7 @@ fn hoard<S: Store + 'static>(core: &Arc<Core<S>>) -> Option<Vault<S>> {
 }
 
 fn halt(seat: &str, note: &str) -> ! {
-    eprintln!("forgejo: {seat}: {note}");
+    eprintln!("codehull: {seat}: {note}");
     std::process::exit(1)
 }
 
