@@ -18,6 +18,8 @@ struct Actor {
     login: string,
     #[relation(Repo, many2many)]
     stars: Repo,
+    #[relation(Actor, many2many)]
+    follows: Actor,
 }
 
 #[resource]
@@ -110,6 +112,8 @@ struct Issue {
     assignees: Actor,
     #[relation(Label, many2many)]
     labels: Label,
+    #[relation(Issue, many2many)]
+    blocks: Issue,
 }
 
 #[resource]
@@ -232,8 +236,9 @@ fn seed(core: &Arc<Core<Sqlite>>) -> Result<(), keel::adapt::Error> {
         return Ok(());
     }
     let sudo = core.sudo();
-    let rows: [(&str, &str, &str, &str); 8] = [
+    let rows: [(&str, &str, &str, &str); 9] = [
         ("anon", "put", "Actor", "all"),
+        ("anon", "see", "Actor", "all"),
         ("anon", "see", "Repo", r#"pred visibility = "public""#),
         ("all", "put", "Repo", r#"pred owner = "@me""#),
         ("all", "put", "Issue", r#"pred author = "@me""#),
