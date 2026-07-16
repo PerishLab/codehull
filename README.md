@@ -23,10 +23,17 @@ issue blocks), Reaction (needs composite unique), org-scoped labels,
 org+owners batch atomicity, text search, sort-by-aggregate, repo closure
 delete.
 
+## Shape
+
+- `crates/api` — the server; the keel caller.
+- `crates/cli` — the client; gh for codehull.
+- `apps/web` + `packages/components` — the web face (pnpm workspace).
+- `charts/codehull` — the helm delivery.
+
 ## Run
 
 ```sh
-cargo run -- .
+cargo run -p api -- .
 # sudo token prints once on first boot; store is .local/codehull.sqlite
 curl -s -X POST 127.0.0.1:3400/register -H 'content-type: application/json' -d '{"login":"ada"}'
 ```

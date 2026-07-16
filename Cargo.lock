@@ -15,6 +15,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "api"
+version = "0.1.0"
+dependencies = [
+ "axum",
+ "keel",
+ "keel-blob",
+ "keel-gate",
+ "keel-relay",
+ "postgres",
+ "serde_json",
+ "tokio",
+]
+
+[[package]]
 name = "async-trait"
 version = "0.1.89"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -159,24 +173,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "cli"
+version = "0.1.0"
+
+[[package]]
 name = "cmov"
 version = "0.5.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0c9ea0ac24bc397ab3c98583a3c9ba74fa56b09a4449bbe172b9b1ddb016027a"
-
-[[package]]
-name = "codehull"
-version = "0.1.0"
-dependencies = [
- "axum",
- "keel",
- "keel-blob",
- "keel-gate",
- "keel-relay",
- "postgres",
- "serde_json",
- "tokio",
-]
 
 [[package]]
 name = "const-oid"

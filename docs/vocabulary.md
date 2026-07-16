@@ -1,13 +1,19 @@
 # Vocabulary
 
-- `codehull` — this caller; the absorption touchstone.
+- `codehull` — this product; the absorption touchstone. Also the cli
+  binary name.
+- `api` — the server crate; the keel caller.
+- `cli` — the client crate; gh for codehull.
+- `web` / `components` — the pnpm workspace: the vite app and the
+  component library (sole style territory).
+- `charts` — the helm delivery.
 - `stamp` — dev middleware: `x-login` header to operator (toy, replaced by
   gate credentials in anger).
 - `rig` / `post` — boot ceremony: idempotent service operators + package
   rises.
 - `seed` — the eight-row grant policy sown once at first boot.
 - `halt` — boot failure exit.
-- `act` — the staged scenario runner over the codehull binary (`:act`,
+- `act` — the staged scenario runner over the api binary (`:act`,
   one act per spec stage).
 - `join` / `want` / `visible` / `grant` — act helpers: register a user,
   assert a 201 write, probe repo visibility, seed a grant.

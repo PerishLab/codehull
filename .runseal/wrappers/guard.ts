@@ -19,6 +19,33 @@ await bin("cargo").run([
 io.print("==> cargo test");
 await bin("cargo").run(["test", "--locked", "--workspace"]);
 
+io.print("==> pnpm install");
+await bin("pnpm").run(["install", "--frozen-lockfile"]);
+
+io.print("==> biome");
+await bin("pnpm").run(["biome", "ci", "."]);
+
+io.print("==> tsc");
+await bin("pnpm").run(["-r", "exec", "tsc", "--noEmit"]);
+
+io.print("==> vitest");
+await bin("pnpm").run(["-r", "test"]);
+
+io.print("==> helm lint");
+const helm = (Deno.env.get("PATH") ?? "").split(":").some((dir) => {
+  try {
+    Deno.statSync(`${dir}/helm`);
+    return true;
+  } catch {
+    return false;
+  }
+});
+if (helm) {
+  await bin("helm").run(["lint", "charts/codehull", "--quiet"]);
+} else {
+  io.print("helm absent: chart lint stays a local gate");
+}
+
 io.print("==> deno fmt");
 await bin("deno").run(["fmt", "--check", ".runseal"]);
 

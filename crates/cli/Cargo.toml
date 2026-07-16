@@ -1,0 +1,12 @@
+[package]
+name = "cli"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "the codehull client: gh for codehull"
+publish = false
+
+[[bin]]
+name = "codehull"
+path = "src/main.rs"

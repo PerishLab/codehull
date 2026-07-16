@@ -28,10 +28,10 @@ await Deno.writeTextFile(
   `[listen]\nhost = "${host}"\nport = ${port}\nprefix = ""\n\n[store]\nkind = "memory"\n\n[identity]\nunit = "Actor"\n\n[cache]\nkind = "memory"\n`,
 );
 
-io.print("==> build codehull");
+io.print("==> build api");
 await bin("cargo").run(["build", "--locked"], { cwd: root });
 
-io.print(`==> boot codehull on ${base}`);
+io.print(`==> boot api on ${base}`);
 const pg = Deno.env.get("KEEL_PG");
 const s3 = Deno.env.get("KEEL_S3");
 const env: Record<string, string> = pg ? { KEEL_PG: pg, KEEL_FRESH: "1" } : {};
@@ -44,7 +44,7 @@ if (pg) {
   io.print("==> store: postgres");
 }
 const child = new Deno.Command("cargo", {
-  args: ["run", "--locked", "--", dir],
+  args: ["run", "--locked", "-p", "api", "--", dir],
   cwd: root,
   env,
   stdin: "null",

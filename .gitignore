@@ -1,3 +1,5 @@
 /target
 /.local
 /.task
+node_modules/
+dist/
