@@ -119,6 +119,57 @@ try {
     }
   });
 
+  io.print("==> act 2: reactions");
+  await check("one reaction per actor-issue-emoji", async () => {
+    const pub = await want("/repo", {
+      name: "open",
+      visibility: "public",
+      owner: ada.id,
+      trunk: "main",
+      archived: false,
+    }, ada.head);
+    const repo = num(pub.id);
+    const issue = await want("/issue", {
+      title: "hi",
+      body: "",
+      closed: false,
+      repo,
+      author: bob.id,
+    }, bob.head);
+    const on = num(issue.id);
+    await want("/reaction", { emoji: "up", issue: on, actor: bob.id }, bob.head);
+    await want("/reaction", { emoji: "tada", issue: on, actor: bob.id }, bob.head);
+    const dup = await post(
+      "/reaction",
+      { emoji: "up", issue: on, actor: bob.id },
+      bob.head,
+    );
+    if (dup.status !== 409) {
+      throw new Error(`dup reaction ${dup.status}`);
+    }
+    const held = await query(
+      `from Reaction where issue = "${on}" and emoji = "up"`,
+      bob.head,
+    );
+    const bag = (held.bags as Record<string, Array<Record<string, unknown>>>)
+      .reaction;
+    const gone = await fetch(`${base}/reaction/${num(bag[0].id)}`, {
+      method: "DELETE",
+      headers: bob.head,
+    });
+    if (gone.status !== 204) {
+      throw new Error(`undo ${gone.status}`);
+    }
+    const again = await post(
+      "/reaction",
+      { emoji: "up", issue: on, actor: bob.id },
+      bob.head,
+    );
+    if (again.status !== 201) {
+      throw new Error(`re-react ${again.status}`);
+    }
+  });
+
   io.print("act: clean");
 } catch (err) {
   failed = true;

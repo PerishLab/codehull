@@ -129,6 +129,16 @@ struct Comment {
 }
 
 #[resource]
+struct Reaction {
+    #[field(string, unique = (actor, issue))]
+    emoji: string,
+    #[relation(Issue, many2one, root)]
+    issue: Issue,
+    #[relation(Actor, many2one)]
+    actor: Actor,
+}
+
+#[resource]
 struct Pull {
     #[field(string)]
     base: string,
@@ -177,6 +187,7 @@ async fn main() {
         .plug::<Milestone>()
         .plug::<Issue>()
         .plug::<Comment>()
+        .plug::<Reaction>()
         .plug::<Pull>()
         .plug::<Review>();
     plug(&mut graph);
@@ -238,7 +249,7 @@ fn seed(core: &Arc<Core<Sqlite>>) -> Result<(), keel::adapt::Error> {
         return Ok(());
     }
     let sudo = core.sudo();
-    let rows: [(&str, &str, &str, &str); 10] = [
+    let rows: [(&str, &str, &str, &str); 12] = [
         ("anon", "put", "Actor", r#"pred kind = "user""#),
         ("anon", "see", "Actor", "all"),
         ("all", "put", "Actor", r#"pred kind = "org""#),
@@ -249,6 +260,8 @@ fn seed(core: &Arc<Core<Sqlite>>) -> Result<(), keel::adapt::Error> {
         ("all", "see", "Issue", r#"pred author = "@me""#),
         ("all", "put", "Comment", r#"pred author = "@me""#),
         ("all", "see", "Comment", r#"pred author = "@me""#),
+        ("all", "put", "Reaction", r#"pred actor = "@me""#),
+        ("all", "see", "Reaction", r#"pred actor = "@me""#),
     ];
     for (who, verb, unit, scope) in rows {
         sudo.put(
