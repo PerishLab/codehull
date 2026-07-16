@@ -1,0 +1,18 @@
+[scan]
+include = [
+  "crates/**/*.rs",
+  "docs/**/*.md",
+]
+exclude = [
+  "**/target/**",
+]
+
+[module]
+roots = [
+  "crates/*/src",
+  "docs",
+]
+
+[limit]
+block = 4
+path = 4

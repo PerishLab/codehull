@@ -1,0 +1,19 @@
+[package]
+name = "forgejo"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Forgejo on keel: the absorption touchstone"
+publish = false
+
+[[bin]]
+name = "forgejo"
+path = "src/main.rs"
+
+[dependencies]
+axum = { workspace = true }
+keel = { workspace = true }
+keel-gate = { workspace = true }
+keel-relay = { workspace = true }
+tokio = { workspace = true }

@@ -1,0 +1,16 @@
+[workspace]
+resolver = "3"
+members = ["crates/forgejo"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+license = "MIT"
+repository = "https://git.perish.top/PerishLab/forgejo"
+
+[workspace.dependencies]
+axum = "0.8"
+keel = { git = "ssh://git@git.perish.top/PerishLab/keel.git" }
+keel-gate = { git = "ssh://git@git.perish.top/PerishLab/keel.git" }
+keel-relay = { git = "ssh://git@git.perish.top/PerishLab/keel.git" }
+tokio = { version = "1", features = ["io-util", "macros", "net", "rt-multi-thread", "time"] }
