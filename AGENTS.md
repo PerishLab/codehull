@@ -11,5 +11,7 @@ authority, events, cache are keel's). The laws of the engine live in
   workspace sibling of keel; distribution follows keel's channel.
 - Model changes are law-shaped: extend the slice in `docs/model.md`,
   then code.
-- `cargo build && cargo run -- .` must stay green; scenario gates arrive
-  with slice two.
+- Stage law: `docs/spec.md` (F0 foundations → F7 equivalence audit).
+- Never commit on `main`; branch, then `runseal :guard` and `runseal :land`.
+- Engine gaps become keel issues and registry releases, never local
+  workarounds.

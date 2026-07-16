@@ -250,7 +250,12 @@ fn seed(core: &Arc<Core<Sqlite>>) -> Result<(), keel::adapt::Error> {
     for (who, verb, unit, scope) in rows {
         sudo.put(
             "@grant",
-            &[("who", who), ("verb", verb), ("unit", unit), ("scope", scope)],
+            &[
+                ("who", who),
+                ("verb", verb),
+                ("unit", unit),
+                ("scope", scope),
+            ],
         )?;
     }
     Ok(())
