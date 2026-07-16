@@ -33,7 +33,13 @@ await bin("cargo").run(["build", "--locked"], { cwd: root });
 
 io.print(`==> boot forgejo on ${base}`);
 const pg = Deno.env.get("KEEL_PG");
+const s3 = Deno.env.get("KEEL_S3");
 const env: Record<string, string> = pg ? { KEEL_PG: pg, KEEL_FRESH: "1" } : {};
+if (s3) {
+  env.KEEL_S3 = s3;
+  env.KEEL_S3_KEY = Deno.env.get("KEEL_S3_KEY") ?? "forgejo";
+  env.KEEL_S3_SECRET = Deno.env.get("KEEL_S3_SECRET") ?? "forgejo123";
+}
 if (pg) {
   io.print("==> store: postgres");
 }
@@ -187,6 +193,47 @@ try {
     }
   });
 
+  if (s3) {
+    io.print("==> act 5: blobs");
+    await bucket(s3);
+    await check("presigned upload, gated download", async () => {
+      const made = await want(
+        "/asset",
+        { name: "logo.png", mime: "image/png", size: 5, hash: "h1", owner: bob.id },
+        bob.head,
+      );
+      const put = made.put as string;
+      const body = new Uint8Array([1, 2, 3, 4, 5]);
+      const up = await fetch(put, { method: "PUT", body });
+      if (!up.ok) {
+        throw new Error(`presigned put ${up.status}`);
+      }
+      const id = num(made.id);
+      const seen = await fetch(`${base}/asset/${id}`, {
+        headers: bob.head,
+        redirect: "manual",
+      });
+      if (seen.status !== 302) {
+        throw new Error(`expected 302, got ${seen.status}`);
+      }
+      const where = seen.headers.get("location") ?? "";
+      await seen.body?.cancel();
+      const got = await fetch(where);
+      const back = new Uint8Array(await got.arrayBuffer());
+      if (back.length !== 5 || back[0] !== 1 || back[4] !== 5) {
+        throw new Error("bytes round-trip mismatch");
+      }
+      const blind = await fetch(`${base}/asset/${id}`, {
+        headers: cy.head,
+        redirect: "manual",
+      });
+      await blind.body?.cancel();
+      if (blind.status !== 404) {
+        throw new Error(`stranger expected 404, got ${blind.status}`);
+      }
+    });
+  }
+
   io.print("act: clean");
 } catch (err) {
   failed = true;
@@ -323,4 +370,40 @@ async function check(label: string, run: () => Promise<void>): Promise<void> {
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function bucket(_endpoint: string): Promise<void> {
+  const make = new Deno.Command("docker", {
+    args: [
+      "compose",
+      "exec",
+      "-T",
+      "minio",
+      "mc",
+      "mb",
+      "-p",
+      "local/forgejo",
+    ],
+    stdout: "null",
+    stderr: "null",
+  });
+  const set = new Deno.Command("docker", {
+    args: [
+      "compose",
+      "exec",
+      "-T",
+      "minio",
+      "mc",
+      "alias",
+      "set",
+      "local",
+      "http://127.0.0.1:9000",
+      "forgejo",
+      "forgejo123",
+    ],
+    stdout: "null",
+    stderr: "null",
+  });
+  await set.output();
+  await make.output();
 }

@@ -18,3 +18,6 @@
 - `raise` / `serve` — store-generic boot: identify, cache mode, share;
   seed, rise packages, wall, listen. Works over Sqlite or Postgres.
 - `fresh` — dev-only PG schema reset (`KEEL_FRESH`), off the async runtime.
+- `stock` — plug the Asset unit into the graph (keel-blob macro).
+- `hoard` — build the Vault from `KEEL_S3` env, or None (blob disabled).
+- `bucket` — act helper: ensure the MinIO bucket exists via mc.

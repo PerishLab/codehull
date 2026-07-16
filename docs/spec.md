@@ -26,7 +26,7 @@ only through the perish registry.
 | F2 | issue suite completed: Reaction (keel U4 → #2), issue search (keel text pred → #4), sort by comments (keel agg order → #5) | full issue lifecycle incl. reactions, search, busiest-first |
 | F3 | pull & review: Review threads (Note), approvals, merge state | review round-trip with line notes; merge flips state under authority |
 | F4 | watch & notify: watches, notifications as materialized queries, relay webhooks with TLS | watcher sees unread feed; webhook fires coverage-bound over https |
-| F5 | blob plane: `keel-blob` package (metadata rows + MinIO bytes), attachments, avatars, release assets | upload/download capability-gated; bytes never touch keel |
+| F5 | blob plane: `keel-blob` (Asset metadata + presigned MinIO bytes), `KEEL_S3=... runseal :act` | presigned upload, 302 gated download, stranger 404; keel never touches bytes |
 | F6 | admin & lifecycle: suspension (gate refusal), org labels exactly-one (keel → #6), repo closure delete (keel F9a → #7) | admin suspends; repo deletion closes the subtree |
 | F7 | equivalence audit: ledger sweep against the dream-code model; gap list either closed or chartered | the capability diff against real Forgejo reads empty in-boundary |
 

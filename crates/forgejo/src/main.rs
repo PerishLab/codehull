@@ -11,6 +11,7 @@ use keel::config;
 use keel::resource;
 use keel::store::Store;
 use keel::{Core, Graph, Operator, app, bind};
+use keel_blob::Vault;
 use keel_gate::Gate;
 use keel_relay::Relay;
 use serde_json::{Map, Value, json};
@@ -174,6 +175,8 @@ keel_gate::gate!(Actor);
 
 keel_relay::relay!(Actor);
 
+keel_blob::blob!(Actor);
+
 fn shape() -> Graph {
     let mut graph = Graph::new();
     graph
@@ -191,6 +194,7 @@ fn shape() -> Graph {
         .plug::<Review>();
     plug(&mut graph);
     wire(&mut graph);
+    stock(&mut graph);
     graph
 }
 
@@ -244,8 +248,13 @@ async fn serve<S: Store + 'static>(core: Arc<Core<S>>, cfg: &config::Config) {
     let plate = Router::new()
         .route("/org", post(found::<S>))
         .with_state(core.clone());
+    let base = app(core.clone(), &cfg.listen.prefix).merge(plate);
+    let shelved = match hoard(&core) {
+        Some(vault) => vault.shelf(base),
+        None => base,
+    };
     let router = door
-        .wall(app(core.clone(), &cfg.listen.prefix).merge(plate))
+        .wall(shelved)
         .layer(middleware::from_fn_with_state(core.clone(), stamp::<S>));
     let addr = format!("{}:{}", cfg.listen.host, cfg.listen.port);
     let bound = match tokio::net::TcpListener::bind(&addr).await {
@@ -269,6 +278,23 @@ fn fresh(url: &str) {
         Ok(Ok(())) => {}
         Ok(Err(err)) => halt("fresh", &err.to_string()),
         Err(_) => halt("fresh", "reset thread panicked"),
+    }
+}
+
+fn hoard<S: Store + 'static>(core: &Arc<Core<S>>) -> Option<Vault<S>> {
+    let endpoint = env::var("KEEL_S3").ok()?;
+    let key = env::var("KEEL_S3_KEY").unwrap_or_else(|_| "forgejo".into());
+    let secret = env::var("KEEL_S3_SECRET").unwrap_or_else(|_| "forgejo123".into());
+    match Vault::open(
+        core.clone(),
+        &endpoint,
+        "forgejo",
+        "us-east-1",
+        &key,
+        &secret,
+    ) {
+        Ok(vault) => Some(vault),
+        Err(err) => halt("vault", &err.to_string()),
     }
 }
 
@@ -298,7 +324,7 @@ fn seed<S: Store>(core: &Arc<Core<S>>) -> Result<(), keel::adapt::Error> {
         return Ok(());
     }
     let sudo = core.sudo();
-    let rows: [(&str, &str, &str, &str); 12] = [
+    let rows: [(&str, &str, &str, &str); 14] = [
         ("anon", "put", "Actor", r#"pred kind = "user""#),
         ("anon", "see", "Actor", "all"),
         ("all", "put", "Actor", r#"pred kind = "org""#),
@@ -311,6 +337,8 @@ fn seed<S: Store>(core: &Arc<Core<S>>) -> Result<(), keel::adapt::Error> {
         ("all", "see", "Comment", r#"pred author = "@me""#),
         ("all", "put", "Reaction", r#"pred actor = "@me""#),
         ("all", "see", "Reaction", r#"pred actor = "@me""#),
+        ("all", "put", "Asset", r#"pred owner = "@me""#),
+        ("all", "see", "Asset", r#"pred owner = "@me""#),
     ];
     for (who, verb, unit, scope) in rows {
         sudo.put(
