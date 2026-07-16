@@ -7,3 +7,8 @@
   rises.
 - `seed` — the eight-row grant policy sown once at first boot.
 - `halt` — boot failure exit.
+- `act` — the staged scenario runner over the forgejo binary (`:act`,
+  one act per spec stage).
+- `join` / `want` / `visible` / `grant` — act helpers: register a user,
+  assert a 201 write, probe repo visibility, seed a grant.
+- `kind` — Actor field: user / org / svc (Forgejo's actor unification).

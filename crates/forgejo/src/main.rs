@@ -16,6 +16,8 @@ use std::sync::Arc;
 struct Actor {
     #[field(string, unique)]
     login: string,
+    #[field(string)]
+    kind: string,
     #[relation(Repo, many2many)]
     stars: Repo,
     #[relation(Actor, many2many)]
@@ -40,7 +42,7 @@ struct Team {
     mode: string,
     #[relation(Actor, many2one, root)]
     org: Actor,
-    #[relation(Actor, many2many)]
+    #[relation(Actor, many2many, crew)]
     members: Actor,
     #[relation(Repo, many2many)]
     repos: Repo,
@@ -226,7 +228,7 @@ fn post(core: &Arc<Core<Sqlite>>, login: &str) -> Result<i64, keel::adapt::Error
     let held = core.query(&format!(r#"from Actor where login = "{login}""#))?;
     match held.rows().first() {
         Some(row) => Ok(row.key()),
-        None => core.put("Actor", &[("login", login)]),
+        None => core.put("Actor", &[("login", login), ("kind", "svc")]),
     }
 }
 
@@ -236,9 +238,10 @@ fn seed(core: &Arc<Core<Sqlite>>) -> Result<(), keel::adapt::Error> {
         return Ok(());
     }
     let sudo = core.sudo();
-    let rows: [(&str, &str, &str, &str); 9] = [
-        ("anon", "put", "Actor", "all"),
+    let rows: [(&str, &str, &str, &str); 10] = [
+        ("anon", "put", "Actor", r#"pred kind = "user""#),
         ("anon", "see", "Actor", "all"),
+        ("all", "put", "Actor", r#"pred kind = "org""#),
         ("anon", "see", "Repo", r#"pred visibility = "public""#),
         ("all", "put", "Repo", r#"pred owner = "@me""#),
         ("all", "put", "Issue", r#"pred author = "@me""#),
