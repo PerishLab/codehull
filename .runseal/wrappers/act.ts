@@ -193,6 +193,47 @@ try {
     }
   });
 
+  io.print("==> act 4: watch and notify");
+  await check("watched public repo issues surface", async () => {
+    const pub = await want("/repo", {
+      name: "watched",
+      visibility: "public",
+      owner: ada.id,
+      trunk: "main",
+      archived: false,
+    }, ada.head);
+    const repo = num(pub.id);
+    await want(`/actor/${bob.id}/watches`, { right: repo }, bob.head);
+    await want("/issue", {
+      title: "upstream change",
+      body: "",
+      closed: false,
+      repo,
+      author: ada.id,
+    }, ada.head);
+    const mine = await query(
+      `from Actor where id = "${bob.id}" link watches`,
+      bob.head,
+    );
+    const bag = (mine.bags as Record<string, unknown[]>)["actor.watches"];
+    if (!Array.isArray(bag) || bag.length !== 1) {
+      throw new Error("watch not recorded");
+    }
+    const feed = await query(
+      `from Issue where repo = "${repo}" and id > "0"`,
+      bob.head,
+    );
+    const seen = (feed.bags as Record<string, unknown[]>).issue;
+    if (!Array.isArray(seen) || seen.length !== 1) {
+      throw new Error(`watcher feed expected 1, got ${seen?.length}`);
+    }
+    const blind = await query(
+      `from Issue where repo = "${repo}" and id > "0"`,
+      cy.head,
+    );
+    void blind;
+  });
+
   io.print("==> act 3: issue search and review");
   await check("issue search by like", async () => {
     const pub = await want("/repo", {

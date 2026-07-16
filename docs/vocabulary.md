@@ -22,3 +22,4 @@
 - `hoard` — build the Vault from `KEEL_S3` env, or None (blob disabled).
 - `bucket` — act helper: ensure the MinIO bucket exists via mc.
 - Act 3 covers issue search (`like`) and PR review round-trip (Pull one2one Issue, Review, Note, gated merge).
+- Act 4 watch/notify: `Actor.watches`, feed = materialized query over watched repos (pull model); pred-subtree (C-16) surfaces public-repo issues to watchers.

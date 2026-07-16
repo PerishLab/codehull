@@ -27,6 +27,8 @@ struct Actor {
     kind: string,
     #[relation(Repo, many2many)]
     stars: Repo,
+    #[relation(Repo, many2many)]
+    watches: Repo,
     #[relation(Actor, many2many)]
     follows: Actor,
 }
