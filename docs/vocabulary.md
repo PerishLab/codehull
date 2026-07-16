@@ -27,3 +27,4 @@
   issues/labels/milestones then the repo, all-or-nothing. #7 (F9a) resolved
   without an engine primitive — batch + forward queries suffice.
 - Route (alias) — axum Path renamed to avoid the std::path::Path clash.
+- Act 7 suspension: Actor.barred + gate.bar hook; a suspended token stops resolving to an operator (private repo 200→404).

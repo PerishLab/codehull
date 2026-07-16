@@ -63,6 +63,7 @@ const drain = (async () => {
 let failed = false;
 try {
   await ready(`${base}/health`, 40);
+  const crown = { authorization: `sudo ${await sudo()}` };
 
   io.print("==> act 1: org governance");
   const ada = await join("ada");
@@ -377,6 +378,46 @@ try {
     }
   });
 
+  io.print("==> act 7: suspension");
+  await check("suspended operator is refused", async () => {
+    const made = await want(
+      "/register",
+      { login: "banned", kind: "user", barred: false },
+      {},
+    );
+    const id = num(made.id);
+    const token = made.token as string;
+    const head = { authorization: `token ${token}` };
+    const vault = num(
+      (await want("/repo", {
+        name: "secret",
+        visibility: "private",
+        owner: id,
+        trunk: "main",
+        archived: false,
+      }, head)).id,
+    );
+    const before = await fetch(`${base}/repo/${vault}`, { headers: head });
+    await before.body?.cancel();
+    if (before.status !== 200) {
+      throw new Error(`operator cannot see own repo ${before.status}`);
+    }
+    const bar = await fetch(`${base}/actor/${id}`, {
+      method: "PATCH",
+      headers: { "content-type": "application/json", ...crown },
+      body: JSON.stringify({ barred: true }),
+    });
+    await bar.body?.cancel();
+    if (!bar.ok) {
+      throw new Error(`suspend ${bar.status}`);
+    }
+    const after = await fetch(`${base}/repo/${vault}`, { headers: head });
+    await after.body?.cancel();
+    if (after.status !== 404) {
+      throw new Error(`suspended operator still resolves ${after.status}`);
+    }
+  });
+
   if (s3) {
     io.print("==> act 5: blobs");
     await bucket(s3);
@@ -445,7 +486,7 @@ if (failed) {
 type Seat = { id: number; head: Record<string, string> };
 
 async function join(login: string): Promise<Seat> {
-  const made = await want("/register", { login, kind: "user" });
+  const made = await want("/register", { login, kind: "user", barred: false });
   const token = made.token as string;
   return { id: num(made.id), head: { authorization: `token ${token}` } };
 }
@@ -524,6 +565,17 @@ function bond(
     throw new Error(`missing bond bag ${key}`);
   }
   return rows as Array<Record<string, unknown>>;
+}
+
+async function sudo(): Promise<string> {
+  for (let i = 0; i < 40; i++) {
+    const hit = boot.match(/sudo token ([0-9a-f]+)/);
+    if (hit) {
+      return hit[1];
+    }
+    await sleep(250);
+  }
+  throw new Error("no sudo token in boot log");
 }
 
 function num(value: unknown): number {

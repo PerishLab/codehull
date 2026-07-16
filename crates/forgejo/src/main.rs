@@ -25,6 +25,8 @@ struct Actor {
     login: string,
     #[field(string)]
     kind: string,
+    #[field(bool)]
+    barred: bool,
     #[relation(Repo, many2many)]
     stars: Repo,
     #[relation(Repo, many2many)]
@@ -323,14 +325,17 @@ fn rig<S: Store + 'static>(core: &Arc<Core<S>>) -> Result<Gate<S>, keel::adapt::
     let gate = hail(core, "gate")?;
     let mail = hail(core, "relay")?;
     Relay::rise(core.clone(), mail)?.run();
-    Gate::rise(core.clone(), gate)
+    Ok(Gate::rise(core.clone(), gate)?.bar("barred"))
 }
 
 fn hail<S: Store>(core: &Arc<Core<S>>, login: &str) -> Result<i64, keel::adapt::Error> {
     let held = core.query(&format!(r#"from Actor where login = "{login}""#))?;
     match held.rows().first() {
         Some(row) => Ok(row.key()),
-        None => core.put("Actor", &[("login", login), ("kind", "svc")]),
+        None => core.put(
+            "Actor",
+            &[("login", login), ("kind", "svc"), ("barred", "false")],
+        ),
     }
 }
 
@@ -413,7 +418,10 @@ async fn found<S: Store + 'static>(
     let face = core.of(actor);
     let org = face
         .batch(|tx| {
-            let org = tx.put("Actor", &[("login", &name), ("kind", "org")])?;
+            let org = tx.put(
+                "Actor",
+                &[("login", &name), ("kind", "org"), ("barred", "false")],
+            )?;
             let team = tx.put(
                 "Team",
                 &[
