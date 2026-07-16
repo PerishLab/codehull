@@ -1,4 +1,4 @@
-use axum::extract::{Request, State};
+use axum::extract::{Path as Route, Request, State};
 use axum::http::StatusCode;
 use axum::middleware::{self, Next};
 use axum::response::Response;
@@ -262,6 +262,7 @@ async fn serve<S: Store + 'static>(core: Arc<Core<S>>, cfg: &config::Config) {
     };
     let plate = Router::new()
         .route("/org", post(found::<S>))
+        .route("/repo/{id}/close", post(close::<S>))
         .with_state(core.clone());
     let base = app(core.clone(), &cfg.listen.prefix).merge(plate);
     let shelved = match hoard(&core) {
@@ -443,4 +444,37 @@ async fn found<S: Store + 'static>(
         })
         .map_err(|_| StatusCode::FORBIDDEN)?;
     Ok((StatusCode::CREATED, Json(json!({ "id": org }))))
+}
+
+async fn close<S: Store + 'static>(
+    State(core): State<Arc<Core<S>>>,
+    Route(id): Route<i64>,
+    op: Option<Extension<Operator>>,
+) -> Result<StatusCode, StatusCode> {
+    let who = op
+        .map(|Extension(Operator(id))| id)
+        .ok_or(StatusCode::UNAUTHORIZED)?;
+    let face = core.of(who);
+    let kids = |unit: &str| -> Result<Vec<i64>, keel::adapt::Error> {
+        let pack = face.query(&format!(r#"from {unit} where repo = "{id}""#))?;
+        Ok(pack.rows().iter().map(keel::Row::key).collect())
+    };
+    let issues = kids("Issue").map_err(|_| StatusCode::FORBIDDEN)?;
+    let labels = kids("Label").map_err(|_| StatusCode::FORBIDDEN)?;
+    let milestones = kids("Milestone").map_err(|_| StatusCode::FORBIDDEN)?;
+    face.batch(|tx| {
+        for key in &issues {
+            tx.end("Issue", *key)?;
+        }
+        for key in &labels {
+            tx.end("Label", *key)?;
+        }
+        for key in &milestones {
+            tx.end("Milestone", *key)?;
+        }
+        tx.end("Repo", id)?;
+        Ok(())
+    })
+    .map_err(|_| StatusCode::CONFLICT)?;
+    Ok(StatusCode::NO_CONTENT)
 }

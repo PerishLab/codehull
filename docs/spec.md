@@ -27,7 +27,7 @@ only through the perish registry.
 | F3 | pull & review: Review threads (Note), approvals, merge state — DONE | review round-trip with line notes; merge flips state under authority |
 | F4 | watch & notify: watches (Actor.watches), notifications as materialized queries (feed = issues in watched repos, id cursor), relay webhooks | watcher sees public-repo issue feed via C-16; webhooks live via relay |
 | F5 | blob plane: `keel-blob` (Asset metadata + presigned MinIO bytes), `KEEL_S3=... runseal :act` | presigned upload, 302 gated download, stranger 404; keel never touches bytes |
-| F6 | admin & lifecycle: suspension (gate refusal), org labels exactly-one (keel → #6), repo closure delete (keel F9a → #7) | admin suspends; repo deletion closes the subtree |
+| F6 | admin & lifecycle: repo closure delete via caller-space **batch** (no engine seat) — DONE; suspension (gate-refusal hook) and org-label exactly-one (two-unit modeling) charted | bare delete 409s under K3, `/close` batch-ends the subtree then deletes |
 | F7 | equivalence audit: ledger sweep against the dream-code model; gap list either closed or chartered | the capability diff against real Forgejo reads empty in-boundary |
 
 ## Must not

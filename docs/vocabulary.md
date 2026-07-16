@@ -23,3 +23,7 @@
 - `bucket` — act helper: ensure the MinIO bucket exists via mc.
 - Act 3 covers issue search (`like`) and PR review round-trip (Pull one2one Issue, Review, Note, gated merge).
 - Act 4 watch/notify: `Actor.watches`, feed = materialized query over watched repos (pull model); pred-subtree (C-16) surfaces public-repo issues to watchers.
+- `close` — repo closure delete: a caller-space batch ends the repo's
+  issues/labels/milestones then the repo, all-or-nothing. #7 (F9a) resolved
+  without an engine primitive — batch + forward queries suffice.
+- Route (alias) — axum Path renamed to avoid the std::path::Path clash.

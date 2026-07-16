@@ -335,6 +335,48 @@ try {
     }
   });
 
+  io.print("==> act 6: closure delete");
+  await check("repo deletion closes the subtree atomically", async () => {
+    const made = await want("/repo", {
+      name: "doomed",
+      visibility: "private",
+      owner: bob.id,
+      trunk: "main",
+      archived: false,
+    }, bob.head);
+    const repo = num(made.id);
+    await want("/issue", {
+      title: "orphan-to-be",
+      body: "",
+      closed: false,
+      repo,
+      author: bob.id,
+    }, bob.head);
+    const direct = await fetch(`${base}/repo/${repo}`, {
+      method: "DELETE",
+      headers: bob.head,
+    });
+    await direct.body?.cancel();
+    if (direct.status !== 409) {
+      throw new Error(`bare delete expected 409, got ${direct.status}`);
+    }
+    const closed = await fetch(`${base}/repo/${repo}/close`, {
+      method: "POST",
+      headers: bob.head,
+    });
+    if (closed.status !== 204) {
+      throw new Error(`closure ${closed.status}`);
+    }
+    const gone = await fetch(`${base}/repo/${repo}`, {
+      method: "DELETE",
+      headers: bob.head,
+    });
+    await gone.body?.cancel();
+    if (gone.status !== 404) {
+      throw new Error(`repo lingered ${gone.status}`);
+    }
+  });
+
   if (s3) {
     io.print("==> act 5: blobs");
     await bucket(s3);
