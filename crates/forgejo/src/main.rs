@@ -117,6 +117,40 @@ struct Label {
 }
 
 #[resource]
+struct OrgLabel {
+    #[field(string, unique = org)]
+    name: string,
+    #[field(string)]
+    color: string,
+    #[relation(Actor, many2one, root)]
+    org: Actor,
+}
+
+#[resource]
+struct OrgRunner {
+    #[field(string)]
+    name: string,
+    #[field(string, unique)]
+    token: string,
+    #[field(string)]
+    labels: string,
+    #[field(string)]
+    status: string,
+    #[relation(Actor, many2one, root)]
+    org: Actor,
+}
+
+#[resource]
+struct OrgSecret {
+    #[field(string, unique = org)]
+    name: string,
+    #[field(string)]
+    data: string,
+    #[relation(Actor, many2one, root)]
+    org: Actor,
+}
+
+#[resource]
 struct Project {
     #[field(string)]
     title: string,
@@ -345,6 +379,9 @@ fn shape() -> Graph {
         .plug::<Topic>()
         .plug::<Repo>()
         .plug::<Label>()
+        .plug::<OrgLabel>()
+        .plug::<OrgRunner>()
+        .plug::<OrgSecret>()
         .plug::<Project>()
         .plug::<Column>()
         .plug::<Release>()

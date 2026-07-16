@@ -584,6 +584,38 @@ try {
     }, bob.head);
   });
 
+  io.print("==> act 11: org-scoped labels, runners, secrets");
+  await check("org owner manages org-scoped entities via team subtree", async () => {
+    const org = num((await want("/org", { login: "guild" }, ada.head)).id);
+    await want("/orglabel", { name: "triage", color: "ff0", org }, ada.head);
+    const dup = await post("/orglabel", { name: "triage", color: "0ff", org }, ada.head);
+    if (dup.status !== 409) {
+      throw new Error(`org label name not scoped-unique ${dup.status}`);
+    }
+    await want("/orgrunner", {
+      name: "shared",
+      token: "ort1",
+      labels: "linux",
+      status: "idle",
+      org,
+    }, ada.head);
+    await want("/orgsecret", { name: "DEPLOY", data: "cipher", org }, ada.head);
+
+    const owned = await query(`from OrgSecret where org = "${org}"`, ada.head);
+    if ((owned.bags as Record<string, unknown[]>).orgsecret.length !== 1) {
+      throw new Error("owner cannot see org secret");
+    }
+    const blind = await query(`from OrgSecret where org = "${org}"`, cy.head);
+    const seen = (blind.bags as Record<string, unknown[]>).orgsecret;
+    if (Array.isArray(seen) && seen.length !== 0) {
+      throw new Error("non-member sees org secret");
+    }
+    const steal = await post("/orgsecret", { name: "GRAB", data: "x", org }, cy.head);
+    if (steal.status !== 403) {
+      throw new Error(`non-member wrote org secret ${steal.status}`);
+    }
+  });
+
   io.print("==> act 7: suspension");
   await check("suspended operator is refused", async () => {
     const made = await want(

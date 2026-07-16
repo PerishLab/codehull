@@ -41,7 +41,7 @@ app code that consumes keel).
 - ✅ Milestones (Milestone, act 10)
 - ✅ Assignees (m2m, act 10)
 - ✅ Dependencies / blocks (self-ref m2m, act 10)
-- 🟡 Org-scoped labels (two-unit modeling, charted; repo labels ✅)
+- ✅ Org-scoped labels (OrgLabel rooted at org, scoped-unique, act 11)
 - ✅ Timeline / activity feed (= `@pulse` stream, audit)
 - ⬜ Time tracking (Stopwatch) — trivial unit, on demand
 - ⬜ Pinned issues, issue templates — trivial, on demand
@@ -60,7 +60,7 @@ app code that consumes keel).
 - ✅ Secrets — ciphertext field, scoped-unique (act 8)
 - ✅ Variables (act 8)
 - ✅ Artifacts (= blob Asset)
-- 🟡 Org / instance runners & secrets (scope modeling; repo scope ✅)
+- ✅ Org runners & secrets (OrgRunner/OrgSecret, team-subtree gated, act 11)
 - ⛔ Workflow execution (spin runners, stream logs)
 
 ## Planning & delivery
