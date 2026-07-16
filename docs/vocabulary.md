@@ -12,3 +12,5 @@
 - `join` / `want` / `visible` / `grant` — act helpers: register a user,
   assert a 201 write, probe repo visibility, seed a grant.
 - `kind` — Actor field: user / org / svc (Forgejo's actor unification).
+- `found` — atomic org creation route: org + owners team + membership + grant in one batch.
+- `hail` — idempotent service-operator lookup-or-create at boot.

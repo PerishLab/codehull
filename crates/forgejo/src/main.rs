@@ -1,6 +1,10 @@
 use axum::extract::{Request, State};
+use axum::http::StatusCode;
 use axum::middleware::{self, Next};
 use axum::response::Response;
+use axum::routing::post;
+use axum::{Extension, Json, Router};
+use keel::Ends;
 use keel::adapt::db::Sqlite;
 use keel::atom::{int, string};
 use keel::config;
@@ -8,6 +12,7 @@ use keel::resource;
 use keel::{Core, Graph, Operator, app, bind};
 use keel_gate::Gate;
 use keel_relay::Relay;
+use serde_json::{Map, Value, json};
 use std::env;
 use std::path::Path;
 use std::sync::Arc;
@@ -209,8 +214,11 @@ async fn main() {
         Ok(door) => door,
         Err(err) => halt("rise", &err.to_string()),
     };
+    let plate = Router::new()
+        .route("/org", post(found))
+        .with_state(core.clone());
     let router = door
-        .wall(app(core.clone(), &cfg.listen.prefix))
+        .wall(app(core.clone(), &cfg.listen.prefix).merge(plate))
         .layer(middleware::from_fn_with_state(core.clone(), stamp));
     let addr = format!("{}:{}", cfg.listen.host, cfg.listen.port);
     let bound = match tokio::net::TcpListener::bind(&addr).await {
@@ -229,13 +237,13 @@ fn halt(seat: &str, note: &str) -> ! {
 }
 
 fn rig(core: &Arc<Core<Sqlite>>) -> Result<Gate<Sqlite>, keel::adapt::Error> {
-    let gate = post(core, "gate")?;
-    let mail = post(core, "relay")?;
+    let gate = hail(core, "gate")?;
+    let mail = hail(core, "relay")?;
     Relay::rise(core.clone(), mail)?.run();
     Gate::rise(core.clone(), gate)
 }
 
-fn post(core: &Arc<Core<Sqlite>>, login: &str) -> Result<i64, keel::adapt::Error> {
+fn hail(core: &Arc<Core<Sqlite>>, login: &str) -> Result<i64, keel::adapt::Error> {
     let held = core.query(&format!(r#"from Actor where login = "{login}""#))?;
     match held.rows().first() {
         Some(row) => Ok(row.key()),
@@ -296,4 +304,53 @@ fn whom(core: &Core<Sqlite>, login: &str) -> Option<i64> {
         .query(&format!(r#"from Actor where login = "{login}""#))
         .ok()?;
     pack.rows().first().map(keel::Row::key)
+}
+
+async fn found(
+    State(core): State<Arc<Core<Sqlite>>>,
+    op: Option<Extension<Operator>>,
+    Json(body): Json<Map<String, Value>>,
+) -> Result<(StatusCode, Json<Value>), StatusCode> {
+    let Some(Extension(Operator(actor))) = op else {
+        return Err(StatusCode::UNAUTHORIZED);
+    };
+    let name = body
+        .get("login")
+        .and_then(Value::as_str)
+        .ok_or(StatusCode::BAD_REQUEST)?
+        .to_string();
+    let face = core.of(actor);
+    let org = face
+        .batch(|tx| {
+            let org = tx.put("Actor", &[("login", &name), ("kind", "org")])?;
+            let team = tx.put(
+                "Team",
+                &[
+                    ("name", "owners"),
+                    ("mode", "admin"),
+                    ("org", &org.to_string()),
+                ],
+            )?;
+            tx.tie(
+                "Team",
+                "members",
+                Ends {
+                    left: team,
+                    right: actor,
+                },
+                &[],
+            )?;
+            tx.put(
+                "@grant",
+                &[
+                    ("who", &format!("team {team}")),
+                    ("verb", "*"),
+                    ("unit", "Actor"),
+                    ("scope", &format!("row {org}")),
+                ],
+            )?;
+            Ok(org)
+        })
+        .map_err(|_| StatusCode::FORBIDDEN)?;
+    Ok((StatusCode::CREATED, Json(json!({ "id": org }))))
 }

@@ -58,22 +58,30 @@ try {
   const cy = await join("cy");
 
   let org = 0;
-  await check("owner mints the org subtree", async () => {
-    const made = await want("/actor", { login: "lab", kind: "org" }, ada.head);
-    org = num(made.id);
-    const grab = await post("/actor", { login: "lab2", kind: "org" }, bob.head);
-    if (grab.status !== 201) {
-      throw new Error(`org create ${grab.status}`);
-    }
-  });
-
   let crew = 0;
-  await check("team roots under the org via subtree", async () => {
-    const made = await want("/team", { name: "owners", mode: "admin", org }, ada.head);
-    crew = num(made.id);
-    const steal = await post("/team", { name: "grab", mode: "admin", org }, bob.head);
-    if (steal.status !== 403) {
-      throw new Error(`expected 403, got ${steal.status}`);
+  await check("org creation is atomic", async () => {
+    const made = await want("/org", { login: "lab" }, ada.head);
+    org = num(made.id);
+    const pack = await query(
+      `from Team where org = "${org}" link members`,
+      ada.head,
+    );
+    const team = (pack.bags as Record<string, Array<Record<string, unknown>>>)
+      .team;
+    if (team.length !== 1) {
+      throw new Error("owners team not created atomically");
+    }
+    crew = num(team[0].id);
+    if (bond(pack, "team.members").length !== 1) {
+      throw new Error("creator not enrolled atomically");
+    }
+    const clash = await post("/org", { login: "lab" }, bob.head);
+    if (clash.status !== 403 && clash.status !== 409) {
+      throw new Error(`dup org ${clash.status}`);
+    }
+    const after = await query(`from Actor where login = "lab" count`, ada.head);
+    if (after.count !== 1) {
+      throw new Error("rolled-back org left a row");
     }
   });
 
@@ -106,7 +114,10 @@ try {
       `from Team where id = "${crew}" link members`,
       ada.head,
     );
-    const tie = bond(pack, "team.members")[0];
+    const tie = bond(pack, "team.members").find((t) => num(t.right) === bob.id);
+    if (!tie) {
+      throw new Error("bob membership tie missing");
+    }
     const gone = await fetch(
       `${base}/team/${crew}/members/${num(tie.id)}`,
       { method: "DELETE", headers: ada.head },
