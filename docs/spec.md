@@ -28,7 +28,7 @@ only through the perish registry.
 | F4 | watch & notify: watches (Actor.watches), notifications as materialized queries (feed = issues in watched repos, id cursor), relay webhooks | watcher sees public-repo issue feed via C-16; webhooks live via relay |
 | F5 | blob plane: `keel-blob` (Asset metadata + presigned MinIO bytes), `KEEL_S3=... runseal :act` | presigned upload, 302 gated download, stranger 404; keel never touches bytes |
 | F6 | admin & lifecycle: repo closure delete via caller-space **batch** (no engine seat) — DONE; suspension via gate `bar` hook (DONE); org-label exactly-one charted as two-unit modeling | bare delete 409s under K3, `/close` batch-ends the subtree then deletes |
-| F7 | equivalence audit (`docs/audit.md`): every in-boundary plane green on sqlite + postgres + MinIO; residue is app-layer git mechanics (out of scope) or charted two-unit modeling — no capability gap | DONE |
+| F7 | equivalence audit (`docs/audit.md`): every in-boundary plane — incl. Actions metadata (runner/run/secret/variable/key) — green on sqlite + postgres + MinIO; residue is Actions **execution** + git mechanics (app territory) or charted scope modeling | DONE |
 
 ## Must not
 

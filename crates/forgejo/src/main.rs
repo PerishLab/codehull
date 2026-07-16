@@ -94,6 +94,62 @@ struct Label {
 }
 
 #[resource]
+struct Runner {
+    #[field(string)]
+    name: string,
+    #[field(string, unique)]
+    token: string,
+    #[field(string)]
+    labels: string,
+    #[field(string)]
+    status: string,
+    #[relation(Repo, many2one, root)]
+    repo: Repo,
+}
+
+#[resource]
+struct Run {
+    #[field(string)]
+    event: string,
+    #[field(string)]
+    status: string,
+    #[field(string)]
+    commit: string,
+    #[relation(Repo, many2one, root)]
+    repo: Repo,
+}
+
+#[resource]
+struct Secret {
+    #[field(string, unique = repo)]
+    name: string,
+    #[field(string)]
+    data: string,
+    #[relation(Repo, many2one, root)]
+    repo: Repo,
+}
+
+#[resource]
+struct Variable {
+    #[field(string, unique = repo)]
+    name: string,
+    #[field(string)]
+    value: string,
+    #[relation(Repo, many2one, root)]
+    repo: Repo,
+}
+
+#[resource]
+struct Key {
+    #[field(string)]
+    title: string,
+    #[field(string, unique)]
+    print: string,
+    #[relation(Repo, many2one, root)]
+    repo: Repo,
+}
+
+#[resource]
 struct Milestone {
     #[field(string)]
     title: string,
@@ -202,6 +258,11 @@ fn shape() -> Graph {
         .plug::<Topic>()
         .plug::<Repo>()
         .plug::<Label>()
+        .plug::<Runner>()
+        .plug::<Run>()
+        .plug::<Secret>()
+        .plug::<Variable>()
+        .plug::<Key>()
         .plug::<Milestone>()
         .plug::<Issue>()
         .plug::<Comment>()

@@ -12,7 +12,7 @@ Business (declared in `main.rs`): Actor (user/org/svc, follows, stars,
 watches, barred), Email, Team (crew members, repos), Topic, Repo (fork,
 topics, visibility, archived), Label, Milestone, Issue (per-repo serial
 index, assignees, labels, blocks), Comment, Reaction (composite unique),
-Pull (one2one Issue), Review, Note.
+Pull (one2one Issue), Review, Note, Runner, Run, Secret, Variable, Key.
 
 Engine/package (keel-provided, zero business code): `@grant` `@seal`
 `@pulse` (engine), Token / Session (keel-gate), Hook (keel-relay), Asset
@@ -33,6 +33,7 @@ Engine/package (keel-provided, zero business code): `@grant` `@seal`
 | objects | attachments, avatars, assets | keel-blob presigned S3, bytes never touch keel | 5 |
 | lifecycle | archive, delete | `archived` field, closure-delete batch | 6 |
 | store | — | sqlite and **real Postgres**, byte-equal | conform |
+| actions (state) | runners, runs, secrets, variables, deploy keys | Runner/Run/Secret/Variable/Key rooted at Repo; secret = ciphertext field (app crypts, keel never sees plaintext); scoped-unique names | 8 |
 
 ## Resolved without an engine seat (keel-native)
 
@@ -44,7 +45,22 @@ Engine/package (keel-provided, zero business code): `@grant` `@seal`
   (`from Comment where issue = X count` per issue); server-side aggregate
   sort deferred as an optimization, not a capability gap.
 
+## Correction (2026-07-16)
+
+An earlier audit claimed closure while omitting the Forgejo **Actions
+metadata** plane — a real in-boundary gap. Now closed: Runner, Run, Secret,
+Variable, and deploy Key are modeled and green on sqlite + Postgres. Only
+Actions **execution** (spinning runners, streaming logs) is out of boundary
+(git/CI mechanics, app territory). Secret storage: keel holds **ciphertext**
+in a field — the app encrypts before put and decrypts after get, exactly as
+gate holds password hashes; keel never sees a plaintext secret.
+
 ## Charted, deliberately deferred
+
+- **Org/instance runners, org secrets** — repo-scoped shipped; org/instance
+  scope is the same two-unit (or nullable-root) modeling as org labels.
+- **Action feed, Mirror, Wiki metadata, Stopwatch** — minor units on
+  existing primitives (many2one + fields); add when a use appears, no seat.
 
 - **Org-scoped labels exactly-one (#6)** — a Label carrying repo XOR org is a
   polymorphic root; keel's answer is **two units** (repo-label rooted at

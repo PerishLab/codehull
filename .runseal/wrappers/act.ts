@@ -378,6 +378,49 @@ try {
     }
   });
 
+  io.print("==> act 8: actions metadata");
+  await check("runner, run, secret, variable, deploy key", async () => {
+    const made = await want("/repo", {
+      name: "ci",
+      visibility: "private",
+      owner: bob.id,
+      trunk: "main",
+      archived: false,
+    }, bob.head);
+    const repo = num(made.id);
+    await want("/runner", {
+      name: "linux",
+      token: "rt1",
+      labels: "docker,linux",
+      status: "idle",
+      repo,
+    }, bob.head);
+    await want("/run", {
+      event: "push",
+      status: "success",
+      commit: "abc123",
+      repo,
+    }, bob.head);
+    await want("/secret", { name: "TOKEN", data: "ciphertext", repo }, bob.head);
+    const dup = await post("/secret", { name: "TOKEN", data: "other", repo }, bob.head);
+    if (dup.status !== 409) {
+      throw new Error(`secret name not scoped-unique ${dup.status}`);
+    }
+    await want("/variable", { name: "REGION", value: "eu", repo }, bob.head);
+    await want("/key", { title: "deploy", print: "ssh-ed25519 AAAA", repo }, bob.head);
+
+    const owned = await query(`from Secret where repo = "${repo}"`, bob.head);
+    const kept = (owned.bags as Record<string, unknown[]>).secret;
+    if (!Array.isArray(kept) || kept.length !== 1) {
+      throw new Error("owner cannot see own secret");
+    }
+    const blind = await query(`from Secret where repo = "${repo}"`, cy.head);
+    const seen = (blind.bags as Record<string, unknown[]>).secret;
+    if (Array.isArray(seen) && seen.length !== 0) {
+      throw new Error("stranger sees repo secret");
+    }
+  });
+
   io.print("==> act 7: suspension");
   await check("suspended operator is refused", async () => {
     const made = await want(
