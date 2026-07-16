@@ -21,6 +21,7 @@ only through the perish registry.
 | Stage | Delivers | Act proves |
 |-------|----------|------------|
 | F0 | runseal + CI + this law | guard green on main |
+| conform | store portability: `KEEL_PG=... runseal :act` runs every act against real Postgres (docker-compose pg:5434) | full stack green on pg and sqlite |
 | F1 | org governance: group operators (keel C-M1), org+owners batch (keel C-9 → #3), team CRUD, member/repo grants | a team grant admits a member to a private repo; leaving revokes |
 | F2 | issue suite completed: Reaction (keel U4 → #2), issue search (keel text pred → #4), sort by comments (keel agg order → #5) | full issue lifecycle incl. reactions, search, busiest-first |
 | F3 | pull & review: Review threads (Note), approvals, merge state | review round-trip with line notes; merge flips state under authority |

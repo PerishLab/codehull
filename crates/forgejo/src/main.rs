@@ -5,10 +5,11 @@ use axum::response::Response;
 use axum::routing::post;
 use axum::{Extension, Json, Router};
 use keel::Ends;
-use keel::adapt::db::Sqlite;
+use keel::adapt::pg::Postgres;
 use keel::atom::{int, string};
 use keel::config;
 use keel::resource;
+use keel::store::Store;
 use keel::{Core, Graph, Operator, app, bind};
 use keel_gate::Gate;
 use keel_relay::Relay;
@@ -173,14 +174,7 @@ keel_gate::gate!(Actor);
 
 keel_relay::relay!(Actor);
 
-#[tokio::main]
-async fn main() {
-    let root = env::args().nth(1).unwrap_or_else(|| ".".into());
-    let cfg = config::load(Path::new(&root));
-    let store = match cfg.open() {
-        Ok(store) => store,
-        Err(err) => halt("config", &err.to_string()),
-    };
+fn shape() -> Graph {
     let mut graph = Graph::new();
     graph
         .plug::<Actor>()
@@ -197,16 +191,49 @@ async fn main() {
         .plug::<Review>();
     plug(&mut graph);
     wire(&mut graph);
-    let made = bind(graph, store)
+    graph
+}
+
+#[tokio::main]
+async fn main() {
+    let root = env::args().nth(1).unwrap_or_else(|| ".".into());
+    let cfg = config::load(Path::new(&root));
+    match env::var("KEEL_PG") {
+        Ok(url) => {
+            if env::var("KEEL_FRESH").is_ok() {
+                fresh(&url);
+            }
+            let core = raise(bind(shape(), Postgres::at(url)), &cfg);
+            serve(core, &cfg).await;
+        }
+        Err(_) => {
+            let store = match cfg.open() {
+                Ok(store) => store,
+                Err(err) => halt("config", &err.to_string()),
+            };
+            let core = raise(bind(shape(), store), &cfg);
+            serve(core, &cfg).await;
+        }
+    }
+}
+
+fn raise<S: Store + 'static>(
+    made: Result<Core<S>, keel::adapt::Error>,
+    cfg: &config::Config,
+) -> Arc<Core<S>> {
+    let built = made
         .and_then(|core| core.identify("Actor"))
         .map(|core| match cfg.cache.kind {
             config::Hold::Memory => core,
             config::Hold::None => core.bare(),
         });
-    let core = match made {
+    match built {
         Ok(core) => core.share(),
         Err(err) => halt("bind", &err.to_string()),
-    };
+    }
+}
+
+async fn serve<S: Store + 'static>(core: Arc<Core<S>>, cfg: &config::Config) {
     if let Err(err) = seed(&core) {
         halt("seed", &err.to_string());
     }
@@ -215,11 +242,11 @@ async fn main() {
         Err(err) => halt("rise", &err.to_string()),
     };
     let plate = Router::new()
-        .route("/org", post(found))
+        .route("/org", post(found::<S>))
         .with_state(core.clone());
     let router = door
         .wall(app(core.clone(), &cfg.listen.prefix).merge(plate))
-        .layer(middleware::from_fn_with_state(core.clone(), stamp));
+        .layer(middleware::from_fn_with_state(core.clone(), stamp::<S>));
     let addr = format!("{}:{}", cfg.listen.host, cfg.listen.port);
     let bound = match tokio::net::TcpListener::bind(&addr).await {
         Ok(bound) => bound,
@@ -231,19 +258,33 @@ async fn main() {
     }
 }
 
+fn fresh(url: &str) {
+    let url = url.to_string();
+    let done = std::thread::spawn(move || {
+        let mut client = postgres::Client::connect(&url, postgres::NoTls)?;
+        client.batch_execute("DROP SCHEMA public CASCADE; CREATE SCHEMA public;")
+    })
+    .join();
+    match done {
+        Ok(Ok(())) => {}
+        Ok(Err(err)) => halt("fresh", &err.to_string()),
+        Err(_) => halt("fresh", "reset thread panicked"),
+    }
+}
+
 fn halt(seat: &str, note: &str) -> ! {
     eprintln!("forgejo: {seat}: {note}");
     std::process::exit(1)
 }
 
-fn rig(core: &Arc<Core<Sqlite>>) -> Result<Gate<Sqlite>, keel::adapt::Error> {
+fn rig<S: Store + 'static>(core: &Arc<Core<S>>) -> Result<Gate<S>, keel::adapt::Error> {
     let gate = hail(core, "gate")?;
     let mail = hail(core, "relay")?;
     Relay::rise(core.clone(), mail)?.run();
     Gate::rise(core.clone(), gate)
 }
 
-fn hail(core: &Arc<Core<Sqlite>>, login: &str) -> Result<i64, keel::adapt::Error> {
+fn hail<S: Store>(core: &Arc<Core<S>>, login: &str) -> Result<i64, keel::adapt::Error> {
     let held = core.query(&format!(r#"from Actor where login = "{login}""#))?;
     match held.rows().first() {
         Some(row) => Ok(row.key()),
@@ -251,7 +292,7 @@ fn hail(core: &Arc<Core<Sqlite>>, login: &str) -> Result<i64, keel::adapt::Error
     }
 }
 
-fn seed(core: &Arc<Core<Sqlite>>) -> Result<(), keel::adapt::Error> {
+fn seed<S: Store>(core: &Arc<Core<S>>) -> Result<(), keel::adapt::Error> {
     let sown = core.query(r#"from @grant where who = "anon" count"#)?;
     if sown.count() != Some(0) {
         return Ok(());
@@ -285,7 +326,11 @@ fn seed(core: &Arc<Core<Sqlite>>) -> Result<(), keel::adapt::Error> {
     Ok(())
 }
 
-async fn stamp(State(core): State<Arc<Core<Sqlite>>>, mut req: Request, next: Next) -> Response {
+async fn stamp<S: Store>(
+    State(core): State<Arc<Core<S>>>,
+    mut req: Request,
+    next: Next,
+) -> Response {
     let login = req
         .headers()
         .get("x-login")
@@ -299,15 +344,15 @@ async fn stamp(State(core): State<Arc<Core<Sqlite>>>, mut req: Request, next: Ne
     next.run(req).await
 }
 
-fn whom(core: &Core<Sqlite>, login: &str) -> Option<i64> {
+fn whom<S: Store>(core: &Core<S>, login: &str) -> Option<i64> {
     let pack = core
         .query(&format!(r#"from Actor where login = "{login}""#))
         .ok()?;
     pack.rows().first().map(keel::Row::key)
 }
 
-async fn found(
-    State(core): State<Arc<Core<Sqlite>>>,
+async fn found<S: Store + 'static>(
+    State(core): State<Arc<Core<S>>>,
     op: Option<Extension<Operator>>,
     Json(body): Json<Map<String, Value>>,
 ) -> Result<(StatusCode, Json<Value>), StatusCode> {

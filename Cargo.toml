@@ -10,8 +10,9 @@ repository = "https://git.perish.top/PerishLab/forgejo"
 
 [workspace.dependencies]
 axum = "0.8"
-keel = { version = "0.1.0", registry = "perish" }
-keel-gate = { version = "0.1.0", registry = "perish" }
-keel-relay = { version = "0.1.0", registry = "perish" }
+keel = { version = "0.1.6", registry = "perish" }
+keel-gate = { version = "0.1.6", registry = "perish" }
+keel-relay = { version = "0.1.6", registry = "perish" }
+postgres = "0.19"
 serde_json = "1"
 tokio = { version = "1", features = ["io-util", "macros", "net", "rt-multi-thread", "time"] }

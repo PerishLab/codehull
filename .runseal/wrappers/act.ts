@@ -32,9 +32,15 @@ io.print("==> build forgejo");
 await bin("cargo").run(["build", "--locked"], { cwd: root });
 
 io.print(`==> boot forgejo on ${base}`);
+const pg = Deno.env.get("KEEL_PG");
+const env: Record<string, string> = pg ? { KEEL_PG: pg, KEEL_FRESH: "1" } : {};
+if (pg) {
+  io.print("==> store: postgres");
+}
 const child = new Deno.Command("cargo", {
   args: ["run", "--locked", "--", dir],
   cwd: root,
+  env,
   stdin: "null",
   stdout: "null",
   stderr: "piped",
