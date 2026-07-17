@@ -5,12 +5,12 @@ use axum::response::Response;
 use axum::routing::post;
 use axum::{Extension, Json, Router};
 use keel::Ends;
+use keel::Wire;
 use keel::adapt::pg::Postgres;
 use keel::atom::url as link;
 use keel::atom::{int, string};
 use keel::config;
 use keel::resource;
-use keel::store::Store;
 use keel::{Core, Graph, Operator, app, bind};
 use keel_blob::Vault;
 use keel_gate::Gate;
@@ -412,26 +412,30 @@ async fn main() {
     match env::var("KEEL_PG") {
         Ok(url) => {
             if env::var("KEEL_FRESH").is_ok() {
-                fresh(&url);
+                fresh(&url).await;
             }
-            let core = raise(bind(shape(), Postgres::at(url)), &cfg);
+            let store = match Postgres::at(url).await {
+                Ok(store) => store,
+                Err(err) => halt("pg", &err.to_string()),
+            };
+            let core = raise(bind(shape(), store).await, &cfg);
             serve(core, &cfg).await;
         }
         Err(_) => {
-            let store = match cfg.open() {
+            let store = match cfg.open().await {
                 Ok(store) => store,
                 Err(err) => halt("config", &err.to_string()),
             };
-            let core = raise(bind(shape(), store), &cfg);
+            let core = raise(bind(shape(), store).await, &cfg);
             serve(core, &cfg).await;
         }
     }
 }
 
-fn raise<S: Store + 'static>(
-    made: Result<Core<S>, keel::adapt::Error>,
+fn raise<W: Wire + 'static>(
+    made: Result<Core<W>, keel::adapt::Error>,
     cfg: &config::Config,
-) -> Arc<Core<S>> {
+) -> Arc<Core<W>> {
     let built = made
         .and_then(|core| core.identify("Actor"))
         .map(|core| match cfg.cache.kind {
@@ -444,17 +448,17 @@ fn raise<S: Store + 'static>(
     }
 }
 
-async fn serve<S: Store + 'static>(core: Arc<Core<S>>, cfg: &config::Config) {
-    if let Err(err) = seed(&core) {
+async fn serve<W: Wire + 'static>(core: Arc<Core<W>>, cfg: &config::Config) {
+    if let Err(err) = seed(&core).await {
         halt("seed", &err.to_string());
     }
-    let door = match rig(&core) {
+    let door = match rig(&core).await {
         Ok(door) => door,
         Err(err) => halt("rise", &err.to_string()),
     };
     let plate = Router::new()
-        .route("/org", post(found::<S>))
-        .route("/repo/{id}/close", post(close::<S>))
+        .route("/org", post(found::<W>))
+        .route("/repo/{id}/close", post(close::<W>))
         .with_state(core.clone());
     let base = app(core.clone(), &cfg.listen.prefix).merge(plate);
     let shelved = match hoard(&core) {
@@ -463,7 +467,7 @@ async fn serve<S: Store + 'static>(core: Arc<Core<S>>, cfg: &config::Config) {
     };
     let router = door
         .wall(shelved)
-        .layer(middleware::from_fn_with_state(core.clone(), stamp::<S>));
+        .layer(middleware::from_fn_with_state(core.clone(), stamp::<W>));
     let addr = format!("{}:{}", cfg.listen.host, cfg.listen.port);
     let bound = match tokio::net::TcpListener::bind(&addr).await {
         Ok(bound) => bound,
@@ -475,21 +479,20 @@ async fn serve<S: Store + 'static>(core: Arc<Core<S>>, cfg: &config::Config) {
     }
 }
 
-fn fresh(url: &str) {
-    let url = url.to_string();
-    let done = std::thread::spawn(move || {
-        let mut client = postgres::Client::connect(&url, postgres::NoTls)?;
-        client.batch_execute("DROP SCHEMA public CASCADE; CREATE SCHEMA public;")
-    })
-    .join();
-    match done {
-        Ok(Ok(())) => {}
-        Ok(Err(err)) => halt("fresh", &err.to_string()),
-        Err(_) => halt("fresh", "reset thread panicked"),
+async fn fresh(url: &str) {
+    let mut store = match Postgres::at(url).await {
+        Ok(store) => store,
+        Err(err) => halt("fresh", &err.to_string()),
+    };
+    let wipe = store
+        .script("DROP SCHEMA public CASCADE; CREATE SCHEMA public;")
+        .await;
+    if let Err(err) = wipe {
+        halt("fresh", &err.to_string());
     }
 }
 
-fn hoard<S: Store + 'static>(core: &Arc<Core<S>>) -> Option<Vault<S>> {
+fn hoard<W: Wire + 'static>(core: &Arc<Core<W>>) -> Option<Vault<W>> {
     let endpoint = env::var("KEEL_S3").ok()?;
     let key = env::var("KEEL_S3_KEY").unwrap_or_else(|_| "codehull".into());
     let secret = env::var("KEEL_S3_SECRET").unwrap_or_else(|_| "codehull123".into());
@@ -511,26 +514,33 @@ fn halt(seat: &str, note: &str) -> ! {
     std::process::exit(1)
 }
 
-fn rig<S: Store + 'static>(core: &Arc<Core<S>>) -> Result<Gate<S>, keel::adapt::Error> {
-    let gate = hail(core, "gate")?;
-    let mail = hail(core, "relay")?;
-    Relay::rise(core.clone(), mail)?.run();
-    Ok(Gate::rise(core.clone(), gate)?.bar("barred"))
+async fn rig<W: Wire + 'static>(core: &Arc<Core<W>>) -> Result<Gate<W>, keel::adapt::Error> {
+    let gate = hail(core, "gate").await?;
+    let mail = hail(core, "relay").await?;
+    Relay::rise(core.clone(), mail).await?.run();
+    Ok(Gate::rise(core.clone(), gate).await?.bar("barred"))
 }
 
-fn hail<S: Store>(core: &Arc<Core<S>>, login: &str) -> Result<i64, keel::adapt::Error> {
-    let held = core.query(&format!(r#"from Actor where login = "{login}""#))?;
+async fn hail<W: Wire>(core: &Arc<Core<W>>, login: &str) -> Result<i64, keel::adapt::Error> {
+    let held = core
+        .query(&format!(r#"from Actor where login = "{login}""#))
+        .await?;
     match held.rows().first() {
         Some(row) => Ok(row.key()),
-        None => core.put(
-            "Actor",
-            &[("login", login), ("kind", "svc"), ("barred", "false")],
-        ),
+        None => {
+            core.put(
+                "Actor",
+                &[("login", login), ("kind", "svc"), ("barred", "false")],
+            )
+            .await
+        }
     }
 }
 
-fn seed<S: Store>(core: &Arc<Core<S>>) -> Result<(), keel::adapt::Error> {
-    let sown = core.query(r#"from @grant where who = "anon" count"#)?;
+async fn seed<W: Wire>(core: &Arc<Core<W>>) -> Result<(), keel::adapt::Error> {
+    let sown = core
+        .query(r#"from @grant where who = "anon" count"#)
+        .await?;
     if sown.count() != Some(0) {
         return Ok(());
     }
@@ -562,13 +572,14 @@ fn seed<S: Store>(core: &Arc<Core<S>>) -> Result<(), keel::adapt::Error> {
                 ("unit", unit),
                 ("scope", scope),
             ],
-        )?;
+        )
+        .await?;
     }
     Ok(())
 }
 
-async fn stamp<S: Store>(
-    State(core): State<Arc<Core<S>>>,
+async fn stamp<W: Wire>(
+    State(core): State<Arc<Core<W>>>,
     mut req: Request,
     next: Next,
 ) -> Response {
@@ -578,22 +589,23 @@ async fn stamp<S: Store>(
         .and_then(|value| value.to_str().ok())
         .map(str::to_string);
     if let Some(login) = login
-        && let Some(key) = whom(&core, &login)
+        && let Some(key) = whom(&core, &login).await
     {
         req.extensions_mut().insert(Operator(key));
     }
     next.run(req).await
 }
 
-fn whom<S: Store>(core: &Core<S>, login: &str) -> Option<i64> {
+async fn whom<W: Wire>(core: &Core<W>, login: &str) -> Option<i64> {
     let pack = core
         .query(&format!(r#"from Actor where login = "{login}""#))
+        .await
         .ok()?;
     pack.rows().first().map(keel::Row::key)
 }
 
-async fn found<S: Store + 'static>(
-    State(core): State<Arc<Core<S>>>,
+async fn found<W: Wire + 'static>(
+    State(core): State<Arc<Core<W>>>,
     op: Option<Extension<Operator>>,
     Json(body): Json<Map<String, Value>>,
 ) -> Result<(StatusCode, Json<Value>), StatusCode> {
@@ -607,19 +619,23 @@ async fn found<S: Store + 'static>(
         .to_string();
     let face = core.of(actor);
     let org = face
-        .batch(|tx| {
-            let org = tx.put(
-                "Actor",
-                &[("login", &name), ("kind", "org"), ("barred", "false")],
-            )?;
-            let team = tx.put(
-                "Team",
-                &[
-                    ("name", "owners"),
-                    ("mode", "admin"),
-                    ("org", &org.to_string()),
-                ],
-            )?;
+        .batch(async |tx| {
+            let org = tx
+                .put(
+                    "Actor",
+                    &[("login", &name), ("kind", "org"), ("barred", "false")],
+                )
+                .await?;
+            let team = tx
+                .put(
+                    "Team",
+                    &[
+                        ("name", "owners"),
+                        ("mode", "admin"),
+                        ("org", &org.to_string()),
+                    ],
+                )
+                .await?;
             tx.tie(
                 "Team",
                 "members",
@@ -628,7 +644,8 @@ async fn found<S: Store + 'static>(
                     right: actor,
                 },
                 &[],
-            )?;
+            )
+            .await?;
             tx.put(
                 "@grant",
                 &[
@@ -637,15 +654,28 @@ async fn found<S: Store + 'static>(
                     ("unit", "Actor"),
                     ("scope", &format!("row {org}")),
                 ],
-            )?;
+            )
+            .await?;
             Ok(org)
         })
+        .await
         .map_err(|_| StatusCode::FORBIDDEN)?;
     Ok((StatusCode::CREATED, Json(json!({ "id": org }))))
 }
 
-async fn close<S: Store + 'static>(
-    State(core): State<Arc<Core<S>>>,
+async fn kids<W: Wire>(
+    face: &keel::Face<'_, W>,
+    id: i64,
+    unit: &str,
+) -> Result<Vec<i64>, keel::adapt::Error> {
+    let pack = face
+        .query(&format!(r#"from {unit} where repo = "{id}""#))
+        .await?;
+    Ok(pack.rows().iter().map(keel::Row::key).collect())
+}
+
+async fn close<W: Wire + 'static>(
+    State(core): State<Arc<Core<W>>>,
     Route(id): Route<i64>,
     op: Option<Extension<Operator>>,
 ) -> Result<StatusCode, StatusCode> {
@@ -653,26 +683,29 @@ async fn close<S: Store + 'static>(
         .map(|Extension(Operator(id))| id)
         .ok_or(StatusCode::UNAUTHORIZED)?;
     let face = core.of(who);
-    let kids = |unit: &str| -> Result<Vec<i64>, keel::adapt::Error> {
-        let pack = face.query(&format!(r#"from {unit} where repo = "{id}""#))?;
-        Ok(pack.rows().iter().map(keel::Row::key).collect())
-    };
-    let issues = kids("Issue").map_err(|_| StatusCode::FORBIDDEN)?;
-    let labels = kids("Label").map_err(|_| StatusCode::FORBIDDEN)?;
-    let milestones = kids("Milestone").map_err(|_| StatusCode::FORBIDDEN)?;
-    face.batch(|tx| {
+    let issues = kids(&face, id, "Issue")
+        .await
+        .map_err(|_| StatusCode::FORBIDDEN)?;
+    let labels = kids(&face, id, "Label")
+        .await
+        .map_err(|_| StatusCode::FORBIDDEN)?;
+    let milestones = kids(&face, id, "Milestone")
+        .await
+        .map_err(|_| StatusCode::FORBIDDEN)?;
+    face.batch(async |tx| {
         for key in &issues {
-            tx.end("Issue", *key)?;
+            tx.end("Issue", *key).await?;
         }
         for key in &labels {
-            tx.end("Label", *key)?;
+            tx.end("Label", *key).await?;
         }
         for key in &milestones {
-            tx.end("Milestone", *key)?;
+            tx.end("Milestone", *key).await?;
         }
-        tx.end("Repo", id)?;
+        tx.end("Repo", id).await?;
         Ok(())
     })
+    .await
     .map_err(|_| StatusCode::CONFLICT)?;
     Ok(StatusCode::NO_CONTENT)
 }

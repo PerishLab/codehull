@@ -17,6 +17,5 @@ keel = { workspace = true, features = ["pg"] }
 keel-blob = { workspace = true }
 keel-gate = { workspace = true }
 keel-relay = { workspace = true }
-postgres = { workspace = true }
 serde_json = { workspace = true }
 tokio = { workspace = true }
