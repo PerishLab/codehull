@@ -3,6 +3,10 @@ kind: Deployment
 metadata:
   name: {{ .Release.Name }}-api
 spec:
+  # Fixed at 1, not a value. keel caches grant rows per engine instance, so
+  # a second api pod keeps honouring a grant this one revoked until it
+  # writes. Raising this needs the keel cache off first — see keel
+  # docs/run/cache.md "Authority is cached too" (H-8).
   replicas: 1
   selector:
     matchLabels:
