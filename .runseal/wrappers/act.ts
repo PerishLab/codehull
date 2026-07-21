@@ -656,6 +656,9 @@ try {
     }
   });
 
+  if (!s3) {
+    io.print("KEEL_S3 absent: the blob plane stays unproven this run");
+  }
   if (s3) {
     io.print("==> act 5: blobs");
     await bucket(s3);
