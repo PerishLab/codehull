@@ -7,7 +7,7 @@ use axum::routing::post;
 use door::{close, found, stamp};
 use keel::adapt::pg::Postgres;
 use keel::{Core, Wire, app, bind, config};
-use keel_blob::Vault;
+use keel_blob::{Shed, Vault};
 use keel_gate::Gate;
 use keel_relay::Relay;
 use model::shape;
@@ -106,14 +106,14 @@ fn hoard<W: Wire + 'static>(core: &Arc<Core<W>>) -> Option<Vault<W>> {
     let endpoint = env::var("KEEL_S3").ok()?;
     let key = env::var("KEEL_S3_KEY").unwrap_or_else(|_| "codehull".into());
     let secret = env::var("KEEL_S3_SECRET").unwrap_or_else(|_| "codehull123".into());
-    match Vault::open(
-        core.clone(),
-        &endpoint,
-        "codehull",
-        "us-east-1",
-        &key,
-        &secret,
-    ) {
+    let shed = Shed {
+        endpoint: &endpoint,
+        name: "codehull",
+        region: "us-east-1",
+        key: &key,
+        secret: &secret,
+    };
+    match Vault::open(core.clone(), shed) {
         Ok(vault) => Some(vault),
         Err(err) => halt("vault", &err.to_string()),
     }
