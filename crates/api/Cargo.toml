@@ -12,6 +12,7 @@ name = "api"
 path = "src/main.rs"
 
 [dependencies]
+clap = { workspace = true }
 axum = { workspace = true }
 keel = { workspace = true, features = ["pg"] }
 keel-blob = { workspace = true }

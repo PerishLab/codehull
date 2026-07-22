@@ -4,6 +4,7 @@ mod model;
 use axum::Router;
 use axum::middleware::{self};
 use axum::routing::post;
+use clap::Parser;
 use door::{close, found, stamp};
 use keel::adapt::pg::Postgres;
 use keel::{Core, Wire, app, bind, config};
@@ -15,9 +16,15 @@ use std::env;
 use std::path::Path;
 use std::sync::Arc;
 
+#[derive(Parser)]
+struct Cli {
+    #[arg(default_value = ".")]
+    root: String,
+}
+
 #[tokio::main]
 async fn main() {
-    let root = env::args().nth(1).unwrap_or_else(|| ".".into());
+    let root = Cli::parse().root;
     let cfg = config::load(Path::new(&root));
     match env::var("KEEL_PG") {
         Ok(url) => {

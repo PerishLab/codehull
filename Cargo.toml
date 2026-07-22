@@ -9,6 +9,7 @@ license = "MIT"
 repository = "https://git.perish.top/PerishLab/codehull"
 
 [workspace.dependencies]
+clap = { version = "4", features = ["derive"] }
 axum = "0.8"
 keel = { version = "0.5.1", registry = "perish" }
 keel-gate = { version = "0.5.1", registry = "perish" }
