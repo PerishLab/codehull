@@ -116,7 +116,7 @@ pub(crate) async fn close<W: Wire + 'static>(
     let issues = kids(&face, id, "Issue")
         .await
         .map_err(|_| StatusCode::FORBIDDEN)?;
-    let labels = kids(&face, id, "Label")
+    let labels = kids(&face, id, "repo:label")
         .await
         .map_err(|_| StatusCode::FORBIDDEN)?;
     let milestones = kids(&face, id, "Milestone")
@@ -127,7 +127,7 @@ pub(crate) async fn close<W: Wire + 'static>(
             tx.end("Issue", *key).await?;
         }
         for key in &labels {
-            tx.end("Label", *key).await?;
+            tx.end("repo:label", *key).await?;
         }
         for key in &milestones {
             tx.end("Milestone", *key).await?;

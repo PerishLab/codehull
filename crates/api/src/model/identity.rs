@@ -20,7 +20,7 @@ pub(crate) struct Actor {
 }
 
 #[resource]
-pub(crate) struct UserKey {
+pub(crate) struct Key {
     #[field(string)]
     title: string,
     #[field(string, unique)]

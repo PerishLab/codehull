@@ -109,3 +109,13 @@ pub(crate) struct Milestone {
     #[relation(Repo, many2one, root)]
     repo: Repo,
 }
+
+#[resource]
+pub(crate) struct Label {
+    #[field(string, unique = repo)]
+    name: string,
+    #[field(string)]
+    color: string,
+    #[relation(Repo, many2one, root)]
+    repo: Repo,
+}

@@ -20,8 +20,8 @@ pub(crate) struct Issue {
     milestone: Milestone,
     #[relation(Actor, many2many)]
     assignees: Actor,
-    #[relation(Label, many2many)]
-    labels: Label,
+    #[relation(Repo::Label, many2many)]
+    labels: build::Label,
     #[relation(Issue, many2many)]
     blocks: Issue,
 }

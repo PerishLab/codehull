@@ -22,16 +22,6 @@ pub(crate) struct Repo {
 
 #[resource]
 pub(crate) struct Label {
-    #[field(string, unique = repo)]
-    name: string,
-    #[field(string)]
-    color: string,
-    #[relation(Repo, many2one, root)]
-    repo: Repo,
-}
-
-#[resource]
-pub(crate) struct OrgLabel {
     #[field(string, unique = org)]
     name: string,
     #[field(string)]
@@ -41,7 +31,7 @@ pub(crate) struct OrgLabel {
 }
 
 #[resource]
-pub(crate) struct OrgRunner {
+pub(crate) struct Runner {
     #[field(string)]
     name: string,
     #[field(string, unique)]
@@ -55,7 +45,7 @@ pub(crate) struct OrgRunner {
 }
 
 #[resource]
-pub(crate) struct OrgSecret {
+pub(crate) struct Secret {
     #[field(string, unique = org)]
     name: string,
     #[field(string)]

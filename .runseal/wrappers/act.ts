@@ -79,13 +79,12 @@ try {
       `from Team where org = "${org}" link members`,
       ada.head,
     );
-    const team = (pack.bags as Record<string, Array<Record<string, unknown>>>)
-      .team;
+    const team = roots(pack);
     if (team.length !== 1) {
       throw new Error("owners team not created atomically");
     }
     crew = num(team[0].id);
-    if (bond(pack, "team.members").length !== 1) {
+    if (bond(pack, "actor:team.members").length !== 1) {
       throw new Error("creator not enrolled atomically");
     }
     const clash = await post("/org", { login: "lab" }, bob.head);
@@ -127,7 +126,7 @@ try {
       `from Team where id = "${crew}" link members`,
       ada.head,
     );
-    const tie = bond(pack, "team.members").find((t) => num(t.right) === bob.id);
+    const tie = bond(pack, "actor:team.members").find((t) => num(t.right) === bob.id);
     if (!tie) {
       throw new Error("bob membership tie missing");
     }
@@ -175,8 +174,7 @@ try {
       `from Reaction where issue = "${on}" and emoji = "up"`,
       bob.head,
     );
-    const bag = (held.bags as Record<string, Array<Record<string, unknown>>>)
-      .reaction;
+    const bag = roots(held);
     const gone = await fetch(`${base}/reaction/${num(bag[0].id)}`, {
       method: "DELETE",
       headers: bob.head,
@@ -224,7 +222,7 @@ try {
       `from Issue where repo = "${repo}" and id > "0"`,
       bob.head,
     );
-    const seen = (feed.bags as Record<string, unknown[]>).issue;
+    const seen = roots(feed);
     if (!Array.isArray(seen) || seen.length !== 1) {
       throw new Error(`watcher feed expected 1, got ${seen?.length}`);
     }
@@ -263,7 +261,7 @@ try {
       'from Issue where title like "LOGIN" and closed = "false"',
       bob.head,
     );
-    const rows = (hit.bags as Record<string, unknown[]>).issue;
+    const rows = roots(hit);
     if (!Array.isArray(rows) || rows.length !== 1) {
       throw new Error(`search expected 1, got ${rows?.length}`);
     }
@@ -313,7 +311,7 @@ try {
       `from Review where reviewer = "${cy.id}"`,
       cy.head,
     );
-    const seen = (mine.bags as Record<string, unknown[]>).review;
+    const seen = roots(mine);
     if (!Array.isArray(seen) || seen.length < 1) {
       throw new Error("reviewer cannot see own review");
     }
@@ -388,7 +386,7 @@ try {
       archived: false,
     }, bob.head);
     const repo = num(made.id);
-    await want("/runner", {
+    await deed("repo:runner", {
       name: "linux",
       token: "rt1",
       labels: "docker,linux",
@@ -401,21 +399,21 @@ try {
       commit: "abc123",
       repo,
     }, bob.head);
-    await want("/secret", { name: "TOKEN", data: "ciphertext", repo }, bob.head);
-    const dup = await post("/secret", { name: "TOKEN", data: "other", repo }, bob.head);
+    await deed("repo:secret", { name: "TOKEN", data: "ciphertext", repo }, bob.head);
+    const dup = await one("repo:secret", { name: "TOKEN", data: "other", repo }, bob.head);
     if (dup.status !== 409) {
       throw new Error(`secret name not scoped-unique ${dup.status}`);
     }
     await want("/variable", { name: "REGION", value: "eu", repo }, bob.head);
-    await want("/key", { title: "deploy", print: "ssh-ed25519 AAAA", repo }, bob.head);
+    await deed("repo:key", { title: "deploy", print: "ssh-ed25519 AAAA", repo }, bob.head);
 
-    const owned = await query(`from Secret where repo = "${repo}"`, bob.head);
-    const kept = (owned.bags as Record<string, unknown[]>).secret;
+    const owned = await query(`from repo:secret where repo = "${repo}"`, bob.head);
+    const kept = roots(owned);
     if (!Array.isArray(kept) || kept.length !== 1) {
       throw new Error("owner cannot see own secret");
     }
-    const blind = await query(`from Secret where repo = "${repo}"`, cy.head);
-    const seen = (blind.bags as Record<string, unknown[]>).secret;
+    const blind = await query(`from repo:secret where repo = "${repo}"`, cy.head);
+    const seen = roots(blind);
     if (Array.isArray(seen) && seen.length !== 0) {
       throw new Error("stranger sees repo secret");
     }
@@ -490,11 +488,11 @@ try {
     }, bob.head);
 
     const owned = await query(`from Release where repo = "${repo}"`, bob.head);
-    if ((owned.bags as Record<string, unknown[]>).release.length !== 1) {
+    if (roots(owned).length !== 1) {
       throw new Error("owner cannot see own release");
     }
     const blind = await query(`from Package where repo = "${repo}"`, cy.head);
-    const seen = (blind.bags as Record<string, unknown[]>).package;
+    const seen = roots(blind);
     if (Array.isArray(seen) && seen.length !== 0) {
       throw new Error("stranger sees private package");
     }
@@ -522,7 +520,7 @@ try {
       }, bob.head)).id,
     );
     const forks = await query(`from Repo where fork = "${up}"`, bob.head);
-    if ((forks.bags as Record<string, unknown[]>).repo.length !== 1) {
+    if (roots(forks).length !== 1) {
       throw new Error("fork not linked");
     }
     const arch = await fetch(`${base}/repo/${fork}`, {
@@ -568,7 +566,7 @@ try {
       bob.head,
     );
     const bags = pack.bags as Record<string, unknown[]>;
-    if (bags["issue.assignees"].length !== 1 || bags["issue.blocks"].length !== 1) {
+    if (bags["repo:issue.assignees"].length !== 1 || bags["repo:issue.blocks"].length !== 1) {
       throw new Error("assignee or block missing");
     }
 
@@ -587,30 +585,30 @@ try {
   io.print("==> act 11: org-scoped labels, runners, secrets");
   await check("org owner manages org-scoped entities via team subtree", async () => {
     const org = num((await want("/org", { login: "guild" }, ada.head)).id);
-    await want("/orglabel", { name: "triage", color: "ff0", org }, ada.head);
-    const dup = await post("/orglabel", { name: "triage", color: "0ff", org }, ada.head);
+    await deed("actor:label", { name: "triage", color: "ff0", org }, ada.head);
+    const dup = await one("actor:label", { name: "triage", color: "0ff", org }, ada.head);
     if (dup.status !== 409) {
       throw new Error(`org label name not scoped-unique ${dup.status}`);
     }
-    await want("/orgrunner", {
+    await deed("actor:runner", {
       name: "shared",
       token: "ort1",
       labels: "linux",
       status: "idle",
       org,
     }, ada.head);
-    await want("/orgsecret", { name: "DEPLOY", data: "cipher", org }, ada.head);
+    await deed("actor:secret", { name: "DEPLOY", data: "cipher", org }, ada.head);
 
-    const owned = await query(`from OrgSecret where org = "${org}"`, ada.head);
-    if ((owned.bags as Record<string, unknown[]>).orgsecret.length !== 1) {
+    const owned = await query(`from actor:secret where org = "${org}"`, ada.head);
+    if (roots(owned).length !== 1) {
       throw new Error("owner cannot see org secret");
     }
-    const blind = await query(`from OrgSecret where org = "${org}"`, cy.head);
-    const seen = (blind.bags as Record<string, unknown[]>).orgsecret;
+    const blind = await query(`from actor:secret where org = "${org}"`, cy.head);
+    const seen = roots(blind);
     if (Array.isArray(seen) && seen.length !== 0) {
       throw new Error("non-member sees org secret");
     }
-    const steal = await post("/orgsecret", { name: "GRAB", data: "x", org }, cy.head);
+    const steal = await one("actor:secret", { name: "GRAB", data: "x", org }, cy.head);
     if (steal.status !== 403) {
       throw new Error(`non-member wrote org secret ${steal.status}`);
     }
@@ -754,6 +752,33 @@ async function grant(
   scope: string,
 ): Promise<void> {
   await want("/@grant", { who, verb, unit, scope }, head);
+}
+
+function roots(body: Record<string, unknown>): Array<Record<string, unknown>> {
+  const bags = body.bags as Record<string, unknown> | undefined;
+  const rows = bags?.[body.root as string];
+  return Array.isArray(rows) ? (rows as Array<Record<string, unknown>>) : [];
+}
+
+async function one(
+  unit: string,
+  fields: Record<string, unknown>,
+  head: Record<string, string> = {},
+): Promise<Response> {
+  return await post("/batch", { deeds: [{ verb: "put", unit, fields }] }, head);
+}
+
+async function deed(
+  unit: string,
+  fields: Record<string, unknown>,
+  head: Record<string, string> = {},
+): Promise<number> {
+  const res = await one(unit, fields, head);
+  if (res.status !== 200) {
+    throw new Error(`batch put ${unit} ${res.status}`);
+  }
+  const ids = (await res.json()).ids as number[];
+  return ids[0];
 }
 
 async function want(

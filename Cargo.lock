@@ -751,9 +751,9 @@ checksum = "8f42a60cbdf9a97f5d2305f08a87dc4e09308d1276d28c869c684d7777685682"
 
 [[package]]
 name = "keel"
-version = "0.4.0"
+version = "0.5.1"
 source = "sparse+https://git.perish.top/api/packages/PerishLab/cargo/"
-checksum = "456a23a72a5617100bb29af647a138e606f7369722a37af190b8cba684a40302"
+checksum = "fb04b3e2603907f9a1c7d0ac68960d82e476932ef15688443b09e1754e705970"
 dependencies = [
  "axum",
  "keel-macro",
@@ -767,9 +767,9 @@ dependencies = [
 
 [[package]]
 name = "keel-blob"
-version = "0.4.0"
+version = "0.5.1"
 source = "sparse+https://git.perish.top/api/packages/PerishLab/cargo/"
-checksum = "681379e39efd4d6fdffc7cfabf51218b718b2bc1d2fa0b4f66692a798461f249"
+checksum = "60c4c4a75fdaecd4ac0c633f57440aaaa0b28099bc76f225b4ad6ef1367251b9"
 dependencies = [
  "axum",
  "keel",
@@ -780,9 +780,9 @@ dependencies = [
 
 [[package]]
 name = "keel-gate"
-version = "0.4.0"
+version = "0.5.1"
 source = "sparse+https://git.perish.top/api/packages/PerishLab/cargo/"
-checksum = "abe1edae12793fab9452ea65765acd85f68a0ca7aaab52ccaadd5cb194fa8bc2"
+checksum = "aafdd20431495553ab6ff76bfc8663bc43462ba946ea44a7c17b887ab64ad9a1"
 dependencies = [
  "axum",
  "getrandom 0.3.4",
@@ -793,9 +793,9 @@ dependencies = [
 
 [[package]]
 name = "keel-macro"
-version = "0.4.0"
+version = "0.5.1"
 source = "sparse+https://git.perish.top/api/packages/PerishLab/cargo/"
-checksum = "1963d27d082249e5a4f8a324b08ddd4b54641d2ea7963c72c0a7f89f16055ee4"
+checksum = "d123b48d8326129931243e9fde854a976ea135c4f19b7e7e6596a30259d975f9"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -804,9 +804,9 @@ dependencies = [
 
 [[package]]
 name = "keel-relay"
-version = "0.4.0"
+version = "0.5.1"
 source = "sparse+https://git.perish.top/api/packages/PerishLab/cargo/"
-checksum = "e21cec8ab3f1e5230fc8472740c26fa82856b10ce86c4d6429639e90145b1d71"
+checksum = "9b6ac96c7efdb1ea111813c5204b4f06ceaeaaa88561d0571e80d31fad205f76"
 dependencies = [
  "keel",
  "serde_json",
