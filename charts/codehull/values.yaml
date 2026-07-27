@@ -1,5 +1,12 @@
-image:
-  repository: git.perish.top/perishlab/codehull
-  tag: "0.1.0"
-service:
+api:
+  image: git.perish.top/perishlab/codehull-api
+  tag: ""
   port: 3400
+web:
+  image: git.perish.top/perishlab/codehull-web
+  tag: ""
+  replicas: 1
+ingress:
+  enabled: true
+  className: ""
+  host: codehull.local

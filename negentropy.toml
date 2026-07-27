@@ -42,6 +42,13 @@ paths = [
 syntax = "style"
 paths = ["packages/components/**"]
 
+[[grant]]
+syntax = "environment"
+paths = [
+  "apps/web/vite.config.ts",
+  "crates/api/src/runtime.rs",
+]
+
 [[boundary]]
 paths = [
   "apps/web/vite.config.ts",

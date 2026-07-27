@@ -2,10 +2,17 @@ packages:
   - apps/*
   - packages/*
 
+minimumReleaseAgeExclude:
+  - "@perish/react-components"
+  - "@jsr/perish__vite-plugin-design"
+
 allowBuilds:
+  '@parcel/watcher': false
   esbuild: false
 
 catalog:
+  "@jsr/perish__vite-plugin-design": 0.1.0-beta.12
+  "@perish/react-components": 0.1.0-beta.3
   "@biomejs/biome": 2.5.3
   "@types/node": 24.13.3
   "@types/react": 19.2.17
@@ -13,6 +20,7 @@ catalog:
   "@vitejs/plugin-react": 6.0.3
   react: 19.2.7
   react-dom: 19.2.7
+  sass: 1.101.0
   typescript: 7.0.2
   vite: 8.1.4
   vitest: 4.1.10

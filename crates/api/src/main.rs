@@ -1,5 +1,6 @@
 mod door;
 mod model;
+mod runtime;
 
 use axum::Router;
 use axum::middleware::{self};
@@ -12,7 +13,6 @@ use keel_blob::{Shed, Vault};
 use keel_gate::Gate;
 use keel_relay::Relay;
 use model::shape;
-use std::env;
 use std::path::Path;
 use std::sync::Arc;
 
@@ -20,31 +20,42 @@ use std::sync::Arc;
 struct Cli {
     #[arg(default_value = ".")]
     root: String,
+    #[arg(long, hide = true)]
+    sidecar_stamp: Option<String>,
 }
 
 #[tokio::main]
 async fn main() {
-    let root = Cli::parse().root;
-    let cfg = config::load(Path::new(&root));
-    match env::var("KEEL_PG") {
-        Ok(url) => {
-            if env::var("KEEL_FRESH").is_ok() {
-                fresh(&url).await;
+    let cli = Cli::parse();
+    let _stamp = cli.sidecar_stamp;
+    let root = cli.root;
+    let runtime = match runtime::load() {
+        Ok(runtime) => runtime,
+        Err(err) => halt("environment", &err),
+    };
+    let mut cfg = config::load(Path::new(&root));
+    if let Some(port) = runtime.port {
+        cfg.listen.port = port;
+    }
+    match &runtime.pg {
+        Some(url) => {
+            if runtime.fresh {
+                fresh(url).await;
             }
             let store = match Postgres::at(url).await {
                 Ok(store) => store,
                 Err(err) => halt("pg", &err.to_string()),
             };
             let core = raise(bind(shape(), store).await, &cfg);
-            serve(core, &cfg).await;
+            serve(core, &cfg, &runtime).await;
         }
-        Err(_) => {
+        None => {
             let store = match cfg.open().await {
                 Ok(store) => store,
                 Err(err) => halt("config", &err.to_string()),
             };
             let core = raise(bind(shape(), store).await, &cfg);
-            serve(core, &cfg).await;
+            serve(core, &cfg, &runtime).await;
         }
     }
 }
@@ -65,7 +76,11 @@ fn raise<W: Wire + 'static>(
     }
 }
 
-async fn serve<W: Wire + 'static>(core: Arc<Core<W>>, cfg: &config::Config) {
+async fn serve<W: Wire + 'static>(
+    core: Arc<Core<W>>,
+    cfg: &config::Config,
+    runtime: &runtime::Runtime,
+) {
     if let Err(err) = core.seed().await {
         halt("seed", &err.to_string());
     }
@@ -78,7 +93,7 @@ async fn serve<W: Wire + 'static>(core: Arc<Core<W>>, cfg: &config::Config) {
         .route("/repo/{id}/close", post(close::<W>))
         .with_state(core.clone());
     let base = app(core.clone(), &cfg.listen.prefix).merge(plate);
-    let shelved = match core.hoard() {
+    let shelved = match core.hoard(runtime) {
         Some(vault) => vault.shelf(base),
         None => base,
     };
@@ -90,30 +105,35 @@ async fn serve<W: Wire + 'static>(core: Arc<Core<W>>, cfg: &config::Config) {
         Ok(bound) => bound,
         Err(err) => halt("listen", &err.to_string()),
     };
-    eprintln!("codehull: ready on http://{addr}");
+    let live = match bound.local_addr() {
+        Ok(live) => live,
+        Err(err) => halt("listen", &err.to_string()),
+    };
+    eprintln!(
+        "{}",
+        serde_json::json!({ "role": "api", "endpoint": format!("http://{live}") })
+    );
     if let Err(err) = axum::serve(bound, router).await {
         halt("serve", &err.to_string());
     }
 }
 
 trait Rise<W: Wire> {
-    fn hoard(&self) -> Option<Vault<W>>;
+    fn hoard(&self, runtime: &runtime::Runtime) -> Option<Vault<W>>;
     async fn rig(&self) -> Result<Gate<W>, keel::adapt::Error>;
     async fn hail(&self, login: &str) -> Result<i64, keel::adapt::Error>;
     async fn seed(&self) -> Result<(), keel::adapt::Error>;
 }
 
 impl<W: Wire + 'static> Rise<W> for Arc<Core<W>> {
-    fn hoard(&self) -> Option<Vault<W>> {
-        let endpoint = env::var("KEEL_S3").ok()?;
-        let key = env::var("KEEL_S3_KEY").unwrap_or_else(|_| "codehull".into());
-        let secret = env::var("KEEL_S3_SECRET").unwrap_or_else(|_| "codehull123".into());
+    fn hoard(&self, runtime: &runtime::Runtime) -> Option<Vault<W>> {
+        let held = runtime.s3.as_ref()?;
         let shed = Shed {
-            endpoint: &endpoint,
+            endpoint: &held.endpoint,
             name: "codehull",
             region: "us-east-1",
-            key: &key,
-            secret: &secret,
+            key: &held.key,
+            secret: &held.secret,
         };
         match Vault::open(self.clone(), shed) {
             Ok(vault) => Some(vault),
