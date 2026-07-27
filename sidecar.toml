@@ -10,7 +10,7 @@ args = ["run", "--locked", "-p", "api", "--", "."]
 cwd = "."
 mode = "dev"
 port = 0
-health_url = "http://127.0.0.1:{port}/health"
+health_url = "http://127.0.0.1:{port}/api/health"
 ready = { role = "api" }
 
 [app]
@@ -21,4 +21,4 @@ cwd = "."
 mode = "dev"
 port = 0
 health_url = "http://127.0.0.1:{port}"
-inherits_env = [{ name = "CODEHULL_API", from = "api.endpoint" }]
+inherits_env = [{ name = "API_URL", from = "api.endpoint" }]

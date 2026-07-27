@@ -1,6 +1,6 @@
 import { Mark } from "@codehull/components";
 
-export function Home() {
+export default function Home() {
 	return (
 		<main>
 			<Mark />

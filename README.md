@@ -35,9 +35,9 @@ delete.
 ```sh
 cargo run -p api -- .
 # sudo token prints once on first boot; store is .local/codehull.sqlite
-curl -s -X POST 127.0.0.1:3400/register -H 'content-type: application/json' -d '{"login":"ada"}'
+curl -s -X POST 127.0.0.1:3400/api/register -H 'content-type: application/json' -d '{"login":"ada"}'
 ```
 
 Identity middleware for development: `x-login: <login>` resolves an
-operator directly; real credentials go through `/login` (session cookie)
+operator directly; real credentials go through `/api/login` (session cookie)
 or `authorization: token <t>`.

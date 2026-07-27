@@ -16,6 +16,8 @@ use model::shape;
 use std::path::Path;
 use std::sync::Arc;
 
+const PREFIX: &str = "/api";
+
 #[derive(Parser)]
 struct Cli {
     #[arg(default_value = ".")]
@@ -97,9 +99,10 @@ async fn serve<W: Wire + 'static>(
         Some(vault) => vault.shelf(base),
         None => base,
     };
-    let router = door
+    let api = door
         .wall(shelved)
         .layer(middleware::from_fn_with_state(core.clone(), stamp::<W>));
+    let router = Router::new().nest(PREFIX, api);
     let addr = format!("{}:{}", cfg.listen.host, cfg.listen.port);
     let bound = match tokio::net::TcpListener::bind(&addr).await {
         Ok(bound) => bound,
