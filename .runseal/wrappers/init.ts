@@ -79,7 +79,6 @@ for (
     "sidecar.toml",
     "deploy/api.Dockerfile",
     "deploy/web.Dockerfile",
-    "deploy/web.conf.template",
     "charts/codehull/Chart.yaml",
     "charts/codehull/templates/api.yaml",
     "charts/codehull/templates/web.yaml",
