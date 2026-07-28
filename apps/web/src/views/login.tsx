@@ -36,10 +36,17 @@ export default function Login() {
 	}
 
 	return (
-		<Card title="Sign in">
-			<Field label="Token" value={token} change={setToken} kind="password" />
-			{warn === "" ? null : <Note text={warn} tone="warn" />}
-			<Button label="Sign in" press={submit} busy={busy} wide />
-		</Card>
+		<form
+			onSubmit={(event) => {
+				event.preventDefault();
+				void submit();
+			}}
+		>
+			<Card title="Sign in">
+				<Field label="Token" value={token} change={setToken} kind="password" />
+				{warn === "" ? null : <Note text={warn} tone="warn" />}
+				<Button label="Sign in" submit busy={busy} wide />
+			</Card>
+		</form>
 	);
 }

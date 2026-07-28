@@ -8,5 +8,8 @@ test("home carries the mark", () => {
 });
 
 test("login accepts the gate token", () => {
-	expect(renderToString(<Login />)).toContain("Token");
+	const markup = renderToString(<Login />);
+	expect(markup).toContain("Token");
+	expect(markup).toContain("<form");
+	expect(markup).toContain('type="submit"');
 });
