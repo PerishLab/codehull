@@ -9,7 +9,6 @@
 		"test": "vitest run"
 	},
 	"dependencies": {
-		"@codehull/components": "workspace:*",
 		"@perish/react-components": "catalog:",
 		"react": "catalog:",
 		"react-dom": "catalog:"

@@ -1,4 +1,4 @@
-import { Mark } from "@codehull/components";
+import { Mark } from "../lib/components/mark";
 
 export default function Home() {
 	return (

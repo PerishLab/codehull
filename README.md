@@ -27,7 +27,8 @@ delete.
 
 - `crates/api` — the server; the keel caller.
 - `crates/cli` — the client; gh for codehull.
-- `apps/web` + `packages/components` — the web face (pnpm workspace).
+- `apps/web` — the web face; local style-free components stay under
+  `src/lib/components` and reusable visual behavior comes from Design.
 - `charts/codehull` — the helm delivery.
 
 ## Run

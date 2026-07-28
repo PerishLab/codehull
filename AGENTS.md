@@ -11,21 +11,21 @@ A monorepo of four delivery planes, split by toolchain:
 
 - `crates/api` — the server; the keel caller (bin `api`).
 - `crates/cli` — the client; gh for codehull (bin `codehull`).
-- `apps/web` + `packages/components` — the pnpm workspace (node 24,
-  vite, react, typescript, vitest, biome); every version pinned in the
-  `pnpm-workspace.yaml` catalog, packages reference `catalog:` only.
+- `apps/web` — the pnpm web application (node 24, vite, react,
+  typescript, vitest, biome); every version is pinned in the
+  `pnpm-workspace.yaml` catalog and dependencies reference `catalog:` only.
 - `charts/codehull` — the helm delivery.
 
-Territory: only `packages/components` owns style declarations; apps
-consume classNames and declare nothing. The design constitution
-(DESIGN.md, open-web pattern) lands with the first real view. `runseal
-:guard` spans all planes: cargo fmt/clippy/test, biome/tsc/vitest,
-helm lint, negentropy, acts.
+Territory: application components live under
+`apps/web/src/lib/components`, remain style-free, and consume the Design
+runtime for reusable visual behavior. `runseal :guard` spans all planes:
+cargo fmt/clippy/test, biome/tsc/vitest, helm lint, Plumb, Ectropy, and acts.
 
 ## Laws
 
-- Negentropy laws apply (single word, block/path <= 4, no comments);
-  vocabulary deltas in `docs/vocabulary.md`.
+- Ectropy owns syntax laws (single word, block/path <= 4, no comments);
+  Plumb owns repository shape and the canonical `ectropy.toml`. Vocabulary
+  deltas remain documented in `docs/vocabulary.md`.
 - Dependency direction: codehull -> keel-gate/keel-relay -> keel. Never a
   workspace sibling of keel; distribution follows keel's channel.
 - Model changes are law-shaped: extend the slice in `docs/model.md`,
