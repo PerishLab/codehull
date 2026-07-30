@@ -1,38 +1,10 @@
-use axum::extract::{Path as Route, Request, State};
+use axum::extract::{Path as Route, State};
 use axum::http::StatusCode;
-use axum::middleware::Next;
-use axum::response::Response;
 use axum::{Extension, Json};
 use keel::Ends;
 use keel::{Core, Operator, Wire};
 use serde_json::{Map, Value, json};
 use std::sync::Arc;
-
-pub(crate) async fn stamp<W: Wire>(
-    State(core): State<Arc<Core<W>>>,
-    mut req: Request,
-    next: Next,
-) -> Response {
-    let login = req
-        .headers()
-        .get("x-login")
-        .and_then(|value| value.to_str().ok())
-        .map(str::to_string);
-    if let Some(login) = login
-        && let Some(key) = whom(&core, &login).await
-    {
-        req.extensions_mut().insert(Operator(key));
-    }
-    next.run(req).await
-}
-
-pub(crate) async fn whom<W: Wire>(core: &Core<W>, login: &str) -> Option<i64> {
-    let pack = core
-        .query(&format!(r#"from Actor where login = "{login}""#))
-        .await
-        .ok()?;
-    pack.rows().first().map(keel::Row::key)
-}
 
 pub(crate) async fn found<W: Wire + 'static>(
     State(core): State<Arc<Core<W>>>,

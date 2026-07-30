@@ -662,6 +662,13 @@ try {
     if (after.status !== 404) {
       throw new Error(`suspended operator still resolves ${after.status}`);
     }
+    const named = await fetch(`${base}/repo/${vault}`, {
+      headers: { "x-login": "banned" },
+    });
+    await named.body?.cancel();
+    if (named.status !== 404) {
+      throw new Error(`a bare login header resolved an operator ${named.status}`);
+    }
   });
 
   if (!s3) {

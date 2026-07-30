@@ -46,6 +46,7 @@ grants are absent. A `memory` store is born in place and prints its token.
 Configuration is the plumb cascade over `codehull.toml` and the `API_` env
 prefix — keel reads no files and no environment.
 
-Identity middleware for development: `x-login: <login>` resolves an
-operator directly; real credentials go through `/api/login` (session cookie)
-or `authorization: token <t>`.
+Credentials go through `/api/login` (session cookie) or
+`authorization: token <t>`. There is no development shortcut: the `x-login`
+header used to resolve an operator with no credential at all, on the
+deployed binary and outside the suspension check, and it is gone.

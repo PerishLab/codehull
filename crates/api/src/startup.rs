@@ -1,11 +1,10 @@
 use crate::artifact::{self, Artifact};
-use crate::door::{close, found, stamp};
+use crate::door::{close, found};
 use crate::halt;
 use crate::model::shape;
 use crate::rig::Berth;
 use crate::runtime::{Hold, Kind, Runtime};
 use axum::Router;
-use axum::middleware;
 use axum::routing::post;
 use keel::adapt::db::Sqlite;
 use keel::adapt::pg::Postgres;
@@ -182,10 +181,7 @@ async fn serve<W: Wire + 'static>(core: Arc<Core<W>>, runtime: &Runtime, born: b
         Some(vault) => vault.shelf(base),
         None => base,
     };
-    let api = door
-        .wall(shelved)
-        .layer(middleware::from_fn_with_state(core.clone(), stamp::<W>));
-    let router = Router::new().nest(PREFIX, api);
+    let router = Router::new().nest(PREFIX, door.wall(shelved));
     let addr = format!("{}:{}", runtime.listen.host, runtime.listen.port);
     let bound = match tokio::net::TcpListener::bind(&addr).await {
         Ok(bound) => bound,
