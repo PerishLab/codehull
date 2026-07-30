@@ -1,0 +1,20 @@
+{{- if not .Values.postgres.urlSecret.name }}
+apiVersion: v1
+kind: Secret
+metadata:
+  name: {{ .Release.Name }}-store
+  annotations:
+    # The store data outlives the release, so its credential must too.
+    "helm.sh/resource-policy": keep
+type: Opaque
+stringData:
+  # One generation, two fields. Rendering the helper twice would mint two
+  # different passwords and the store would refuse its own url.
+  {{- $pass := include "codehull.pgpass" . }}
+  PGPASSWORD: {{ $pass | quote }}
+  {{- if .Values.postgres.url }}
+  API_STORE_URL: {{ .Values.postgres.url | quote }}
+  {{- else }}
+  API_STORE_URL: {{ printf "host=%s-pg port=5432 user=%s password=%s dbname=%s" .Release.Name .Values.postgres.user $pass .Values.postgres.db | quote }}
+  {{- end }}
+{{- end }}

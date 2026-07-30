@@ -34,10 +34,17 @@ delete.
 ## Run
 
 ```sh
-cargo run -p api -- .
-# sudo token prints once on first boot; store is .local/codehull.sqlite
+cargo run -p api -- bootstrap .
+cargo run -p api -- serve .
+# the sudo token lands in .local/sudo; store is .local/codehull.sqlite
 curl -s -X POST 127.0.0.1:3400/api/register -H 'content-type: application/json' -d '{"login":"ada"}'
 ```
+
+Boot is two ceremonies since keel 0.10: `bootstrap` mints the sudo token into
+its declared artifact and sows the grants; `serve` refuses to start when those
+grants are absent. A `memory` store is born in place and prints its token.
+Configuration is the plumb cascade over `codehull.toml` and the `API_` env
+prefix — keel reads no files and no environment.
 
 Identity middleware for development: `x-login: <login>` resolves an
 operator directly; real credentials go through `/api/login` (session cookie)

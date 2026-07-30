@@ -1,39 +1,106 @@
-pub struct Runtime {
-    pub fresh: bool,
-    pub pg: Option<String>,
-    pub port: Option<u16>,
-    pub s3: Option<S3>,
+use plumb::config::{Cascade, Env};
+use std::path::Path;
+
+pub(crate) const NAME: &str = "codehull.toml";
+
+#[derive(Debug, Default, PartialEq, Cascade)]
+pub(crate) struct Runtime {
+    pub(crate) fresh: bool,
+    #[cascade(section)]
+    pub(crate) listen: Listen,
+    #[cascade(section)]
+    pub(crate) store: Store,
+    #[cascade(section)]
+    pub(crate) cache: Cache,
+    #[cascade(section)]
+    pub(crate) blob: Blob,
 }
 
-pub struct S3 {
-    pub endpoint: String,
-    pub key: String,
-    pub secret: String,
+#[derive(Debug, serde::Deserialize, PartialEq, Cascade)]
+#[cascade(section)]
+#[serde(default)]
+pub(crate) struct Listen {
+    pub(crate) host: String,
+    pub(crate) port: u16,
+    pub(crate) prefix: String,
 }
 
-pub fn load() -> Result<Runtime, String> {
-    let port = match read("SIDECAR_PORT") {
-        Some(raw) => Some(
-            raw.parse()
-                .map_err(|err: std::num::ParseIntError| format!("SIDECAR_PORT: {err}"))?,
-        ),
-        None => None,
-    };
-    let s3 = read("KEEL_S3").map(|endpoint| S3 {
-        endpoint,
-        key: read("KEEL_S3_KEY").unwrap_or_else(|| "codehull".into()),
-        secret: read("KEEL_S3_SECRET").unwrap_or_else(|| "codehull123".into()),
-    });
-    Ok(Runtime {
-        fresh: std::env::var_os("KEEL_FRESH").is_some(),
-        pg: read("KEEL_PG"),
-        port,
-        s3,
-    })
+impl Default for Listen {
+    fn default() -> Self {
+        Listen {
+            host: "127.0.0.1".to_string(),
+            port: 3400,
+            prefix: String::new(),
+        }
+    }
 }
 
-fn read(name: &str) -> Option<String> {
-    std::env::var(name)
-        .ok()
-        .filter(|value| !value.trim().is_empty())
+#[derive(Clone, Copy, Debug, Default, serde::Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "lowercase")]
+pub(crate) enum Kind {
+    #[default]
+    Memory,
+    File,
+    Pg,
+}
+
+impl Env for Kind {
+    fn read(value: &str) -> Result<Self, String> {
+        match value {
+            "memory" => Ok(Kind::Memory),
+            "file" => Ok(Kind::File),
+            "pg" => Ok(Kind::Pg),
+            _ => Err("neither memory, file, nor pg".to_string()),
+        }
+    }
+}
+
+#[derive(Debug, Default, serde::Deserialize, PartialEq, Cascade)]
+#[cascade(section)]
+#[serde(default)]
+pub(crate) struct Store {
+    pub(crate) kind: Kind,
+    pub(crate) path: String,
+    pub(crate) url: String,
+}
+
+#[derive(Clone, Copy, Debug, Default, serde::Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "lowercase")]
+pub(crate) enum Hold {
+    #[default]
+    Memory,
+    None,
+}
+
+impl Env for Hold {
+    fn read(value: &str) -> Result<Self, String> {
+        match value {
+            "memory" => Ok(Hold::Memory),
+            "none" => Ok(Hold::None),
+            _ => Err("neither memory nor none".to_string()),
+        }
+    }
+}
+
+#[derive(Debug, Default, serde::Deserialize, PartialEq, Cascade)]
+#[cascade(section)]
+#[serde(default)]
+pub(crate) struct Cache {
+    pub(crate) kind: Hold,
+}
+
+#[derive(Debug, Default, serde::Deserialize, PartialEq, Cascade)]
+#[cascade(section)]
+#[serde(default)]
+pub(crate) struct Blob {
+    pub(crate) endpoint: String,
+    pub(crate) key: String,
+    pub(crate) secret: String,
+}
+
+pub(crate) fn load(start: &Path) -> Result<Runtime, plumb::config::Error> {
+    match plumb::config::discover(start, NAME) {
+        Ok(found) => Runtime::resolve(Some(&found)),
+        Err(_) => Runtime::resolve(None),
+    }
 }

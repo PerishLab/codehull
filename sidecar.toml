@@ -10,6 +10,7 @@ args = ["run", "--locked", "-p", "api", "--", "."]
 cwd = "."
 mode = "dev"
 port = 0
+env = { API_LISTEN_PORT = "{port}" }
 health_url = "http://127.0.0.1:{port}/api/health"
 ready = { role = "api" }
 

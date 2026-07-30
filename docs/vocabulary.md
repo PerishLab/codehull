@@ -23,9 +23,9 @@
 - `shape` — build the plugged graph (units + gate + relay) once.
 - `raise` / `serve` — store-generic boot: identify, cache mode, share;
   seed, rise packages, wall, listen. Works over Sqlite or Postgres.
-- `fresh` — dev-only PG schema reset (`KEEL_FRESH`), off the async runtime.
+- `fresh` — dev-only PG schema reset (`API_FRESH`), applied before bootstrap.
 - `stock` — plug the Asset unit into the graph (keel-blob macro).
-- `hoard` — build the Vault from `KEEL_S3` env, or None (blob disabled).
+- `hoard` — build the Vault from the `blob` config section, or None (blob disabled).
 - `bucket` — act helper: ensure the MinIO bucket exists via mc.
 - Act 3 covers issue search (`like`) and PR review round-trip (Pull one2one Issue, Review, Note, gated merge).
 - Act 4 watch/notify: `Actor.watches`, feed = materialized query over watched repos (pull model); pred-subtree (C-16) surfaces public-repo issues to watchers.
@@ -34,3 +34,16 @@
   without an engine primitive — batch + forward queries suffice.
 - Route (alias) — axum Path renamed to avoid the std::path::Path clash.
 - Act 7 suspension: Actor.barred + gate.bar hook; a suspended token stops resolving to an operator (private repo 200→404).
+- `seat` — the receiver over a repository root: reads the cascade, opens the
+  store, and runs one of the two boot ceremonies.
+- `berth` — the receiver over a raised core: `seed` sows gate and codehull
+  grants at bootstrap, `rig` verifies them at serve and refuses without them.
+- `artifact` — a declared destination for a durable possession
+  (`--artifact sudo=file:PATH` or `sudo=kubernetes:SECRET`); created once,
+  never overwritten. Absent, bootstrap keeps it at `.local/sudo`.
+- `seal` — the kubernetes destination: the binary writes and reads its own
+  Secret through the service account, so no operator handles the token.
+- `place` — read one artifact destination into the seat it names.
+- `custody` — hold an existing sudo artifact, or mint one into a vacant estate.
+- `born` — this boot bootstraps rather than binds: a memory store, or a
+  postgres store after `fresh`.

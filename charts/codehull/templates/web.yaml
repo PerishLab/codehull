@@ -15,6 +15,7 @@ spec:
       containers:
         - name: web
           image: "{{ .Values.web.image }}:{{ .Values.web.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.web.pullPolicy }}
           ports:
             - containerPort: 8080
           readinessProbe:

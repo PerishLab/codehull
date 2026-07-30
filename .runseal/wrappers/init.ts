@@ -24,7 +24,7 @@ await init({
     "ectropy.toml",
     "docs/vocabulary.md",
     "runseal.toml",
-    "keel.toml",
+    "codehull.toml",
     "AGENTS.md",
     "README.md",
     "package.json",

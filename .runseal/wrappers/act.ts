@@ -25,21 +25,23 @@ const root = await bin("git").text(["rev-parse", "--show-toplevel"]);
 const dir = `${root}/.local/act`;
 await Deno.mkdir(dir, { recursive: true });
 await Deno.writeTextFile(
-  `${dir}/keel.toml`,
-  `[listen]\nhost = "${host}"\nport = ${port}\nprefix = ""\n\n[store]\nkind = "memory"\n\n[identity]\nunit = "Actor"\n\n[cache]\nkind = "memory"\n`,
+  `${dir}/codehull.toml`,
+  `[listen]\nhost = "${host}"\nport = ${port}\nprefix = ""\n\n[store]\nkind = "memory"\n\n[cache]\nkind = "memory"\n`,
 );
 
 io.print("==> build api");
 await bin("cargo").run(["build", "--locked"], { cwd: root });
 
 io.print(`==> boot api on ${base}`);
-const pg = Deno.env.get("KEEL_PG");
-const s3 = Deno.env.get("KEEL_S3");
-const env: Record<string, string> = pg ? { KEEL_PG: pg, KEEL_FRESH: "1" } : {};
+const pg = Deno.env.get("API_STORE_URL");
+const s3 = Deno.env.get("API_BLOB_ENDPOINT");
+const env: Record<string, string> = pg
+  ? { API_STORE_KIND: "pg", API_STORE_URL: pg, API_FRESH: "true" }
+  : {};
 if (s3) {
-  env.KEEL_S3 = s3;
-  env.KEEL_S3_KEY = Deno.env.get("KEEL_S3_KEY") ?? "codehull";
-  env.KEEL_S3_SECRET = Deno.env.get("KEEL_S3_SECRET") ?? "codehull123";
+  env.API_BLOB_ENDPOINT = s3;
+  env.API_BLOB_KEY = Deno.env.get("API_BLOB_KEY") ?? "codehull";
+  env.API_BLOB_SECRET = Deno.env.get("API_BLOB_SECRET") ?? "codehull123";
 }
 if (pg) {
   io.print("==> store: postgres");
@@ -663,7 +665,7 @@ try {
   });
 
   if (!s3) {
-    io.print("KEEL_S3 absent: the blob plane stays unproven this run");
+    io.print("API_BLOB_ENDPOINT absent: the blob plane stays unproven this run");
   }
   if (s3) {
     io.print("==> act 5: blobs");

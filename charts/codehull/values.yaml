@@ -1,12 +1,53 @@
 api:
   image: git.perish.top/perishlab/codehull-api
+  # tag defaults to Chart.appVersion; override only to pin a different image
   tag: ""
+  # A released tag is immutable, so IfNotPresent is right for delivery. Set
+  # Always while iterating on a tag whose contents move under it.
+  pullPolicy: IfNotPresent
+  # Keep at 1. keel caches grant rows per engine instance, so a second
+  # api pod keeps honouring a grant this one revoked until it writes.
+  # Raising this needs the keel cache off first — see keel docs/run/cache.md.
+  replicas: 1
   port: 3400
 web:
   image: git.perish.top/perishlab/codehull-web
   tag: ""
+  pullPolicy: IfNotPresent
   replicas: 1
 ingress:
   enabled: true
   className: ""
   host: codehull.local
+  # TLS is expressed two ways because clusters differ, and neither is baked in:
+  #   - annotations: for a cluster holding a default certificate, ask for TLS
+  #     without naming one (Traefik: traefik.ingress.kubernetes.io/router.tls:
+  #     "true"); or point cert-manager at an issuer.
+  #   - tls: the standard per-host form, e.g.
+  #     [{secretName: codehull-tls, hosts: [...]}].
+  annotations: {}
+  tls: []
+postgres:
+  bundled: true
+  # Point at an existing Secret instead of letting the chart hold the
+  # credential. Set both fields; url and password are then ignored.
+  urlSecret:
+    name: ""
+    key: ""
+  url: ""
+  image: postgres:17-alpine
+  user: codehull
+  db: codehull
+  # Left empty on purpose. The chart generates one on first install and
+  # preserves it across upgrades; a well-known default is not a credential.
+  password: ""
+  storage: 1Gi
+blob:
+  # Metadata truth is keel's and the bytes are the vault's. With no endpoint
+  # the blob plane stays off rather than half-wired.
+  endpoint: ""
+  key: ""
+  # The secret holding API_BLOB_SECRET. The chart never carries object storage
+  # credentials of its own.
+  secretName: ""
+  secretKey: ""

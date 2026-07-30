@@ -15,8 +15,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 RUN useradd --system --uid 10001 --home /codehull codehull
 WORKDIR /codehull
 COPY --from=build /src/target/release/api /usr/local/bin/codehull-api
-COPY deploy/keel.toml keel.toml
+COPY deploy/codehull.toml codehull.toml
 RUN mkdir -p .local && chown -R codehull:codehull /codehull
 USER codehull
 EXPOSE 3400
-ENTRYPOINT ["codehull-api", "/codehull"]
+# The subcommand and its root arrive as args: bootstrap or serve.
+ENTRYPOINT ["codehull-api"]
+CMD ["serve", "/codehull"]

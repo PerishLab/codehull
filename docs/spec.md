@@ -21,12 +21,12 @@ only through the perish registry.
 | Stage | Delivers | Act proves |
 |-------|----------|------------|
 | F0 | runseal + CI + this law | guard green on main |
-| conform | store portability: `KEEL_PG=... runseal :act` runs every act against real Postgres (docker-compose pg:5434) | full stack green on pg and sqlite |
+| conform | store portability: `API_STORE_URL=... runseal :act` runs every act against real Postgres (docker-compose pg:5434) | full stack green on pg and sqlite |
 | F1 | org governance: group operators (keel C-M1), org+owners batch (keel C-9 → #3), team CRUD, member/repo grants | a team grant admits a member to a private repo; leaving revokes |
 | F2 | issue suite completed: Reaction (keel U4 → #2), issue search (keel text pred → #4), sort by comments (keel agg order → #5) | full issue lifecycle incl. reactions, search, busiest-first |
 | F3 | pull & review: Review threads (Note), approvals, merge state — DONE | review round-trip with line notes; merge flips state under authority |
 | F4 | watch & notify: watches (Actor.watches), notifications as materialized queries (feed = issues in watched repos, id cursor), relay webhooks | watcher sees public-repo issue feed via C-16; webhooks live via relay |
-| F5 | blob plane: `keel-blob` (Asset metadata + presigned MinIO bytes), `KEEL_S3=... runseal :act` | presigned upload, 302 gated download, stranger 404; keel never touches bytes |
+| F5 | blob plane: `keel-blob` (Asset metadata + presigned MinIO bytes), `API_BLOB_ENDPOINT=... runseal :act` | presigned upload, 302 gated download, stranger 404; keel never touches bytes |
 | F6 | admin & lifecycle: repo closure delete via caller-space **batch** (no engine seat) — DONE; suspension via gate `bar` hook (DONE); org-label exactly-one charted as two-unit modeling | bare delete 409s under K3, `/close` batch-ends the subtree then deletes |
 | F7 | equivalence audit (`docs/audit.md`): every in-boundary plane — incl. Actions metadata (runner/run/secret/variable/key) — green on sqlite + postgres + MinIO; residue is Actions **execution** + git mechanics (app territory) or charted scope modeling | DONE |
 

@@ -3,9 +3,7 @@ kind: Deployment
 metadata:
   name: {{ .Release.Name }}-api
 spec:
-  # keel caches authority per engine instance. Keep one api replica until
-  # that cache is disabled or distributed.
-  replicas: 1
+  replicas: {{ .Values.api.replicas }}
   selector:
     matchLabels:
       app: {{ .Release.Name }}-api
@@ -14,9 +12,34 @@ spec:
       labels:
         app: {{ .Release.Name }}-api
     spec:
+      serviceAccountName: {{ .Release.Name }}-bootstrap
+      # Bootstrap runs here rather than as a Job: a post-install hook cannot
+      # reach the store before serve is ready, and a pre-install hook runs
+      # before the store exists at all. The pod owns both, so the ordering is
+      # structural. A replay is safe — an occupied estate re-reads its kept
+      # sudo seat instead of minting a second one.
+      initContainers:
+        - name: bootstrap
+          image: "{{ .Values.api.image }}:{{ .Values.api.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.api.pullPolicy }}
+          args:
+            - bootstrap
+            - /codehull
+            - --artifact
+            - sudo=kubernetes:{{ .Release.Name }}-sudo
+          env:
+            {{- include "codehull.store" . | nindent 12 }}
       containers:
         - name: api
           image: "{{ .Values.api.image }}:{{ .Values.api.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.api.pullPolicy }}
+          # serve takes no --artifact. The sudo seat is reachable only from
+          # bootstrap, so the serving container cannot read it at all.
+          args:
+            - serve
+            - /codehull
+          env:
+            {{- include "codehull.store" . | nindent 12 }}
           ports:
             - containerPort: {{ .Values.api.port }}
           readinessProbe:
