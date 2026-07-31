@@ -42,6 +42,15 @@ postgres:
   # preserves it across upgrades; a well-known default is not a credential.
   password: ""
   storage: 1Gi
+oidc:
+  # The issuer whose tokens admit an operator. codehull mints no identity of
+  # its own, so serve refuses to start until this one answers its discovery
+  # and publishes a key — an api pod will not come up before its issuer does.
+  issuer: ""
+  # What this deployment answers to in a token's audience. The issuer must
+  # carry an App with this slug and mode "resource", or it will mint nothing
+  # this deployment accepts.
+  audience: codehull
 blob:
   # Metadata truth is keel's and the bytes are the vault's. With no endpoint
   # the blob plane stays off rather than half-wired.

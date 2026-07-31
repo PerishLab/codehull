@@ -40,6 +40,7 @@ spec:
             - /codehull
           env:
             {{- include "codehull.store" . | nindent 12 }}
+            {{- include "codehull.seam" . | nindent 12 }}
           ports:
             - containerPort: {{ .Values.api.port }}
           readinessProbe:

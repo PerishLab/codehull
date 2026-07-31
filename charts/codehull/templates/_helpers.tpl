@@ -25,6 +25,13 @@ API_STORE_URL
 {{- end -}}
 {{- end -}}
 
+{{- define "codehull.seam" -}}
+- name: API_OIDC_ISSUER
+  value: {{ .Values.oidc.issuer | quote }}
+- name: API_OIDC_AUDIENCE
+  value: {{ .Values.oidc.audience | quote }}
+{{- end -}}
+
 {{- define "codehull.store" -}}
 - name: API_STORE_KIND
   value: "pg"
