@@ -42,6 +42,7 @@ const env: Record<string, string> = pg
   ? { API_STORE_KIND: "pg", API_STORE_URL: pg, API_FRESH: "true" }
   : {};
 env.API_OIDC_ISSUER = mint.url;
+env.API_OIDC_AUDIENCE = "codehull";
 if (s3) {
   env.API_BLOB_ENDPOINT = s3;
   env.API_BLOB_KEY = Deno.env.get("API_BLOB_KEY") ?? "codehull";
@@ -628,6 +629,38 @@ try {
     }
   });
 
+  io.print("==> act 12: an upstream team expands a group grant");
+  await check("membership admits and revoking it withdraws", async () => {
+    const crew = await join("mariner", ["deck"]);
+    const held = await query('from Team where name = "deck"', crown);
+    const rows = roots(held);
+    if (rows.length !== 1) {
+      throw new Error(`claimed team did not settle: ${rows.length}`);
+    }
+    const deck = num(rows[0].id);
+    const vault = num(
+      (await want("/repo", {
+        name: "hold",
+        visibility: "private",
+        owner: ada.id,
+        trunk: "main",
+        archived: false,
+      }, ada.head)).id,
+    );
+    await grant(ada.head, `team ${deck}`, "see", "Repo", `row ${vault}`);
+    if (!(await visible(vault, crew.head))) {
+      throw new Error("a claimed team did not admit its member");
+    }
+    const ashore = { authorization: `Bearer ${await mint.mint("mariner", [])}` };
+    if (await visible(vault, ashore)) {
+      throw new Error("dropping the claim left the member admitted");
+    }
+    const other = await join("bosun", ["deck"]);
+    if (!(await visible(vault, other.head))) {
+      throw new Error("an emptied team did not admit its next member");
+    }
+  });
+
   io.print("==> act 7: the seam refuses what it cannot verify");
   await check("only a token this issuer signed resolves an operator", async () => {
     const seat = await join("warden");
@@ -743,8 +776,8 @@ async function other(): Promise<string> {
   return token;
 }
 
-async function join(sub: string): Promise<Seat> {
-  const token = await mint.mint(sub);
+async function join(sub: string, teams: string[] = []): Promise<Seat> {
+  const token = await mint.mint(sub, teams);
   const head = { authorization: `Bearer ${token}` };
   const held = await query(`from Actor where sub = "${sub}"`, head);
   const rows = roots(held);

@@ -5,16 +5,18 @@ use std::collections::BTreeMap;
 
 pub(crate) struct Warden {
     iss: String,
+    aud: String,
     keys: BTreeMap<String, DecodingKey>,
 }
 
 pub(crate) struct Bearer {
     pub(crate) iss: String,
     pub(crate) sub: String,
+    pub(crate) teams: Vec<String>,
 }
 
 impl Warden {
-    pub(crate) fn open(iss: &str) -> Result<Self, String> {
+    pub(crate) fn open(iss: &str, aud: &str) -> Result<Self, String> {
         let iss = iss.trim_end_matches('/').to_string();
         let seat = probe(&format!("{iss}/.well-known/openid-configuration"))?;
         let held = seat
@@ -36,7 +38,11 @@ impl Warden {
         if keys.is_empty() {
             return Err(format!("{held} publishes no usable key"));
         }
-        Ok(Warden { iss, keys })
+        Ok(Warden {
+            iss,
+            aud: aud.to_string(),
+            keys,
+        })
     }
 
     pub(crate) fn read(&self, token: &str) -> Option<Bearer> {
@@ -44,7 +50,7 @@ impl Warden {
         let key = self.keys.get(&head.kid?)?;
         let mut rule = Validation::new(Algorithm::ES256);
         rule.set_issuer(&[&self.iss]);
-        rule.set_audience(&[&self.iss]);
+        rule.set_audience(&[&self.aud]);
         let held = decode::<Value>(token, key, &rule).ok()?;
         let claims = held.claims;
         if claims.get("kind").and_then(Value::as_str) != Some("access") {
@@ -53,6 +59,15 @@ impl Warden {
         Some(Bearer {
             iss: self.iss.clone(),
             sub: claims.get("sub").and_then(Value::as_str)?.to_string(),
+            teams: claims
+                .get("teams")
+                .and_then(Value::as_array)
+                .map(|held| {
+                    held.iter()
+                        .filter_map(|team| team.as_str().map(str::to_string))
+                        .collect()
+                })
+                .unwrap_or_default(),
         })
     }
 }

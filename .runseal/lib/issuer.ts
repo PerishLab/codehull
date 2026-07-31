@@ -3,7 +3,7 @@ const SIGNING = { name: "ECDSA", hash: "SHA-256" } as const;
 
 export type Issuer = {
   url: string;
-  mint: (sub: string) => Promise<string>;
+  mint: (sub: string, teams?: string[]) => Promise<string>;
   stop: () => Promise<void>;
 };
 
@@ -40,13 +40,14 @@ export async function issuer(port: number): Promise<Issuer> {
     return new Response("not found", { status: 404 });
   });
 
-  const mint = async (sub: string): Promise<string> => {
+  const mint = async (sub: string, teams: string[] = []): Promise<string> => {
     const now = Math.floor(Date.now() / 1000);
     const head = part({ alg: "ES256", typ: "JWT", kid });
     const body = part({
       iss: url,
       sub,
-      aud: url,
+      teams,
+      aud: "codehull",
       kind: "access",
       scope: "openid",
       iat: now,

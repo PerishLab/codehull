@@ -31,6 +31,10 @@ pub(crate) async fn admit<W: Wire + 'static>(
     if let Some(token) = bearer(&req)
         && let Some(held) = seam.warden.read(&token)
         && let Ok(key) = anchor(&seam, &held.iss, &held.sub).await
+        && crate::crew::Crew(&seam.core)
+            .settle(key, &held.teams)
+            .await
+            .is_ok()
     {
         req.extensions_mut().insert(Operator(key));
     }

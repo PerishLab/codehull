@@ -1,4 +1,5 @@
 mod artifact;
+mod crew;
 mod door;
 mod model;
 mod rig;

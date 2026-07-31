@@ -105,6 +105,7 @@ pub(crate) struct Blob {
 #[serde(default)]
 pub(crate) struct Oidc {
     pub(crate) issuer: String,
+    pub(crate) audience: String,
 }
 
 pub(crate) fn load(start: &Path) -> Result<Runtime, plumb::config::Error> {

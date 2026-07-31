@@ -229,7 +229,7 @@ fn hoard<W: Wire + 'static>(core: &Arc<Core<W>>, runtime: &Runtime) -> Option<Va
 }
 
 fn warden(runtime: &Runtime) -> Arc<Warden> {
-    match Warden::open(&runtime.oidc.issuer) {
+    match Warden::open(&runtime.oidc.issuer, &runtime.oidc.audience) {
         Ok(warden) => Arc::new(warden),
         Err(err) => halt("oidc", &err),
     }
