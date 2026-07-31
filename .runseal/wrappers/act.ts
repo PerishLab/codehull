@@ -1,6 +1,7 @@
 import { cli, flags } from "@/lib/cli.ts";
 import { bin } from "@/lib/std/cmd.ts";
 import { io } from "@/lib/std/io.ts";
+import { issuer } from "@/lib/issuer.ts";
 
 const host = "127.0.0.1";
 const port = 13400;
@@ -29,6 +30,8 @@ await Deno.writeTextFile(
   `[listen]\nhost = "${host}"\nport = ${port}\nprefix = ""\n\n[store]\nkind = "memory"\n\n[cache]\nkind = "memory"\n`,
 );
 
+const mint = await issuer(13401);
+
 io.print("==> build api");
 await bin("cargo").run(["build", "--locked"], { cwd: root });
 
@@ -38,6 +41,7 @@ const s3 = Deno.env.get("API_BLOB_ENDPOINT");
 const env: Record<string, string> = pg
   ? { API_STORE_KIND: "pg", API_STORE_URL: pg, API_FRESH: "true" }
   : {};
+env.API_OIDC_ISSUER = mint.url;
 if (s3) {
   env.API_BLOB_ENDPOINT = s3;
   env.API_BLOB_KEY = Deno.env.get("API_BLOB_KEY") ?? "codehull";
@@ -83,7 +87,7 @@ try {
   let org = 0;
   let crew = 0;
   await check("org creation is atomic", async () => {
-    const made = await want("/org", { login: "lab" }, ada.head);
+    const made = await want("/org", { name: "lab" }, ada.head);
     org = num(made.id);
     const pack = await query(
       `from Team where org = "${org}" link members`,
@@ -97,11 +101,11 @@ try {
     if (bond(pack, "actor:team.members").length !== 1) {
       throw new Error("creator not enrolled atomically");
     }
-    const clash = await post("/org", { login: "lab" }, bob.head);
+    const clash = await post("/org", { name: "lab" }, bob.head);
     if (clash.status !== 403 && clash.status !== 409) {
       throw new Error(`dup org ${clash.status}`);
     }
-    const after = await query(`from Actor where login = "lab" count`, ada.head);
+    const after = await query(`from Actor where sub = "lab" count`, ada.head);
     if (after.count !== 1) {
       throw new Error("rolled-back org left a row");
     }
@@ -594,7 +598,7 @@ try {
 
   io.print("==> act 11: org-scoped labels, runners, secrets");
   await check("org owner manages org-scoped entities via team subtree", async () => {
-    const org = num((await want("/org", { login: "guild" }, ada.head)).id);
+    const org = num((await want("/org", { name: "guild" }, ada.head)).id);
     await deed("actor:label", { name: "triage", color: "ff0", org }, ada.head);
     const dup = await one("actor:label", { name: "triage", color: "0ff", org }, ada.head);
     if (dup.status !== 409) {
@@ -624,50 +628,41 @@ try {
     }
   });
 
-  io.print("==> act 7: suspension");
-  await check("suspended operator is refused", async () => {
-    const made = await want(
-      "/register",
-      { login: "banned", kind: "user", barred: false },
-      {},
-    );
-    const id = num(made.id);
-    const token = made.token as string;
-    const head = { authorization: `token ${token}` };
+  io.print("==> act 7: the seam refuses what it cannot verify");
+  await check("only a token this issuer signed resolves an operator", async () => {
+    const seat = await join("warden");
     const vault = num(
       (await want("/repo", {
         name: "secret",
         visibility: "private",
-        owner: id,
+        owner: seat.id,
         trunk: "main",
         archived: false,
-      }, head)).id,
+      }, seat.head)).id,
     );
-    const before = await fetch(`${base}/repo/${vault}`, { headers: head });
-    await before.body?.cancel();
-    if (before.status !== 200) {
-      throw new Error(`operator cannot see own repo ${before.status}`);
+    const mine = await fetch(`${base}/repo/${vault}`, { headers: seat.head });
+    await mine.body?.cancel();
+    if (mine.status !== 200) {
+      throw new Error(`operator cannot see own repo ${mine.status}`);
     }
-    const bar = await fetch(`${base}/actor/${id}`, {
-      method: "PATCH",
-      headers: { "content-type": "application/json", ...crown },
-      body: JSON.stringify({ barred: true }),
+    const held = (seat.head.authorization ?? "").slice("Bearer ".length);
+    const [head, body, seal] = held.split(".");
+    const forged = `${head}.${body}.${seal.slice(0, -2)}${seal.slice(-2) === "AA" ? "BB" : "AA"}`;
+    for (const [note, token] of [["a forged signature", forged], ["a stranger", await other()]]) {
+      const res = await fetch(`${base}/repo/${vault}`, {
+        headers: { authorization: `Bearer ${token}` },
+      });
+      await res.body?.cancel();
+      if (res.status !== 404) {
+        throw new Error(`${note} resolved an operator ${res.status}`);
+      }
+    }
+    const bare = await fetch(`${base}/repo/${vault}`, {
+      headers: { "x-login": "warden" },
     });
-    await bar.body?.cancel();
-    if (!bar.ok) {
-      throw new Error(`suspend ${bar.status}`);
-    }
-    const after = await fetch(`${base}/repo/${vault}`, { headers: head });
-    await after.body?.cancel();
-    if (after.status !== 404) {
-      throw new Error(`suspended operator still resolves ${after.status}`);
-    }
-    const named = await fetch(`${base}/repo/${vault}`, {
-      headers: { "x-login": "banned" },
-    });
-    await named.body?.cancel();
-    if (named.status !== 404) {
-      throw new Error(`a bare login header resolved an operator ${named.status}`);
+    await bare.body?.cancel();
+    if (bare.status !== 404) {
+      throw new Error(`a bare login header resolved an operator ${bare.status}`);
     }
   });
 
@@ -741,10 +736,22 @@ if (failed) {
 
 type Seat = { id: number; head: Record<string, string> };
 
-async function join(login: string): Promise<Seat> {
-  const made = await want("/register", { login, kind: "user", barred: false });
-  const token = made.token as string;
-  return { id: num(made.id), head: { authorization: `token ${token}` } };
+async function other(): Promise<string> {
+  const stranger = await issuer(13402);
+  const token = await stranger.mint("warden");
+  await stranger.stop();
+  return token;
+}
+
+async function join(sub: string): Promise<Seat> {
+  const token = await mint.mint(sub);
+  const head = { authorization: `Bearer ${token}` };
+  const held = await query(`from Actor where sub = "${sub}"`, head);
+  const rows = roots(held);
+  if (rows.length !== 1) {
+    throw new Error(`anchor row for ${sub} expected 1, got ${rows.length}`);
+  }
+  return { id: num(rows[0].id), head };
 }
 
 function seen(_seat: Seat, _id: number, status: number): boolean {

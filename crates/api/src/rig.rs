@@ -4,6 +4,9 @@ use keel_gate::Gate;
 use keel_relay::Relay;
 use std::sync::Arc;
 
+pub(crate) const SVC: &str = "codehull:svc";
+pub(crate) const ORG: &str = "codehull:org";
+
 pub(crate) struct Berth<'a, W: Wire>(pub(crate) &'a Arc<Core<W>>);
 
 impl<W: Wire + 'static> Berth<'_, W> {
@@ -28,39 +31,36 @@ impl<W: Wire + 'static> Berth<'_, W> {
     }
 
     async fn gate(&self) -> Result<Gate<W>, Error> {
-        let svc = self.hail("gate").await?;
-        Ok(Gate::rise(self.0.clone(), svc)?.bar("barred"))
+        let svc = hail(self.0, SVC, "gate").await?;
+        Gate::rise(self.0.clone(), svc)
     }
 
     async fn relay(&self) -> Result<(), Error> {
-        let mail = self.hail("relay").await?;
+        let mail = hail(self.0, SVC, "relay").await?;
         Relay::rise(self.0.clone(), mail).await?.run();
         Ok(())
     }
+}
 
-    async fn hail(&self, login: &str) -> Result<i64, Error> {
-        let held = self
-            .0
-            .query(&format!(r#"from Actor where login = "{login}""#))
-            .await?;
-        match held.rows().first() {
-            Some(row) => Ok(row.key()),
-            None => {
-                self.0
-                    .put(
-                        "Actor",
-                        &[("login", login), ("kind", "svc"), ("barred", "false")],
-                    )
-                    .await
-            }
-        }
+pub(crate) async fn hail<W: Wire + 'static>(
+    core: &Arc<Core<W>>,
+    iss: &str,
+    sub: &str,
+) -> Result<i64, Error> {
+    let held = core
+        .query(&format!(
+            r#"from Actor where iss = "{iss}" and sub = "{sub}""#
+        ))
+        .await?;
+    match held.rows().first() {
+        Some(row) => Ok(row.key()),
+        None => core.put("Actor", &[("iss", iss), ("sub", sub)]).await,
     }
 }
 
-const ROWS: [(&str, &str, &str, &str); 16] = [
-    ("anon", "put", "Actor", r#"pred kind = "user""#),
+const ROWS: [(&str, &str, &str, &str); 15] = [
     ("anon", "see", "Actor", "all"),
-    ("all", "put", "Actor", r#"pred kind = "org""#),
+    ("all", "put", "Actor", r#"pred iss = "codehull:org""#),
     ("anon", "see", "Repo", r#"pred visibility = "public""#),
     ("all", "put", "Repo", r#"pred owner = "@me""#),
     ("all", "put", "Issue", r#"pred author = "@me""#),

@@ -3,7 +3,9 @@ mod door;
 mod model;
 mod rig;
 mod runtime;
+mod seam;
 mod startup;
+mod warden;
 
 use clap::{Parser, Subcommand};
 use startup::Seat;

@@ -79,7 +79,9 @@ app code that consumes keel).
 - ✅ Stars (stars m2m has-count, act 10)
 
 ## Admin & cross-cutting
-- ✅ User suspend / admin (act 7)
+- ⬆️ User suspend — moved upstream with identity. codehull carries no
+  suspension flag; a barred person stops getting tokens, and a token this
+  issuer did not sign resolves nothing (act 7)
 - ✅ Org management (act 1)
 - ✅ Audit log (`@pulse` stream + `@grant` enumeration)
 - ✅ Fine-grained authorization (`@grant`, root chain, groups, pred-subtree)
@@ -94,8 +96,10 @@ on **sqlite and real Postgres**, blobs on real MinIO. 30 business units +
 
 - ⛔ **Execution / git mechanics**: workflow runs, merge/diff, tags, wiki &
   package *content* — app code that consumes keel, never modeled (boundary law).
-- **Caller-space auth integrations**: 2FA / passkeys, OAuth2 / external login
-  sources — gate is the seam; these are middleware the caller adds, not keel.
+- **Caller-space auth integrations**: 2FA / passkeys — gate is the seam; these
+  are middleware the caller adds, not keel. OAuth2 / external login is no
+  longer pending: codehull issues no identity at all, and an operator exists
+  only as a verified `Bearer` token (`crates/api/src/{warden,seam}.rs`).
 - **Charted scope modeling** (no gap, no new primitive): org-scoped labels /
   runners / secrets are the two-unit pattern, added when a live need appears.
 - **Minor**: Action feed = the `@pulse` stream (audit already ✅); Stopwatch,

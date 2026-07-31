@@ -5,12 +5,10 @@ use keel::resource;
 
 #[resource]
 pub(crate) struct Actor {
-    #[field(string, unique)]
-    login: string,
     #[field(string)]
-    kind: string,
-    #[field(bool)]
-    barred: bool,
+    iss: string,
+    #[field(string, unique = iss)]
+    sub: string,
     #[relation(Repo, many2many)]
     stars: Repo,
     #[relation(Repo, many2many)]

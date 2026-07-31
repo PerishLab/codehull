@@ -15,6 +15,7 @@ path = "src/main.rs"
 clap = { workspace = true }
 axum = { workspace = true }
 base64 = { workspace = true }
+jsonwebtoken = { workspace = true }
 keel = { workspace = true, features = ["pg"] }
 keel-blob = { workspace = true }
 keel-gate = { workspace = true }

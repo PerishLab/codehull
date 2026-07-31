@@ -4,7 +4,10 @@ use crate::halt;
 use crate::model::shape;
 use crate::rig::Berth;
 use crate::runtime::{Hold, Kind, Runtime};
+use crate::seam::{Seam, admit};
+use crate::warden::Warden;
 use axum::Router;
+use axum::middleware;
 use axum::routing::post;
 use keel::adapt::db::Sqlite;
 use keel::adapt::pg::Postgres;
@@ -181,7 +184,15 @@ async fn serve<W: Wire + 'static>(core: Arc<Core<W>>, runtime: &Runtime, born: b
         Some(vault) => vault.shelf(base),
         None => base,
     };
-    let router = Router::new().nest(PREFIX, door.wall(shelved));
+    let seam = Seam {
+        core: core.clone(),
+        gate: door.clone(),
+        warden: warden(runtime),
+    };
+    let api = door
+        .screen(shelved)
+        .layer(middleware::from_fn_with_state(seam, admit::<W>));
+    let router = Router::new().nest(PREFIX, api);
     let addr = format!("{}:{}", runtime.listen.host, runtime.listen.port);
     let bound = match tokio::net::TcpListener::bind(&addr).await {
         Ok(bound) => bound,
@@ -214,5 +225,12 @@ fn hoard<W: Wire + 'static>(core: &Arc<Core<W>>, runtime: &Runtime) -> Option<Va
     match Vault::open(core.clone(), shed) {
         Ok(vault) => Some(vault),
         Err(err) => halt("vault", &err.to_string()),
+    }
+}
+
+fn warden(runtime: &Runtime) -> Arc<Warden> {
+    match Warden::open(&runtime.oidc.issuer) {
+        Ok(warden) => Arc::new(warden),
+        Err(err) => halt("oidc", &err),
     }
 }

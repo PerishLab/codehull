@@ -46,7 +46,9 @@ grants are absent. A `memory` store is born in place and prints its token.
 Configuration is the plumb cascade over `codehull.toml` and the `API_` env
 prefix — keel reads no files and no environment.
 
-Credentials go through `/api/login` (session cookie) or
-`authorization: token <t>`. There is no development shortcut: the `x-login`
-header used to resolve an operator with no credential at all, on the
-deployed binary and outside the suspension check, and it is gone.
+codehull issues no identity. An operator exists only as
+`authorization: Bearer <jwt>` — a token some issuer signed, verified against
+the JWKS at `API_OIDC_ISSUER`. The first time a subject arrives, codehull
+gives it an anchor row carrying `iss` and `sub` and nothing else: no login,
+no name, no suspension flag. Those are the issuer's to hold, and a client
+that wants to render a person asks the issuer, not codehull.

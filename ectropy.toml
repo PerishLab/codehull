@@ -63,5 +63,9 @@ include = [
   "docs/**/*.md",
 ]
 
+[[vocabulary.term]]
+description = "Foreign jsonwebtoken type naming a public key already parsed for verification; the seam holds one per key id."
+name = "DecodingKey"
+
 [word]
 single = true

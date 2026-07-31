@@ -30,6 +30,14 @@ only through the perish registry.
 | F6 | admin & lifecycle: repo closure delete via caller-space **batch** (no engine seat) — DONE; suspension via gate `bar` hook (DONE); org-label exactly-one charted as two-unit modeling | bare delete 409s under K3, `/close` batch-ends the subtree then deletes |
 | F7 | equivalence audit (`docs/audit.md`): every in-boundary plane — incl. Actions metadata (runner/run/secret/variable/key) — green on sqlite + postgres + MinIO; residue is Actions **execution** + git mechanics (app territory) or charted scope modeling | DONE |
 
+## Identity
+
+codehull issues no identity. `Actor` is an anchor carrying `iss` and `sub`
+and nothing else; login, name, and suspension belong to the issuer. Gate's
+stock doors are not mounted, so an operator exists only as a `Bearer` token
+verified against `API_OIDC_ISSUER`. Rendering a person is the client's
+round trip to that issuer, never a field codehull mirrors.
+
 ## Must not
 
 - Gitea/Forgejo API mimicry (paths, payload shapes).

@@ -15,7 +15,7 @@ pub(crate) async fn found<W: Wire + 'static>(
         return Err(StatusCode::UNAUTHORIZED);
     };
     let name = body
-        .get("login")
+        .get("name")
         .and_then(Value::as_str)
         .ok_or(StatusCode::BAD_REQUEST)?
         .to_string();
@@ -23,10 +23,7 @@ pub(crate) async fn found<W: Wire + 'static>(
     let org = face
         .batch(async |tx| {
             let org = tx
-                .put(
-                    "Actor",
-                    &[("login", &name), ("kind", "org"), ("barred", "false")],
-                )
+                .put("Actor", &[("iss", crate::rig::ORG), ("sub", &name)])
                 .await?;
             let team = tx
                 .put(

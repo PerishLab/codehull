@@ -15,8 +15,16 @@
   one act per spec stage).
 - `join` / `want` / `visible` / `grant` — act helpers: register a user,
   assert a 201 write, probe repo visibility, seed a grant.
-- `kind` — Actor field: user / org / svc (Forgejo's actor unification).
 - `found` — atomic org creation route: org + owners team + membership + grant in one batch.
+- `seam` — the identity boundary: a `Bearer` token this issuer signed resolves an
+  operator, and nothing else does. Gate keeps `token` and `session`; the two
+  schemes are disjoint, so neither needs to outrank the other.
+- `warden` — the verifier: reads the issuer's discovery and JWKS once at boot,
+  then checks ES256, issuer, audience, expiry, and `kind = "access"`.
+- `anchor` — the row a verified subject hangs on: `iss` plus `sub`, no user
+  semantics, born through gate's identity birth so it carries its own self
+  grant. A plain put would make a row its own operator cannot touch.
+- `hail` — find-or-make a service seat under the `codehull:svc` issuer.
 - `hail` — idempotent service-operator lookup-or-create at boot.
 - `shape` — build the plugged graph (units + gate + relay) once.
 - `raise` / `serve` — store-generic boot: identify, cache mode, share;

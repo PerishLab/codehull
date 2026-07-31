@@ -14,6 +14,8 @@ pub(crate) struct Runtime {
     pub(crate) cache: Cache,
     #[cascade(section)]
     pub(crate) blob: Blob,
+    #[cascade(section)]
+    pub(crate) oidc: Oidc,
 }
 
 #[derive(Debug, serde::Deserialize, PartialEq, Cascade)]
@@ -96,6 +98,13 @@ pub(crate) struct Blob {
     pub(crate) endpoint: String,
     pub(crate) key: String,
     pub(crate) secret: String,
+}
+
+#[derive(Debug, Default, serde::Deserialize, PartialEq, Cascade)]
+#[cascade(section)]
+#[serde(default)]
+pub(crate) struct Oidc {
+    pub(crate) issuer: String,
 }
 
 pub(crate) fn load(start: &Path) -> Result<Runtime, plumb::config::Error> {
