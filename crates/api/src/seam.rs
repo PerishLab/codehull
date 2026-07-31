@@ -1,4 +1,4 @@
-use crate::warden::Warden;
+use crate::warden::{Bearer, Warden};
 use axum::extract::{Request, State};
 use axum::middleware::Next;
 use axum::response::Response;
@@ -30,15 +30,28 @@ pub(crate) async fn admit<W: Wire + 'static>(
 ) -> Response {
     if let Some(token) = bearer(&req)
         && let Some(held) = seam.warden.read(&token)
-        && let Ok(key) = anchor(&seam, &held.iss, &held.sub).await
-        && crate::crew::Crew(&seam.core)
-            .settle(key, &held.teams)
-            .await
-            .is_ok()
+        && let Some(key) = seat(&seam, &held).await
     {
         req.extensions_mut().insert(Operator(key));
     }
     next.run(req).await
+}
+
+async fn seat<W: Wire + 'static>(seam: &Seam<W>, held: &Bearer) -> Option<i64> {
+    let key = match anchor(seam, &held.iss, &held.sub).await {
+        Ok(key) => key,
+        Err(err) => {
+            eprintln!("codehull: seam: no anchor for {}: {err}", held.sub);
+            return None;
+        }
+    };
+    match crate::crew::Crew(&seam.core).settle(key, &held.teams).await {
+        Ok(()) => Some(key),
+        Err(err) => {
+            eprintln!("codehull: seam: crew unsettled for {}: {err}", held.sub);
+            None
+        }
+    }
 }
 
 fn bearer(req: &Request) -> Option<String> {
