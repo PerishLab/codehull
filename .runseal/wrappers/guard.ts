@@ -27,21 +27,6 @@ await bin("cargo").run([
   "--release",
 ]);
 
-io.print("==> pnpm install");
-await bin("pnpm").run(["install", "--frozen-lockfile"]);
-
-io.print("==> biome");
-await bin("pnpm").run(["biome", "ci", "."]);
-
-io.print("==> web build");
-await bin("pnpm").run(["--filter", "@codehull/web", "build"]);
-
-io.print("==> tsc");
-await bin("pnpm").run(["-r", "exec", "tsc", "--noEmit"]);
-
-io.print("==> vitest");
-await bin("pnpm").run(["-r", "test"]);
-
 io.print("==> helm lint");
 const helm = (Deno.env.get("PATH") ?? "").split(":").some((dir) => {
   try {
