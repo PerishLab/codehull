@@ -292,6 +292,10 @@ checksum = "0c9ea0ac24bc397ab3c98583a3c9ba74fa56b09a4449bbe172b9b1ddb016027a"
 [[package]]
 name = "codehull"
 version = "0.3.0"
+dependencies = [
+ "clap",
+ "plumb",
+]
 
 [[package]]
 name = "colorchoice"
@@ -1483,9 +1487,9 @@ checksum = "19f132c84eca552bf34cab8ec81f1c1dcc229b811638f9d283dceabe58c5569e"
 
 [[package]]
 name = "plumb"
-version = "0.18.9"
+version = "0.18.13"
 source = "sparse+https://git.perish.top/api/packages/PerishLab/cargo/"
-checksum = "346b5f8b3c0a61da740c97486bea480e73dcf339aa9166a2bd137e438b1e383c"
+checksum = "81acb73c5a2cfc49d2a38835b2fc486f07912f58659fb66f0081b6ebf489306e"
 dependencies = [
  "base64",
  "clap",
@@ -1498,9 +1502,9 @@ dependencies = [
 
 [[package]]
 name = "plumb-macro"
-version = "0.18.9"
+version = "0.18.13"
 source = "sparse+https://git.perish.top/api/packages/PerishLab/cargo/"
-checksum = "a60f4ac26f5feb67c7487f5ae954ed7ac8c1f628f371c0029776dadef19cc10c"
+checksum = "bfc57423554be050aefe2da2fa213350d2596c7121f2d44c0132466057a84ba9"
 dependencies = [
  "proc-macro2",
  "quote",

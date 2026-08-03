@@ -1,26 +1,11 @@
-import { cli, flags } from "@/lib/cli.ts";
-import { bin } from "@/lib/std/cmd.ts";
-import { io } from "@/lib/std/io.ts";
-import { issuer } from "@/lib/issuer.ts";
+import { bin } from "./lib/cmd.ts";
+import { io } from "./lib/io.ts";
+import { issuer } from "./lib/issuer.ts";
 
 const host = "127.0.0.1";
 const port = 13400;
 const origin = `http://${host}:${port}`;
 const base = `${origin}/api`;
-
-function usage(): void {
-  io.print("Usage: runseal :act");
-  io.print("");
-  io.print("Forgejo stage acts over the running binary (docs/spec.md).");
-}
-
-const args = cli.parse(Deno.args, { boolean: ["help", "h"] });
-if (flags(args).help()) {
-  flags(args).positionals("act", { allowHelp: true });
-  usage();
-  Deno.exit(0);
-}
-flags(args).positionals("act");
 
 const root = await bin("git").text(["rev-parse", "--show-toplevel"]);
 const dir = `${root}/.local/act`;
@@ -33,7 +18,7 @@ await Deno.writeTextFile(
 const mint = await issuer(13401);
 
 io.print("==> build api");
-await bin("cargo").run(["build", "--locked"], { cwd: root });
+await bin("cargo").run(["build", "--locked", "-p", "api"], { cwd: root });
 
 io.print(`==> boot api on ${base}`);
 const pg = Deno.env.get("API_STORE_URL");

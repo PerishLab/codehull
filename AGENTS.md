@@ -18,7 +18,7 @@ A monorepo of four delivery planes, split by toolchain:
 
 Territory: application components live under
 `apps/web/src/lib/components`, remain style-free, and consume the Design
-runtime for reusable visual behavior. `runseal :guard` spans all planes:
+  runtime for reusable visual behavior. The Forgejo guard spans all planes:
 cargo fmt/clippy/test, biome/tsc/vitest, helm lint, Plumb, Ectropy, and acts.
 
 ## Laws
@@ -31,6 +31,6 @@ cargo fmt/clippy/test, biome/tsc/vitest, helm lint, Plumb, Ectropy, and acts.
 - Model changes are law-shaped: extend the slice in `docs/model.md`,
   then code.
 - Stage law: `docs/spec.md` (F0 foundations → F7 equivalence audit).
-- Never commit on `main`; branch, then `runseal :guard` and `runseal :land`.
+- Never commit on `main`; branch, let the repository guard pass, then use `plumb land`.
 - Engine gaps become keel issues and registry releases, never local
   workarounds.

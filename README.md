@@ -31,6 +31,18 @@ delete.
   `src/lib/components` and reusable visual behavior comes from Design.
 - `charts/codehull` — the helm delivery.
 
+## Operator CLI
+
+The `codehull` binary owns the product acceptance and release workflows:
+
+```sh
+cargo run --locked -p codehull -- act
+cargo run --locked -p codehull -- ship
+```
+
+`act` runs the staged API scenarios from `docs/spec.md`. `ship` publishes the
+API and web images plus the Helm chart from a clean `main` at one exact version.
+
 ## Run
 
 ```sh
