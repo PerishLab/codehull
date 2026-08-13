@@ -8,7 +8,6 @@ const REGISTRY: &str = "git.perish.top/perishlab";
 struct Image {
     face: &'static str,
     file: &'static str,
-    cargo: bool,
 }
 
 pub fn run() -> Result<(), String> {
@@ -24,10 +23,10 @@ pub fn run() -> Result<(), String> {
     }
     let version = version(&root)?;
     println!("==> ship v{version}");
+    carve("api", "api", &root)?;
     Image {
         face: "api",
         file: "deploy/api.Dockerfile",
-        cargo: true,
     }
     .forge(&root, &version)?;
     chart(&root, &version)?;
@@ -44,29 +43,32 @@ impl Image {
             return Ok(());
         }
         println!("==> build codehull-{}", self.face);
-        let mut args = vec![
-            "build".to_owned(),
-            "--network=host".to_owned(),
-            "-f".to_owned(),
-            self.file.to_owned(),
-            "-t".to_owned(),
-            image.clone(),
-        ];
-        if self.cargo {
-            let home = plumb::config::home().ok_or_else(|| "ship: home is required".to_owned())?;
-            args.extend([
-                "--secret".to_owned(),
-                format!(
-                    "id=cargo,src={}",
-                    home.join(".cargo/credentials.toml").display()
-                ),
-            ]);
-        }
-        args.push(".".to_owned());
-        docker.run(args, Some(root))?;
+        docker.run(
+            [
+                "build".to_owned(),
+                "-f".to_owned(),
+                self.file.to_owned(),
+                "-t".to_owned(),
+                image.clone(),
+                ".".to_owned(),
+            ],
+            Some(root),
+        )?;
         println!("==> push codehull-{}", self.face);
         docker.run(["push", &image], Some(root))
     }
+}
+
+fn carve(crate_name: &str, face: &str, root: &Path) -> Result<(), String> {
+    println!("==> build {crate_name} for the image");
+    Process::new("cargo").run(
+        ["build", "--release", "--locked", "-p", crate_name],
+        Some(root),
+    )?;
+    let source = root.join("target/release").join(crate_name);
+    let dest = root.join("deploy").join(format!("codehull-{face}"));
+    fs::copy(&source, &dest).map_err(|error| format!("ship: carve: {error}"))?;
+    Ok(())
 }
 
 fn chart(root: &Path, version: &str) -> Result<(), String> {
