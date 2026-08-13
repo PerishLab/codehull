@@ -1,4 +1,5 @@
 import { bin } from "./lib/cmd.ts";
+import { ground } from "./lib/ground.ts";
 import { io } from "./lib/io.ts";
 import { issuer } from "./lib/issuer.ts";
 
@@ -683,6 +684,9 @@ try {
       throw new Error(`a bare login header resolved an operator ${bare.status}`);
     }
   });
+
+  io.print("==> act 13: repository truth");
+  await ground(root, mint, 13402);
 
   if (!s3) {
     io.print("API_BLOB_ENDPOINT absent: the blob plane stays unproven this run");
