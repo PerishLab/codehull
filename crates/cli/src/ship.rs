@@ -24,20 +24,12 @@ pub fn run() -> Result<(), String> {
     }
     let version = version(&root)?;
     println!("==> ship v{version}");
-    for image in [
-        Image {
-            face: "api",
-            file: "deploy/api.Dockerfile",
-            cargo: true,
-        },
-        Image {
-            face: "web",
-            file: "deploy/web.Dockerfile",
-            cargo: false,
-        },
-    ] {
-        image.forge(&root, &version)?;
+    Image {
+        face: "api",
+        file: "deploy/api.Dockerfile",
+        cargo: true,
     }
+    .forge(&root, &version)?;
     chart(&root, &version)?;
     println!("ship: clean");
     Ok(())
