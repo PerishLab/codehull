@@ -4,7 +4,7 @@ version.workspace = true
 edition.workspace = true
 license.workspace = true
 repository.workspace = true
-description = "the codehull server: Forgejo on keel"
+description = "the codehull server"
 publish = false
 
 [[bin]]
@@ -16,6 +16,7 @@ clap = { workspace = true }
 axum = { workspace = true }
 base64 = { workspace = true }
 jsonwebtoken = { workspace = true }
+codehull-repo = { path = "../repo" }
 keel = { workspace = true, features = ["pg"] }
 keel-blob = { workspace = true }
 keel-gate = { workspace = true }

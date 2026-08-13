@@ -5,6 +5,8 @@ pub(crate) const NAME: &str = "codehull.toml";
 
 #[derive(Debug, Default, PartialEq, Cascade)]
 pub(crate) struct Runtime {
+    #[cascade(section)]
+    pub(crate) repo: Repo,
     pub(crate) fresh: bool,
     #[cascade(section)]
     pub(crate) listen: Listen,
@@ -113,4 +115,11 @@ pub(crate) fn load(start: &Path) -> Result<Runtime, plumb::config::Error> {
         Ok(found) => Runtime::resolve(Some(&found)),
         Err(_) => Runtime::resolve(None),
     }
+}
+
+#[derive(Debug, Default, serde::Deserialize, PartialEq, Cascade)]
+#[cascade(section)]
+#[serde(default)]
+pub(crate) struct Repo {
+    pub(crate) path: String,
 }

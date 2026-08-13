@@ -40,19 +40,36 @@ impl Seat<'_> {
             halt("fresh", "wipe is supported only on postgres and memory");
         }
         let born = runtime.fresh || runtime.store.kind == Kind::Memory;
+        let repo = self.repo(&runtime);
         match runtime.store.kind {
             Kind::Pg => {
                 let held = start(open(&runtime).await, born).await;
-                serve(raise(held, &runtime), &runtime, born).await;
+                serve(raise(held, &runtime), &runtime, repo, born).await;
             }
             Kind::File => {
                 let held = start(self.file(&runtime).await, born).await;
-                serve(raise(held, &runtime), &runtime, born).await;
+                serve(raise(held, &runtime), &runtime, repo, born).await;
             }
             Kind::Memory => {
                 let held = start(memory().await, born).await;
-                serve(raise(held, &runtime), &runtime, born).await;
+                serve(raise(held, &runtime), &runtime, repo, born).await;
             }
+        }
+    }
+
+    fn repo(&self, runtime: &Runtime) -> Option<codehull_repo::Store> {
+        if runtime.repo.path.is_empty() {
+            return None;
+        }
+        let path = plumb::config::rebase(Path::new(&runtime.repo.path), Path::new(self.0));
+        if let Some(parent) = path.parent()
+            && let Err(err) = std::fs::create_dir_all(parent)
+        {
+            halt("repo", &err.to_string());
+        }
+        match codehull_repo::Store::create(&path) {
+            Ok(store) => Some(store),
+            Err(err) => halt("repo", &err.to_string()),
         }
     }
 
@@ -165,7 +182,12 @@ fn raise<W: Wire + 'static>(
     }
 }
 
-async fn serve<W: Wire + 'static>(core: Arc<Core<W>>, runtime: &Runtime, born: bool) {
+async fn serve<W: Wire + 'static>(
+    core: Arc<Core<W>>,
+    runtime: &Runtime,
+    repo: Option<codehull_repo::Store>,
+    born: bool,
+) {
     let berth = Berth(&core);
     let raised = match born {
         true => berth.seed().await,
@@ -179,7 +201,10 @@ async fn serve<W: Wire + 'static>(core: Arc<Core<W>>, runtime: &Runtime, born: b
         .route("/org", post(found::<W>))
         .route("/repo/{id}/close", post(close::<W>))
         .with_state(core.clone());
-    let base = app(core.clone(), &runtime.listen.prefix).merge(plate);
+    let mut base = app(core.clone(), &runtime.listen.prefix).merge(plate);
+    if let Some(store) = repo {
+        base = base.merge(crate::ground::routes(core.clone(), store));
+    }
     let shelved = match hoard(&core, runtime) {
         Some(vault) => vault.shelf(base),
         None => base,

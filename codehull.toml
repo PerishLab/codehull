@@ -9,3 +9,6 @@ path = ".local/codehull.sqlite"
 
 [cache]
 kind = "memory"
+
+[repo]
+path = ".local/git"

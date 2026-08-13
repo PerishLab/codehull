@@ -1,6 +1,6 @@
 [workspace]
 resolver = "3"
-members = ["crates/api", "crates/cli"]
+members = ["crates/api", "crates/cli", "crates/repo"]
 
 [workspace.package]
 version = "0.3.0"
@@ -17,7 +17,7 @@ keel = { version = "0.10.3", registry = "perish", features = ["pg"] }
 keel-gate = { version = "0.10.3", registry = "perish" }
 keel-blob = { version = "0.10.3", registry = "perish" }
 keel-relay = { version = "0.10.3", registry = "perish" }
-plumb = { version = "0.18.21", registry = "perish" }
+plumb = { version = "0.18.27", registry = "perish" }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 tokio = { version = "1", features = ["io-util", "macros", "net", "rt-multi-thread", "time"] }
