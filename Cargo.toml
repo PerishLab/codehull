@@ -17,7 +17,7 @@ keel = { version = "0.10.3", registry = "perish", features = ["pg"] }
 keel-gate = { version = "0.10.3", registry = "perish" }
 keel-blob = { version = "0.10.3", registry = "perish" }
 keel-relay = { version = "0.10.3", registry = "perish" }
-plumb = { version = "0.18.28", registry = "perish" }
+plumb = { version = "0.19.0", registry = "perish" }
 rand = "0.10"
 russh = { version = "0.62", default-features = false, features = ["flate2", "ring", "rsa"] }
 serde = { version = "1", features = ["derive"] }

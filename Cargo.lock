@@ -966,7 +966,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "39cab71617ae0d63f51a36d69f866391735b51691dbda63cf6f96d042b63efeb"
 dependencies = [
  "libc",
- "windows-sys 0.61.2",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -2188,9 +2188,9 @@ checksum = "19f132c84eca552bf34cab8ec81f1c1dcc229b811638f9d283dceabe58c5569e"
 
 [[package]]
 name = "plumb"
-version = "0.18.28"
+version = "0.19.0"
 source = "sparse+https://git.perish.top/api/packages/PerishLab/cargo/"
-checksum = "ee8a3efcb71cc04a6d78ce755e1efd9225cf97df8610aee1631472712a2fb0e1"
+checksum = "c9a515d9e9af63b93fd6a599eaef9c98195fb20bbfc2e5164d489ea3e23197cd"
 dependencies = [
  "base64",
  "clap",
@@ -2203,9 +2203,9 @@ dependencies = [
 
 [[package]]
 name = "plumb-macro"
-version = "0.18.28"
+version = "0.19.0"
 source = "sparse+https://git.perish.top/api/packages/PerishLab/cargo/"
-checksum = "1f0904179849c83676b054c7fa07df33dc3838a64238b9c0695ec4a712a2b3e8"
+checksum = "dbafce00534e93a276f640d49b6bc96310b36ebac222ab599e7c97267972c3db"
 dependencies = [
  "proc-macro2",
  "quote",
