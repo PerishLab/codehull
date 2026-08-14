@@ -23,6 +23,11 @@ api:
     # exactly that. The claim outlives the release; deleting it destroys every
     # repository this deployment holds.
     mount: /codehull/ground
+    # A provisioned volume arrives owned by root, and the api runs as 10001, so
+    # without this the store cannot even reserve its draft directory inside the
+    # mount. The number is the group pinned in deploy/api.Dockerfile; change one
+    # and you must change the other.
+    group: 10001
 web:
   image: git.perish.top/perishlab/codehull-web
   tag: ""

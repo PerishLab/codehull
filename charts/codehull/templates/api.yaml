@@ -19,6 +19,10 @@ spec:
         app: {{ .Release.Name }}-api
     spec:
       serviceAccountName: {{ .Release.Name }}-bootstrap
+      {{- if .Values.api.repo.enabled }}
+      securityContext:
+        fsGroup: {{ .Values.api.repo.group }}
+      {{- end }}
       # Bootstrap runs here rather than as a Job: a post-install hook cannot
       # reach the store before serve is ready, and a pre-install hook runs
       # before the store exists at all. The pod owns both, so the ordering is
