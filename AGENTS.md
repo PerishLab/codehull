@@ -47,12 +47,19 @@ cargo fmt/clippy/test, biome/tsc/vitest, helm lint, Plumb, Ectropy, and acts.
   index. The on-disk reference store is a projection of those rows, written
   after Keel commits and reconciled from Keel before every advertisement;
   it is never the authority and never the thing that decides.
-- Two namespaces exist: `refs/heads` and `refs/tags`. Nothing else is
-  accepted, and the refusal is the model rather than a filter — an earlier
-  ruling admitted heads alone, which was right while nothing published
-  releases and wrong the moment exact releases needed a tag. A tag moves and
-  retires by the same rules a branch does; making tags immutable would be
-  release governance, and that belongs to Plumb, not to a transport.
+- **Where Codehull hosts git, it is a whole git, not the subset this estate
+  happens to use.** Every namespace below `refs` is accepted; the reserved set
+  is what Codehull itself owns, and today that set is empty. Two earlier
+  rulings narrowed this — heads alone, then heads and tags — and both wrote
+  current usage down as if it were the model. Refusing a name for being
+  unmodelled is only honest when the thing really is outside the model.
+  A tag moves and retires by the same rules a branch does; making tags
+  immutable would be release governance, and that belongs to Plumb, not to a
+  transport.
+- Reference names are still refused when they carry a character that would
+  break the query they are interpolated into. That is a guard against
+  injection, not a statement about the model, and the two must not be confused
+  when either one is next revised.
 - The ground plane mounts only where a repository path is configured, and with
   none the api serves metadata and hosts no git at all. Losing that plane is a
   regression, not a simplification — it was deleted once and went unnoticed

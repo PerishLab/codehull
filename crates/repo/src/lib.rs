@@ -4,7 +4,7 @@ mod repo;
 mod store;
 
 pub use object::Object;
-pub use repo::{HEADS, Repository, TAGS, admitted};
+pub use repo::{REFS, RESERVED, Repository, admitted};
 pub use store::Store;
 
 use std::fmt::{Display, Formatter};

@@ -156,13 +156,47 @@ export async function haul(root: string, mint: Issuer, port: number): Promise<vo
       }
     });
 
-    await check("a namespace outside heads and tags is refused", async () => {
+    await check("any namespace below refs travels", async () => {
       const work = `${dir}/notes`;
       if (await clone(url, work, seat) !== 0) {
         throw new Error("clone for namespace check failed");
       }
-      if (await push(work, seat, ["origin", "HEAD:refs/notes/probe"]) === 0) {
-        throw new Error("a reference outside heads and tags was accepted");
+      if (await push(work, seat, ["origin", "HEAD:refs/notes/probe"]) !== 0) {
+        throw new Error("push refused an ordinary git namespace");
+      }
+      const head = await bin("git").text(["-C", work, "rev-parse", "HEAD"]);
+      if (await tip(base, repo, seat, "refs/notes/probe") !== head) {
+        throw new Error("the reference did not settle");
+      }
+      const back = `${dir}/noted`;
+      if (await clone(url, back, seat) !== 0) {
+        throw new Error("clone after the namespace push failed");
+      }
+      const fetched = await bin("git").status(
+        [
+          "-C",
+          back,
+          "-c",
+          `http.extraHeader=Authorization: ${seat.head.authorization}`,
+          "fetch",
+          "origin",
+          "refs/notes/probe:refs/notes/probe",
+        ],
+        { env: quiet, stdin: "null", stdout: "null", stderr: "null" },
+      );
+      if (fetched !== 0) {
+        throw new Error("fetch refused the namespace it had just accepted");
+      }
+    });
+
+    await check("a name that would break the query is refused", async () => {
+      const res = await send(base, `/repo/${repo}/git/ref`, seat, "POST", {
+        name: 'refs/heads/a"b',
+        after: seed.main,
+      });
+      await res.body?.cancel();
+      if (res.status !== 400) {
+        throw new Error(`a quoted reference name returned ${res.status}`);
       }
     });
 

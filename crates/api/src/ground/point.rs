@@ -233,7 +233,9 @@ impl<W: Wire + 'static> Point<'_, W> {
 
 pub(super) fn sane(name: &str) -> Result<String, Fault> {
     if !admitted(name) {
-        return Err(bad("reference must be below refs/heads or refs/tags"));
+        return Err(bad(
+            "reference must be below refs and outside the reserved namespaces",
+        ));
     }
     if name.contains(['"', '\\', '*', ' ']) {
         return Err(bad("reference name carries a refused character"));

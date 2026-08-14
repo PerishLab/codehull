@@ -193,17 +193,20 @@ fn marker(id: u64) -> Vec<u8> {
     format!("codehull.repository/v1\nid={id}\n").into_bytes()
 }
 
-pub const HEADS: &str = "refs/heads/";
-pub const TAGS: &str = "refs/tags/";
+pub const REFS: &str = "refs/";
+pub const RESERVED: [&str; 0] = [];
 
 pub fn admitted(name: &str) -> bool {
-    (name.starts_with(HEADS) || name.starts_with(TAGS)) && name.len() > TAGS.len()
+    if !name.starts_with(REFS) || name.len() == REFS.len() {
+        return false;
+    }
+    !RESERVED.iter().any(|held| name.starts_with(held))
 }
 
 fn valid(root: &Path, name: &str) -> Result<(), Error> {
     if !admitted(name) {
         return Err(Error::Invalid(
-            "reference must be below refs/heads or refs/tags".into(),
+            "reference must be below refs and outside the reserved namespaces".into(),
         ));
     }
     Git(root).success(["check-ref-format", name], "invalid reference")

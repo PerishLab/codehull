@@ -55,9 +55,10 @@
   the kernel stays the only writer of references.
 - `line` — pkt-line: the four-hex length framing git uses on the wire, and the
   advertisement and report-status shapes built from it.
-- `admitted` — the namespace law in one predicate: `refs/heads` and
-  `refs/tags` and nothing else, shared by the kernel and the adaptor so the
-  two cannot drift.
+- `admitted` — the namespace law in one predicate: anything below `refs` that
+  is not in the reserved set, shared by the kernel and the adaptor so the two
+  cannot drift. `RESERVED` is empty and gains an entry only when Codehull
+  actually owns a namespace, never to stand in for something unbuilt.
 - `order` — one `(old, new, name)` command inside an update request. A new
   object of all zeros is a deletion, and translates to retirement.
 - `haul` — the transport plane: git's own smart HTTP over a ground seat,

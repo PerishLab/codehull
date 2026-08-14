@@ -85,6 +85,8 @@ owed, not excluded.
 - ⬜ OCI distribution, served and published — H2
 - 🟡 Wiki metadata (trivial unit; content lives in git)
 - ✅ Tags, plain and annotated, over both transports (act 14)
+- ✅ Every namespace below `refs`, notes included; the reserved set is empty
+  because Codehull owns no namespace of its own yet (act 14)
 
 ## Notifications & social
 - ✅ Watch (act 4)
