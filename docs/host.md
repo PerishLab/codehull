@@ -65,6 +65,45 @@ specifications. Writing to a specification is not API mimicry; writing to the
 observed responses of `git.perish.top` is. The same test applies wherever a
 protocol has to be spoken: implement the document, never the incumbent.
 
+## Adaptors
+
+A protocol Codehull did not design is spoken at exactly one declared seat, and
+that seat is an adaptor. `seam` was the first — a foreign token format in,
+an anchor row carrying `iss` and `sub` out — and every hosting stage adds
+another: `haul` and `take` for git, then the registry protocols, then whatever
+H3 needs to talk to a runner.
+
+The must-not above forbids mimicry. This is the matching permission, and it
+has an address: foreign shape may exist here and nowhere else. A prohibition
+with no designated place for the thing it prohibits is not obeyed, only
+hidden, and hidden foreign shape is how a model rots.
+
+Five rules hold at every such seat.
+
+**Negotiation is declaration.** Where a protocol negotiates, the capabilities
+advertised are a machine-readable statement of what Codehull models. Not
+advertising `delete-refs` would say deletion is not in this model — a stronger
+and cleaner thing than refusing each attempt.
+
+**An advertisement states the model, never the backlog.** Which is why
+`delete-refs` *is* advertised: retirement is modelled. Declaring absence for
+something merely unbuilt launders a gap into a design, and this rule exists
+because that laundering was drafted once here before it was caught.
+
+**An adaptor may translate, and may refuse. It must not decide.** Decisions
+live in rows and grants; the adaptor reads them. A rule that can only be
+written inside an adaptor is a missing unit, reported as one.
+
+**Delete the adaptor and the model must still make sense.** If it does not,
+pressure has already flowed backwards from the protocol into the model, which
+is the failure this seat exists to prevent.
+
+**What generalises is the discipline, not the machinery.** Git streams and
+negotiates, a registry index is static files, a runner queue is long-lived;
+an abstraction over all three would be too thin to carry anything and each
+implementation would route around it. Three honest adaptors beat one that
+fits none.
+
 ## Identity
 
 codehull issues no identity. `Actor` is an anchor carrying `iss` and `sub`

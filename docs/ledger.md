@@ -38,7 +38,9 @@ owed, not excluded.
   git store, reconciled before advertisement (`Ref`, act 13)
 - ✅ Reference retirement, releasing the name for reuse (act 13)
 - ✅ Transport: clone and fetch, git smart HTTP over the seat (act 14)
-- ⬜ Transport: push, and git over SSH — H1
+- ✅ Transport: push, spoken by the api rather than by `git-receive-pack`;
+  deletes arrive as retirements (act 14)
+- ⬜ Transport: git over SSH — H1
 - ⬜ Commit status, read by context and combined — H1
 
 ## Issues

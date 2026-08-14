@@ -49,10 +49,17 @@
 - `align` — reconcile the projection from the rows before serving an
   advertisement, so a crash between the two writes leaves the projection
   behind rather than ahead.
+- `take` — the receive adaptor: the api speaks git's update protocol itself,
+  reads the commands, lets `index-pack` write only the objects, and routes
+  every reference move back through `point`. `git-receive-pack` never runs, so
+  the kernel stays the only writer of references.
+- `line` — pkt-line: the four-hex length framing git uses on the wire, and the
+  advertisement and report-status shapes built from it.
+- `order` — one `(old, new, name)` command inside an update request. A new
+  object of all zeros is a deletion, and translates to retirement.
 - `haul` — the transport plane: git's own smart HTTP over a ground seat,
   `info/refs` and `git-upload-pack` under the same `Bearer` every other route
-  takes. The paths are git's specification, not a forge's API. Read only so
-  far; push is owed.
+  takes. The paths are git's specification, not a forge's API.
 - `feed` — run git with bytes on stdin and raw bytes back. The protocol paths
   need it because trimmed text would corrupt the stream.
 - `seat` — the receiver over a repository root: reads the cascade, opens the

@@ -47,6 +47,88 @@ export async function haul(root: string, mint: Issuer, port: number): Promise<vo
       }
     });
 
+    await check("a real git client pushes a new commit", async () => {
+      const work = `${dir}/work`;
+      if (await clone(url, work, seat) !== 0) {
+        throw new Error("clone for push failed");
+      }
+      await bin("git").text(["-C", work, "config", "user.name", "Codehull Act"]);
+      await bin("git").text(["-C", work, "config", "user.email", "codehull@example.invalid"]);
+      await Deno.writeTextFile(`${work}/probe`, "pushed\n");
+      await bin("git").text(["-C", work, "commit", "-q", "-am", "advance main"], {
+        stderr: "null",
+      });
+      const head = await bin("git").text(["-C", work, "rev-parse", "HEAD"]);
+      if (await push(work, seat, ["origin", "main"]) !== 0) {
+        throw new Error("push refused a fast-forward");
+      }
+      const seen = await tip(base, repo, seat, "refs/heads/main");
+      if (seen !== head) {
+        throw new Error(`main reads ${seen}, pushed ${head}`);
+      }
+      const back = `${dir}/back`;
+      if (await clone(url, back, seat) !== 0) {
+        throw new Error("clone after push failed");
+      }
+      if (await Deno.readTextFile(`${back}/probe`) !== "pushed\n") {
+        throw new Error("pushed bytes did not come back");
+      }
+    });
+
+    await check("a stale push is refused and writes nothing", async () => {
+      const work = `${dir}/stale`;
+      if (await clone(url, work, seat) !== 0) {
+        throw new Error("clone for stale push failed");
+      }
+      const held = await tip(base, repo, seat, "refs/heads/main");
+      await bin("git").text(["-C", work, "config", "user.name", "Codehull Act"]);
+      await bin("git").text(["-C", work, "config", "user.email", "codehull@example.invalid"]);
+      await bin("git").text(["-C", work, "reset", "-q", "--hard", "HEAD~1"], { stderr: "null" });
+      await Deno.writeTextFile(`${work}/probe`, "forked\n");
+      await bin("git").text(["-C", work, "commit", "-q", "-am", "fork main"], { stderr: "null" });
+      if (
+        await push(work, seat, [
+          "--force-with-lease=refs/heads/main:" + "0".repeat(40),
+          "origin",
+          "main",
+        ]) === 0
+      ) {
+        throw new Error("a stale expectation was accepted");
+      }
+      if (await tip(base, repo, seat, "refs/heads/main") !== held) {
+        throw new Error("a refused push still moved the reference");
+      }
+    });
+
+    await check("a push deletes a reference by retiring it", async () => {
+      const work = `${dir}/gone`;
+      if (await clone(url, work, seat) !== 0) {
+        throw new Error("clone for delete failed");
+      }
+      if (await push(work, seat, ["origin", "HEAD:refs/heads/spare"]) !== 0) {
+        throw new Error("push refused a new branch");
+      }
+      if (await tip(base, repo, seat, "refs/heads/spare") === null) {
+        throw new Error("the new branch did not settle");
+      }
+      if (await push(work, seat, ["origin", "--delete", "spare"]) !== 0) {
+        throw new Error("push refused a delete");
+      }
+      if (await tip(base, repo, seat, "refs/heads/spare") !== null) {
+        throw new Error("a deleted reference still reads");
+      }
+    });
+
+    await check("a stranger pushes nothing", async () => {
+      const work = `${dir}/thief`;
+      if (await clone(url, work, seat) !== 0) {
+        throw new Error("clone for stranger push failed");
+      }
+      if (await push(work, stranger, ["origin", "main"]) === 0) {
+        throw new Error("a stranger pushed the seat");
+      }
+    });
+
     await check("a stranger clones nothing", async () => {
       if (await clone(url, `${dir}/denied`, stranger) === 0) {
         throw new Error("a stranger cloned the seat");
@@ -65,6 +147,36 @@ export async function haul(root: string, mint: Issuer, port: number): Promise<vo
     await stop(held);
     await wipe(dir);
   }
+}
+
+function push(work: string, seat: Seat, args: string[]): Promise<number> {
+  return bin("git").status([
+    "-c",
+    `http.extraHeader=Authorization: ${seat.head.authorization}`,
+    "-C",
+    work,
+    "push",
+    ...args,
+  ], { env: quiet, stdin: "null", stdout: "null", stderr: "null" });
+}
+
+async function tip(
+  base: string,
+  repo: number,
+  seat: Seat,
+  name: string,
+): Promise<string | null> {
+  const res = await send(
+    base,
+    `/repo/${repo}/git/ref?name=${encodeURIComponent(name)}`,
+    seat,
+    "GET",
+  );
+  if (res.status !== 200) {
+    await res.body?.cancel();
+    throw new Error(`read ${name} ${res.status}`);
+  }
+  return (await res.json() as Record<string, string | null>).object;
 }
 
 function clone(url: string, into: string, seat?: Seat): Promise<number> {

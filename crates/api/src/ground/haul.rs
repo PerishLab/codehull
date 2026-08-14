@@ -1,16 +1,18 @@
+use super::line;
 use super::point::Point;
+use super::take::{CAPS, RECEIVE, sent};
 use super::{Dock, Fault, actor, admit, bad, work};
 use axum::Extension;
 use axum::body::Bytes;
 use axum::extract::{Path, Query, State};
-use axum::http::{HeaderValue, header};
-use axum::response::{IntoResponse, Response};
+use axum::response::Response;
 use keel::{Operator, Wire};
 use serde::Deserialize;
 
 const OFFER: &str = "application/x-git-upload-pack-advertisement";
 const REPLY: &str = "application/x-git-upload-pack-result";
 const UPLOAD: &str = "git-upload-pack";
+const TAKE: &str = "application/x-git-receive-pack-advertisement";
 
 #[derive(Deserialize)]
 pub(super) struct Service {
@@ -23,21 +25,25 @@ pub(super) async fn refs<W: Wire + 'static>(
     op: Option<Extension<Operator>>,
     Query(query): Query<Service>,
 ) -> Result<Response, Fault> {
-    if query.service != UPLOAD {
-        return Err(bad(format!("unsupported service {}", query.service)));
-    }
     let who = actor(op)?;
     let id = admit(&dock, id, who).await?;
-    Point {
+    let point = Point {
         dock: &dock,
         who,
         id,
+    };
+    point.align().await?;
+    if query.service == RECEIVE {
+        let listing = point.listing().await?;
+        return Ok(sent(TAKE, line::offer(RECEIVE, &listing, CAPS)));
     }
-    .align()
-    .await?;
+    if query.service != UPLOAD {
+        return Err(bad(format!("unsupported service {}", query.service)));
+    }
     let store = dock.store.clone();
     let held = work(move || store.repository(id)?.advertise()).await?;
-    let mut body = banner(UPLOAD);
+    let mut body = line::pkt(&format!("# service={UPLOAD}\n"));
+    body.extend_from_slice(&line::flush());
     body.extend_from_slice(&held);
     Ok(sent(OFFER, body))
 }
@@ -52,21 +58,4 @@ pub(super) async fn upload<W: Wire + 'static>(
     let store = dock.store.clone();
     let held = work(move || store.repository(id)?.upload(&want)).await?;
     Ok(sent(REPLY, held))
-}
-
-fn banner(service: &str) -> Vec<u8> {
-    let line = format!("# service={service}\n");
-    let size = line.len() + 4;
-    format!("{size:04x}{line}0000").into_bytes()
-}
-
-fn sent(kind: &'static str, body: Vec<u8>) -> Response {
-    (
-        [
-            (header::CONTENT_TYPE, HeaderValue::from_static(kind)),
-            (header::CACHE_CONTROL, HeaderValue::from_static("no-cache")),
-        ],
-        body,
-    )
-        .into_response()
 }

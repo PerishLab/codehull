@@ -138,6 +138,16 @@ impl Repository {
         )
     }
 
+    pub fn index(&self, pack: &[u8]) -> Result<(), Error> {
+        Git(&self.root)
+            .feed(
+                ["index-pack", "--stdin", "--fix-thin"],
+                pack,
+                "cannot index objects",
+            )
+            .map(drop)
+    }
+
     pub fn holds(&self, object: &Object) -> Result<(), Error> {
         self.require(object)
     }

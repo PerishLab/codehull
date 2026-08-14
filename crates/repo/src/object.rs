@@ -13,6 +13,10 @@ impl Object {
         Ok(Self(value.to_ascii_lowercase()))
     }
 
+    pub fn absent(&self) -> bool {
+        self.0.bytes().all(|byte| byte == b'0')
+    }
+
     pub fn hex(&self) -> &str {
         &self.0
     }

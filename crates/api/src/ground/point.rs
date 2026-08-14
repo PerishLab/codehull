@@ -21,7 +21,7 @@ pub(super) struct Name {
     name: String,
 }
 
-enum Held {
+pub(super) enum Held {
     Moved,
     Stale,
 }
@@ -76,10 +76,7 @@ pub(super) async fn advance<W: Wire + 'static>(
     match point.settle(&name, seat, before, &after).await? {
         Held::Stale => Err(clash()),
         Held::Moved => {
-            let store = dock.store.clone();
-            let held = name.clone();
-            let object = after.clone();
-            work(move || store.repository(id)?.project(&held, &object)).await?;
+            point.cast(&name, &after).await?;
             Ok(Json(json!({ "name": name, "object": after.hex() })))
         }
     }
@@ -147,7 +144,7 @@ impl<W: Wire + 'static> Point<'_, W> {
         .await
     }
 
-    async fn settle(
+    pub(super) async fn settle(
         &self,
         name: &str,
         seat: Option<(i64, String)>,
@@ -178,7 +175,39 @@ impl<W: Wire + 'static> Point<'_, W> {
             .map_err(|_| clash())
     }
 
-    async fn seen(&self, name: &str) -> Result<Option<(i64, String)>, Fault> {
+    pub(super) async fn listing(&self) -> Result<Vec<(String, String)>, Fault> {
+        let mut held = Vec::new();
+        for row in self.rows(None).await? {
+            let (Some(name), Some(object)) = (row.text("name"), row.text("object")) else {
+                continue;
+            };
+            held.push((name.to_string(), object.to_string()));
+        }
+        Ok(held)
+    }
+
+    pub(super) async fn strip(&self, key: i64, name: &str) -> Result<(), Fault> {
+        self.dock
+            .core
+            .of(self.who)
+            .batch(async |tx| tx.end("Ref", key).await)
+            .await
+            .map_err(|_| clash())?;
+        let store = self.dock.store.clone();
+        let id = self.id;
+        let held = name.to_string();
+        work(move || store.repository(id)?.retire(&held)).await
+    }
+
+    pub(super) async fn cast(&self, name: &str, object: &Object) -> Result<(), Fault> {
+        let store = self.dock.store.clone();
+        let id = self.id;
+        let held = name.to_string();
+        let seen = object.clone();
+        work(move || store.repository(id)?.project(&held, &seen)).await
+    }
+
+    pub(super) async fn seen(&self, name: &str) -> Result<Option<(i64, String)>, Fault> {
         let pack = self.rows(Some(name)).await?;
         let Some(row) = pack.first() else {
             return Ok(None);
@@ -204,7 +233,7 @@ impl<W: Wire + 'static> Point<'_, W> {
     }
 }
 
-fn sane(name: &str) -> Result<String, Fault> {
+pub(super) fn sane(name: &str) -> Result<String, Fault> {
     if !name.starts_with(HEADS) {
         return Err(bad("reference must be below refs/heads"));
     }
@@ -214,7 +243,7 @@ fn sane(name: &str) -> Result<String, Fault> {
     Ok(name.to_string())
 }
 
-fn clash() -> Fault {
+pub(super) fn clash() -> Fault {
     (
         StatusCode::CONFLICT,
         Json(json!({ "error": "reference moved under the expectation" })),
