@@ -75,6 +75,12 @@
   actually owns a namespace, never to stand in for something unbuilt.
 - `order` — one `(old, new, name)` command inside an update request. A new
   object of all zeros is a deletion, and translates to retirement.
+- `hall` — what `crates/ssh` asks of its host: admit a public key to an actor,
+  and resolve a path to a repository seat. The crate speaks ssh and knows
+  nothing about Keel; everything it decides, it asks for.
+- `port` — the api side of that trait. It resolves a key through a sudo read,
+  because the lookup runs before an operator exists, and it resolves
+  `owner/name` through ordinary operator-visible queries.
 - `haul` — the transport plane: git's own smart HTTP over a ground seat,
   `info/refs` and `git-upload-pack` under the same `Bearer` every other route
   takes. The paths are git's specification, not a forge's API.

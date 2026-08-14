@@ -59,5 +59,21 @@ include = [
 description = "Foreign jsonwebtoken type naming a public key already parsed for verification; the seam holds one per key id."
 name = "DecodingKey"
 
+[[vocabulary.term]]
+description = "Foreign russh server trait method; the ssh adaptor implements it and cannot choose its name."
+name = "auth_publickey"
+
+[[vocabulary.term]]
+description = "Foreign russh server trait method; the ssh adaptor implements it and cannot choose its name."
+name = "channel_open_session"
+
+[[vocabulary.term]]
+description = "Foreign russh server trait method; the ssh adaptor implements it and cannot choose its name."
+name = "exec_request"
+
+[[vocabulary.term]]
+description = "Foreign russh server trait method; the ssh adaptor implements it and cannot choose its name."
+name = "new_client"
+
 [word]
 single = true

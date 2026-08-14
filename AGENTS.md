@@ -56,6 +56,16 @@ cargo fmt/clippy/test, biome/tsc/vitest, helm lint, Plumb, Ectropy, and acts.
   A tag moves and retires by the same rules a branch does; making tags
   immutable would be release governance, and that belongs to Plumb, not to a
   transport.
+- `crates/ssh` is its own adaptor, not the http one with a different pipe. It
+  keeps its own framing, its own credential translation and its own naming,
+  and it lands on the same Keel operations everything else lands on. Fetch is
+  piped straight to `upload-pack`, because a piped half gets whole-git for
+  free; anything that writes must be intercepted, which is why push over ssh
+  is not served yet rather than served loosely.
+- A public key identifies by its material, not by its line. The comment is
+  decoration and is ignored on lookup. The lookup itself is the one read that
+  runs above the operator, because it runs before an operator exists — the
+  same shape as verifying a token in `seam`.
 - A verdict is an assertion about a commit, not a record of an execution.
   `Run` stays what it was; a commit may carry verdicts under several contexts
   and may carry one with no run behind it. Landing decisions read the combined

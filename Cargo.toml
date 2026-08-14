@@ -1,6 +1,6 @@
 [workspace]
 resolver = "3"
-members = ["crates/api", "crates/cli", "crates/repo"]
+members = ["crates/api", "crates/cli", "crates/repo", "crates/ssh"]
 
 [workspace.package]
 version = "0.3.0"
@@ -18,7 +18,9 @@ keel-gate = { version = "0.10.3", registry = "perish" }
 keel-blob = { version = "0.10.3", registry = "perish" }
 keel-relay = { version = "0.10.3", registry = "perish" }
 plumb = { version = "0.18.28", registry = "perish" }
+rand = "0.10"
+russh = { version = "0.62", default-features = false, features = ["flate2", "ring", "rsa"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-tokio = { version = "1", features = ["io-util", "macros", "net", "rt-multi-thread", "time"] }
+tokio = { version = "1", features = ["io-util", "macros", "net", "process", "rt-multi-thread", "time"] }
 ureq = { version = "3", features = ["json", "rustls"] }

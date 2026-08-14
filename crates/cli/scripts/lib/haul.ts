@@ -1,4 +1,4 @@
-import { bin } from "./cmd.ts";
+import { bin, exists } from "./cmd.ts";
 import { io } from "./io.ts";
 import type { Issuer } from "./issuer.ts";
 
@@ -374,6 +374,55 @@ export async function haul(root: string, mint: Issuer, port: number): Promise<vo
       }
     });
 
+    if (await exists("ssh-keygen") && await exists("ssh")) {
+      await check("a real git client clones over ssh", async () => {
+        const hold = `${dir}/client`;
+        await bin("ssh-keygen").text(
+          ["-q", "-t", "ed25519", "-N", "", "-C", "act", "-f", hold],
+          { stderr: "null" },
+        );
+        const print = (await Deno.readTextFile(`${hold}.pub`)).trim();
+        const made = await send(base, "/batch", seat, "POST", {
+          deeds: [{
+            verb: "put",
+            unit: "actor:key",
+            fields: { title: "act", print, kind: "ssh", owner: seat.id },
+          }],
+        });
+        await made.body?.cancel();
+        if (made.status !== 200) {
+          throw new Error(`registering a public key returned ${made.status}`);
+        }
+        const over = [
+          "-c",
+          `core.sshCommand=ssh -i ${hold} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o LogLevel=ERROR`,
+        ];
+        const into = `${dir}/over-ssh`;
+        const code = await bin("git").status(
+          [...over, "clone", "--quiet", `ssh://git@${host}:${port + 1}/hauler/haul`, into],
+          { env: quiet, stdin: "null", stdout: "null", stderr: "null" },
+        );
+        if (code !== 0) {
+          throw new Error(`ssh clone exited ${code}`);
+        }
+        const seen = await bin("git").text(["-C", into, "rev-parse", "HEAD"]);
+        const held = await tip(base, repo, seat, "refs/heads/main");
+        if (seen !== held) {
+          throw new Error(`ssh clone head ${seen} is not ${held}`);
+        }
+        const other = `${dir}/no-key`;
+        const blind = await bin("git").status(
+          ["clone", "--quiet", `ssh://git@${host}:${port + 1}/hauler/haul`, other],
+          { env: quiet, stdin: "null", stdout: "null", stderr: "null" },
+        );
+        if (blind === 0) {
+          throw new Error("an unregistered key cloned over ssh");
+        }
+      });
+    } else {
+      io.print("ssh absent: the ssh plane stays unproven this run");
+    }
+
     await check("a stranger clones nothing", async () => {
       if (await clone(url, `${dir}/denied`, stranger) === 0) {
         throw new Error("a stranger cloned the seat");
@@ -489,6 +538,11 @@ function settings(port: number): string {
     "",
     "[repo]",
     'path = "seats"',
+    "",
+    "[ssh]",
+    'key = "host.key"',
+    `host = "${host}"`,
+    `port = ${port + 1}`,
     "",
   ].join("\n");
 }

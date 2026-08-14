@@ -65,6 +65,10 @@ impl Repository {
         self.id
     }
 
+    pub fn root(&self) -> &Path {
+        &self.root
+    }
+
     pub fn ingest(&self, bundle: &[u8], object: &Object) -> Result<(), Error> {
         let source = self.root.join(format!(
             ".ingest-{}-{}",

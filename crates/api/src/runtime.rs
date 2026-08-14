@@ -18,6 +18,17 @@ pub(crate) struct Runtime {
     pub(crate) blob: Blob,
     #[cascade(section)]
     pub(crate) oidc: Oidc,
+    #[cascade(section)]
+    pub(crate) ssh: Ssh,
+}
+
+#[derive(Debug, Default, serde::Deserialize, PartialEq, Cascade)]
+#[cascade(section)]
+#[serde(default)]
+pub(crate) struct Ssh {
+    pub(crate) key: String,
+    pub(crate) host: String,
+    pub(crate) port: u16,
 }
 
 #[derive(Debug, serde::Deserialize, PartialEq, Cascade)]

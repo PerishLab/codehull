@@ -74,10 +74,15 @@ impl Seat<'_> {
     }
 
     fn read(&self) -> Runtime {
-        match crate::runtime::load(Path::new(self.0)) {
+        let mut runtime = match crate::runtime::load(Path::new(self.0)) {
             Ok(runtime) => runtime,
             Err(err) => halt("config", &err.to_string()),
+        };
+        if !runtime.ssh.key.is_empty() {
+            let held = plumb::config::rebase(Path::new(&runtime.ssh.key), Path::new(self.0));
+            runtime.ssh.key = held.to_string_lossy().into_owned();
         }
+        runtime
     }
 
     async fn file(&self, runtime: &Runtime) -> Sqlite {
@@ -203,7 +208,9 @@ async fn serve<W: Wire + 'static>(
         .with_state(core.clone());
     let mut base = app(core.clone(), &runtime.listen.prefix).merge(plate);
     if let Some(store) = repo {
-        base = base.merge(crate::ground::routes(core.clone(), store));
+        let store = Arc::new(store);
+        base = base.merge(crate::ground::routes(core.clone(), store.clone()));
+        mount(core.clone(), store, runtime);
     }
     let shelved = match hoard(&core, runtime) {
         Some(vault) => vault.shelf(base),
@@ -234,6 +241,31 @@ async fn serve<W: Wire + 'static>(
     if let Err(err) = axum::serve(bound, router).await {
         halt("serve", &err.to_string());
     }
+}
+
+fn mount<W: Wire + 'static>(
+    core: Arc<Core<W>>,
+    store: Arc<codehull_repo::Store>,
+    runtime: &Runtime,
+) {
+    if runtime.ssh.key.is_empty() {
+        return;
+    }
+    let held = match codehull_ssh::key(Path::new(&runtime.ssh.key)) {
+        Ok(held) => held,
+        Err(err) => halt("ssh", &err),
+    };
+    let hall = Arc::new(crate::ground::port::Port::new(core, store));
+    let (host, port) = (runtime.ssh.host.clone(), runtime.ssh.port);
+    eprintln!(
+        "{}",
+        serde_json::json!({ "role": "ssh", "endpoint": format!("ssh://{host}:{port}") })
+    );
+    tokio::spawn(async move {
+        if let Err(err) = codehull_ssh::serve(hall, held, (&host, port)).await {
+            eprintln!("{}", serde_json::json!({ "role": "ssh", "halt": err }));
+        }
+    });
 }
 
 fn hoard<W: Wire + 'static>(core: &Arc<Core<W>>, runtime: &Runtime) -> Option<Vault<W>> {

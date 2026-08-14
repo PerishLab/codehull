@@ -40,7 +40,9 @@ owed, not excluded.
 - ✅ Transport: clone and fetch, git smart HTTP over the seat (act 14)
 - ✅ Transport: push, spoken by the api rather than by `git-receive-pack`;
   deletes arrive as retirements (act 14)
-- ⬜ Transport: git over SSH — H1
+- ✅ Transport: fetch over SSH, public-key authenticated against `actor:key`
+  rows, `upload-pack` piped onto the channel (act 14)
+- ⬜ Transport: push over SSH — the adaptor serves only `git-upload-pack`
 - ✅ Verdicts on a commit, one live per context, combined by rollup (act 14)
 
 ## Issues

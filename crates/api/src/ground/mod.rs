@@ -1,6 +1,7 @@
 mod haul;
 mod line;
 mod point;
+pub(crate) mod port;
 mod take;
 mod verdict;
 mod weld;
@@ -39,11 +40,8 @@ struct Ingest {
 
 type Fault = (StatusCode, Json<Value>);
 
-pub(crate) fn routes<W: Wire + 'static>(core: Arc<Core<W>>, store: Store) -> Router {
-    let dock = Dock {
-        core,
-        store: Arc::new(store),
-    };
+pub(crate) fn routes<W: Wire + 'static>(core: Arc<Core<W>>, store: Arc<Store>) -> Router {
+    let dock = Dock { core, store };
     Router::new()
         .route("/repo/{id}/git", get(show::<W>).put(make::<W>))
         .route("/repo/{id}/git/object", post(ingest::<W>))

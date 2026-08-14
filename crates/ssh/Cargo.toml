@@ -1,0 +1,13 @@
+[package]
+name = "codehull-ssh"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "the private Codehull ssh adaptor"
+publish = false
+
+[dependencies]
+rand = { workspace = true }
+russh = { workspace = true }
+tokio = { workspace = true }
