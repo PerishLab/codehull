@@ -193,9 +193,18 @@ fn marker(id: u64) -> Vec<u8> {
     format!("codehull.repository/v1\nid={id}\n").into_bytes()
 }
 
+pub const HEADS: &str = "refs/heads/";
+pub const TAGS: &str = "refs/tags/";
+
+pub fn admitted(name: &str) -> bool {
+    (name.starts_with(HEADS) || name.starts_with(TAGS)) && name.len() > TAGS.len()
+}
+
 fn valid(root: &Path, name: &str) -> Result<(), Error> {
-    if !name.starts_with("refs/heads/") {
-        return Err(Error::Invalid("reference must be below refs/heads".into()));
+    if !admitted(name) {
+        return Err(Error::Invalid(
+            "reference must be below refs/heads or refs/tags".into(),
+        ));
     }
     Git(root).success(["check-ref-format", name], "invalid reference")
 }

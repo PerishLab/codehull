@@ -47,6 +47,12 @@ cargo fmt/clippy/test, biome/tsc/vitest, helm lint, Plumb, Ectropy, and acts.
   index. The on-disk reference store is a projection of those rows, written
   after Keel commits and reconciled from Keel before every advertisement;
   it is never the authority and never the thing that decides.
+- Two namespaces exist: `refs/heads` and `refs/tags`. Nothing else is
+  accepted, and the refusal is the model rather than a filter — an earlier
+  ruling admitted heads alone, which was right while nothing published
+  releases and wrong the moment exact releases needed a tag. A tag moves and
+  retires by the same rules a branch does; making tags immutable would be
+  release governance, and that belongs to Plumb, not to a transport.
 - The ground plane mounts only where a repository path is configured, and with
   none the api serves metadata and hosts no git at all. Losing that plane is a
   regression, not a simplification — it was deleted once and went unnoticed

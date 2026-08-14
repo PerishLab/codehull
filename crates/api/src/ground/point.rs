@@ -2,12 +2,10 @@ use super::{Dock, Fault, actor, admit, bad, deny, fault, work};
 use axum::extract::{Path, Query, State};
 use axum::http::StatusCode;
 use axum::{Extension, Json};
-use codehull_repo::Object;
+use codehull_repo::{Object, admitted};
 use keel::{Operator, Wire};
 use serde::Deserialize;
 use serde_json::{Value, json};
-
-const HEADS: &str = "refs/heads/";
 
 #[derive(Deserialize)]
 pub(super) struct Move {
@@ -234,8 +232,8 @@ impl<W: Wire + 'static> Point<'_, W> {
 }
 
 pub(super) fn sane(name: &str) -> Result<String, Fault> {
-    if !name.starts_with(HEADS) {
-        return Err(bad("reference must be below refs/heads"));
+    if !admitted(name) {
+        return Err(bad("reference must be below refs/heads or refs/tags"));
     }
     if name.contains(['"', '\\', '*', ' ']) {
         return Err(bad("reference name carries a refused character"));

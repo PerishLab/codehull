@@ -84,7 +84,7 @@ owed, not excluded.
 - ⬜ Cargo sparse index, served and published — H2
 - ⬜ OCI distribution, served and published — H2
 - 🟡 Wiki metadata (trivial unit; content lives in git)
-- ⬜ Tags — H1
+- ✅ Tags, plain and annotated, over both transports (act 14)
 
 ## Notifications & social
 - ✅ Watch (act 4)

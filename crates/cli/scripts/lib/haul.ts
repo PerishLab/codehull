@@ -119,6 +119,53 @@ export async function haul(root: string, mint: Issuer, port: number): Promise<vo
       }
     });
 
+    await check("tags travel, plain and annotated", async () => {
+      const work = `${dir}/tags`;
+      if (await clone(url, work, seat) !== 0) {
+        throw new Error("clone for tags failed");
+      }
+      const at = (args: string[]) => bin("git").text(["-C", work, ...args], { stderr: "null" });
+      await at(["config", "user.name", "Codehull Act"]);
+      await at(["config", "user.email", "codehull@example.invalid"]);
+      await at(["tag", "plain"]);
+      await at(["tag", "-a", "signed", "-m", "an annotated tag"]);
+      if (await push(work, seat, ["origin", "plain", "signed"]) !== 0) {
+        throw new Error("push refused tags");
+      }
+      const plain = await at(["rev-parse", "plain"]);
+      const signed = await at(["rev-parse", "signed"]);
+      if (await tip(base, repo, seat, "refs/tags/plain") !== plain) {
+        throw new Error("a plain tag did not settle");
+      }
+      if (await tip(base, repo, seat, "refs/tags/signed") !== signed) {
+        throw new Error("an annotated tag did not settle at its tag object");
+      }
+      const back = `${dir}/tagged`;
+      if (await clone(url, back, seat) !== 0) {
+        throw new Error("clone after tags failed");
+      }
+      const seen = await bin("git").text(["-C", back, "tag", "--list"]);
+      if (!seen.includes("plain") || !seen.includes("signed")) {
+        throw new Error(`clone did not bring the tags back: ${seen}`);
+      }
+      if (await push(work, seat, ["origin", "--delete", "plain"]) !== 0) {
+        throw new Error("push refused a tag delete");
+      }
+      if (await tip(base, repo, seat, "refs/tags/plain") !== null) {
+        throw new Error("a deleted tag still reads");
+      }
+    });
+
+    await check("a namespace outside heads and tags is refused", async () => {
+      const work = `${dir}/notes`;
+      if (await clone(url, work, seat) !== 0) {
+        throw new Error("clone for namespace check failed");
+      }
+      if (await push(work, seat, ["origin", "HEAD:refs/notes/probe"]) === 0) {
+        throw new Error("a reference outside heads and tags was accepted");
+      }
+    });
+
     await check("a stranger pushes nothing", async () => {
       const work = `${dir}/thief`;
       if (await clone(url, work, seat) !== 0) {

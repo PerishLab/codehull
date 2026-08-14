@@ -46,7 +46,8 @@ pub(super) async fn take<W: Wire + 'static>(
 }
 
 async fn apply<W: Wire + 'static>(point: &Point<'_, W>, order: &Order) -> Result<(), String> {
-    let name = sane(&order.name).map_err(|_| "reference is outside refs/heads".to_owned())?;
+    let name = sane(&order.name)
+        .map_err(|_| "reference is outside refs/heads and refs/tags".to_owned())?;
     let old = Object::parse(&order.old).map_err(|_| "old object is malformed".to_owned())?;
     let new = Object::parse(&order.new).map_err(|_| "new object is malformed".to_owned())?;
     let seat = point
