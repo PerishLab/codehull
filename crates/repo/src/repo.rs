@@ -1,4 +1,5 @@
 use crate::git::Git;
+use crate::pen::Pen;
 use crate::store::{sync, write};
 use crate::{Error, Object, io};
 use std::ffi::OsString;
@@ -48,7 +49,7 @@ impl Repository {
         if held != expected {
             return Err(Error::Foreign("repository marker disagrees".into()));
         }
-        let bare = Git(root).text(
+        let bare = Git::at(root).text(
             ["rev-parse", "--is-bare-repository"],
             "cannot inspect repository",
         )?;
@@ -90,8 +91,8 @@ impl Repository {
             source.as_os_str().to_os_string(),
             OsString::from(object.hex()),
         ];
-        Git(&self.root).success(args, "cannot ingest object")?;
-        self.require(object)
+        Git::at(&self.root).success(args, "cannot ingest object")?;
+        require(&Git::at(&self.root), object)
     }
 
     pub fn reference(&self, name: &str) -> Result<Option<Object>, Error> {
@@ -104,7 +105,7 @@ impl Repository {
     }
 
     pub fn references(&self) -> Result<Vec<(String, Object)>, Error> {
-        let output = Git(&self.root).run(["show-ref"])?;
+        let output = Git::at(&self.root).run(["show-ref"])?;
         if !matches!(output.status.code(), Some(0) | Some(1)) {
             return Err(Error::Git(format!(
                 "cannot list references: {}",
@@ -124,8 +125,8 @@ impl Repository {
 
     pub fn project(&self, name: &str, object: &Object) -> Result<(), Error> {
         valid(&self.root, name)?;
-        self.holds(object)?;
-        Git(&self.root).success(
+        require(&Git::at(&self.root), object)?;
+        Git::at(&self.root).success(
             ["update-ref", "--create-reflog", name, object.hex()],
             "cannot project reference",
         )
@@ -136,14 +137,22 @@ impl Repository {
         let Some(object) = self.reference(name)? else {
             return Ok(());
         };
-        Git(&self.root).success(
+        Git::at(&self.root).success(
             ["update-ref", "--create-reflog", "-d", name, object.hex()],
             "cannot retire reference",
         )
     }
 
-    pub fn index(&self, pack: &[u8]) -> Result<(), Error> {
-        Git(&self.root)
+    pub fn pen(&self) -> Result<Pen, Error> {
+        Pen::make(&self.root)
+    }
+
+    pub fn adopt(&self, hold: &Path) -> Result<Pen, Error> {
+        Pen::open(&self.root, hold)
+    }
+
+    pub fn index(&self, pen: &Pen, pack: &[u8]) -> Result<(), Error> {
+        Git::pen(&self.root, pen.hold())
             .feed(
                 ["index-pack", "--stdin", "--fix-thin"],
                 pack,
@@ -153,7 +162,8 @@ impl Repository {
     }
 
     pub fn ancestor(&self, old: &Object, new: &Object) -> Result<bool, Error> {
-        let output = Git(&self.root).run(["merge-base", "--is-ancestor", old.hex(), new.hex()])?;
+        let output =
+            Git::at(&self.root).run(["merge-base", "--is-ancestor", old.hex(), new.hex()])?;
         match output.status.code() {
             Some(0) => Ok(true),
             Some(1) => Ok(false),
@@ -165,7 +175,8 @@ impl Repository {
     }
 
     pub fn weld(&self, base: &Object, head: &Object) -> Result<Object, Error> {
-        let output = Git(&self.root).run(["merge-tree", "--write-tree", base.hex(), head.hex()])?;
+        let output =
+            Git::at(&self.root).run(["merge-tree", "--write-tree", base.hex(), head.hex()])?;
         if !output.status.success() {
             return Err(Error::Conflict("the two sides do not merge cleanly".into()));
         }
@@ -189,15 +200,19 @@ impl Repository {
         }
         args.push("-m".to_owned());
         args.push(note.to_owned());
-        Object::parse(&Git(&self.root).text(args, "cannot write the merge commit")?)
+        Object::parse(&Git::at(&self.root).text(args, "cannot write the merge commit")?)
     }
 
     pub fn holds(&self, object: &Object) -> Result<(), Error> {
-        self.require(object)
+        require(&Git::at(&self.root), object)
+    }
+
+    pub fn sees(&self, pen: &Pen, object: &Object) -> Result<(), Error> {
+        require(&Git::pen(&self.root, pen.hold()), object)
     }
 
     pub fn advertise(&self) -> Result<Vec<u8>, Error> {
-        Git(&self.root).feed(
+        Git::at(&self.root).feed(
             ["upload-pack", "--stateless-rpc", "--advertise-refs", "."],
             &[],
             "cannot advertise references",
@@ -205,23 +220,23 @@ impl Repository {
     }
 
     pub fn upload(&self, want: &[u8]) -> Result<Vec<u8>, Error> {
-        Git(&self.root).feed(
+        Git::at(&self.root).feed(
             ["upload-pack", "--stateless-rpc", "."],
             want,
             "cannot upload objects",
         )
     }
+}
 
-    fn require(&self, object: &Object) -> Result<(), Error> {
-        Git(&self.root).success(
-            ["cat-file", "-e", &format!("{}^{{commit}}", object.hex())],
-            "commit object is absent",
-        )
-    }
+fn require(git: &Git, object: &Object) -> Result<(), Error> {
+    git.success(
+        ["cat-file", "-e", &format!("{}^{{commit}}", object.hex())],
+        "commit object is absent",
+    )
 }
 
 fn initialize(root: &Path, id: u64) -> Result<(), Error> {
-    Git(root).success(
+    Git::at(root).success(
         ["init", "--bare", "--initial-branch=main", "."],
         "cannot initialize repository",
     )?;
@@ -253,5 +268,5 @@ fn valid(root: &Path, name: &str) -> Result<(), Error> {
             "reference must be below refs and outside the reserved namespaces".into(),
         ));
     }
-    Git(root).success(["check-ref-format", name], "invalid reference")
+    Git::at(root).success(["check-ref-format", name], "invalid reference")
 }

@@ -104,6 +104,27 @@ an abstraction over all three would be too thin to carry anything and each
 implementation would route around it. Three honest adaptors beat one that
 fits none.
 
+## What may enter the object store
+
+**Bytes no reference has accepted never enter the store.** A push is indexed
+into a pen — an object directory inside the repository that git reads only when
+it is told to — and the pen becomes part of the store only once a reference has
+passed every check. A refused push leaves the store exactly as it was, so the
+one debt on this path that grew with time no longer grows.
+
+The pen migrates **before** any reference is written. That order is the whole
+reason the pen holds: a crash can then leave objects nobody points at, which is
+waste, but never a reference pointing at objects that are not there, which is a
+broken repository.
+
+This is a rule of the write path, not of one seat: both adaptors index into a
+pen the kernel hands out, and neither may write objects anywhere else. What the
+pen does not answer is the accepted-then-abandoned object — a reference took
+those bytes and later moved on. Collecting those needs a trigger on a schedule,
+a schedule is a runner, and H3 owns runners. Naming the two separately is the
+point: one is a hole and is now closed, the other is housekeeping and is owed
+elsewhere.
+
 ## Identity
 
 codehull issues no identity. `Actor` is an anchor carrying `iss` and `sub`

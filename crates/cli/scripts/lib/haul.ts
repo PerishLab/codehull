@@ -30,6 +30,7 @@ export async function haul(root: string, mint: Issuer, port: number): Promise<vo
       after: seed.main,
     });
     const url = `http://${host}:${port}/api/repo/${repo}/git`;
+    const bare = `${dir}/seats/repos/${repo}.git`;
 
     await check("a real git client clones what the seat holds", async () => {
       const into = `${dir}/clone`;
@@ -75,7 +76,7 @@ export async function haul(root: string, mint: Issuer, port: number): Promise<vo
       }
     });
 
-    await check("a stale push is refused and writes nothing", async () => {
+    await check("a stale lease is refused before it reaches the seat", async () => {
       const work = `${dir}/stale`;
       if (await clone(url, work, seat) !== 0) {
         throw new Error("clone for stale push failed");
@@ -86,6 +87,7 @@ export async function haul(root: string, mint: Issuer, port: number): Promise<vo
       await bin("git").text(["-C", work, "reset", "-q", "--hard", "HEAD~1"], { stderr: "null" });
       await Deno.writeTextFile(`${work}/probe`, "forked\n");
       await bin("git").text(["-C", work, "commit", "-q", "-am", "fork main"], { stderr: "null" });
+      const forked = await bin("git").text(["-C", work, "rev-parse", "HEAD"]);
       if (
         await push(work, seat, [
           "--force-with-lease=refs/heads/main:" + "0".repeat(40),
@@ -97,6 +99,41 @@ export async function haul(root: string, mint: Issuer, port: number): Promise<vo
       }
       if (await tip(base, repo, seat, "refs/heads/main") !== held) {
         throw new Error("a refused push still moved the reference");
+      }
+      if (await stored(bare, forked)) {
+        throw new Error("a lease the client refused still reached the store");
+      }
+    });
+
+    await check("a refused push leaves no object behind", async () => {
+      const work = `${dir}/pen`;
+      if (await clone(url, work, seat) !== 0) {
+        throw new Error("clone for the pen check failed");
+      }
+      await bin("git").text(["-C", work, "config", "user.name", "Codehull Act"]);
+      await bin("git").text(["-C", work, "config", "user.email", "codehull@example.invalid"]);
+      await Deno.writeTextFile(`${work}/probe`, "penned\n");
+      await bin("git").text(["-C", work, "commit", "-q", "-am", "pen a commit"], {
+        stderr: "null",
+      });
+      const forked = await bin("git").text(["-C", work, "rev-parse", "HEAD"]);
+      if (await push(work, seat, ["origin", 'HEAD:refs/heads/a"b']) === 0) {
+        throw new Error("a quoted reference name was accepted over http");
+      }
+      if (await stored(bare, forked)) {
+        throw new Error("a refused push left its objects in the store");
+      }
+      if (await penned(bare) !== 0) {
+        throw new Error("a refused push left an object pen behind");
+      }
+      if (await push(work, seat, ["origin", "HEAD:refs/heads/penned"]) !== 0) {
+        throw new Error("push refused an ordinary branch");
+      }
+      if (!await stored(bare, forked)) {
+        throw new Error("an accepted push did not admit its objects");
+      }
+      if (await penned(bare) !== 0) {
+        throw new Error("an accepted push left an object pen behind");
       }
     });
 
@@ -445,6 +482,37 @@ export async function haul(root: string, mint: Issuer, port: number): Promise<vo
         if (outside === 0) {
           throw new Error("an invalid reference name was accepted over ssh");
         }
+        await Deno.writeTextFile(`${into}/over`, "penned over ssh\n");
+        await bin("git").text(["-C", into, "commit", "-q", "-am", "pen over ssh"], {
+          stderr: "null",
+        });
+        const forked = await bin("git").text(["-C", into, "rev-parse", "HEAD"]);
+        const quoted = await bin("git").status(
+          [...over, "-C", into, "push", "origin", 'HEAD:refs/heads/a"b'],
+          { env: quiet, stdin: "null", stdout: "null", stderr: "null" },
+        );
+        if (quoted === 0) {
+          throw new Error("a quoted reference name was accepted over ssh");
+        }
+        if (await stored(bare, forked)) {
+          throw new Error("a refused ssh push left its objects in the store");
+        }
+        if (await penned(bare) !== 0) {
+          throw new Error("a refused ssh push left an object pen behind");
+        }
+        const kept = await bin("git").status(
+          [...over, "-C", into, "push", "origin", "HEAD:refs/heads/over"],
+          { env: quiet, stdin: "null", stdout: "null", stderr: "null" },
+        );
+        if (kept !== 0) {
+          throw new Error(`an ordinary ssh push exited ${kept}`);
+        }
+        if (!await stored(bare, forked)) {
+          throw new Error("an accepted ssh push did not admit its objects");
+        }
+        if (await penned(bare) !== 0) {
+          throw new Error("an accepted ssh push left an object pen behind");
+        }
         const other = `${dir}/no-key`;
         const blind = await bin("git").status(
           ["clone", "--quiet", `ssh://git@${host}:${port + 1}/hauler/haul`, other],
@@ -495,6 +563,24 @@ async function merge(
     throw new Error(`merge ${mode} returned ${res.status}`);
   }
   return (await res.json() as Record<string, string>).object;
+}
+
+async function stored(bare: string, object: string): Promise<boolean> {
+  const code = await bin("git").status(
+    ["-C", bare, "cat-file", "-e", `${object}^{commit}`],
+    { stdin: "null", stdout: "null", stderr: "null" },
+  );
+  return code === 0;
+}
+
+async function penned(bare: string): Promise<number> {
+  let held = 0;
+  for await (const entry of Deno.readDir(bare)) {
+    if (entry.name.startsWith(".pen-")) {
+      held += 1;
+    }
+  }
+  return held;
 }
 
 function push(work: string, seat: Seat, args: string[]): Promise<number> {

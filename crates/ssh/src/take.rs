@@ -4,6 +4,10 @@ use std::sync::Arc;
 use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt, copy};
 use tokio::process::Command;
 
+const SEAT: &str = "GIT_OBJECT_DIRECTORY";
+const SPARE: &str = "GIT_ALTERNATE_OBJECT_DIRECTORIES";
+const OBJECTS: &str = "objects";
+
 pub(crate) async fn take<S>(hall: Arc<dyn Hall>, who: i64, path: String, stream: S) -> u32
 where
     S: AsyncRead + AsyncWrite + Send + Unpin + 'static,
@@ -21,10 +25,18 @@ where
     let Ok(orders) = orders(&mut reader).await else {
         return 1;
     };
-    if wanted(&orders) && index(&mut reader, &root).await.is_err() {
-        return 1;
+    let mut pen = None;
+    if wanted(&orders) {
+        let Some(hold) = hall.pen(who, path.clone()).await else {
+            return 1;
+        };
+        if index(&mut reader, &root, &hold).await.is_err() {
+            let _ = tokio::fs::remove_dir_all(&hold).await;
+            return 1;
+        }
+        pen = Some(hold);
     }
-    let report = hall.apply(who, path, orders).await;
+    let report = hall.apply(who, path, orders, pen).await;
     if writer.write_all(&report).await.is_err() {
         return 1;
     }
@@ -61,7 +73,7 @@ async fn orders<R: AsyncRead + Unpin>(reader: &mut R) -> Result<Vec<String>, ()>
     }
 }
 
-async fn index<R: AsyncRead + Unpin>(reader: &mut R, root: &Path) -> Result<(), ()> {
+async fn index<R: AsyncRead + Unpin>(reader: &mut R, root: &Path, pen: &Path) -> Result<(), ()> {
     let mut peek = [0u8; 1];
     if reader.read(&mut peek).await.map_err(drop)? == 0 {
         return Ok(());
@@ -70,6 +82,8 @@ async fn index<R: AsyncRead + Unpin>(reader: &mut R, root: &Path) -> Result<(), 
         .arg("-C")
         .arg(root)
         .args(["index-pack", "--stdin", "--fix-thin"])
+        .env(SEAT, pen)
+        .env(SPARE, root.join(OBJECTS))
         .stdin(std::process::Stdio::piped())
         .stdout(std::process::Stdio::null())
         .stderr(std::process::Stdio::null())

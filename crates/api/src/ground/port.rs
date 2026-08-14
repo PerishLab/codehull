@@ -1,8 +1,8 @@
 use super::Dock;
 use super::line;
 use super::point::Point;
-use super::take::{CAPS, settle};
-use codehull_repo::Store;
+use super::take::{CAPS, Take};
+use codehull_repo::{Pen, Store};
 use codehull_ssh::{Hall, Later};
 use keel::{Core, Wire};
 use std::path::PathBuf;
@@ -46,9 +46,22 @@ impl<W: Wire + 'static> Port<W> {
         Some(line::plain(&listing, CAPS))
     }
 
-    async fn applied(&self, who: i64, path: String, orders: Vec<String>) -> Vec<u8> {
+    async fn applied(
+        &self,
+        who: i64,
+        path: String,
+        orders: Vec<String>,
+        pen: Option<PathBuf>,
+    ) -> Vec<u8> {
         let Some(id) = self.resolve(who, &path).await else {
             return line::pkt("unpack no such repository\n");
+        };
+        let seat = match pen {
+            Some(hold) => match self.adopt(id, hold).await {
+                Some(pen) => Some(pen),
+                None => return line::pkt("unpack object pen is not ours\n"),
+            },
+            None => None,
         };
         let point = Point {
             dock: &self.dock,
@@ -59,7 +72,29 @@ impl<W: Wire + 'static> Port<W> {
             .iter()
             .filter_map(|text| line::triple(text))
             .collect();
-        settle(&point, &held).await
+        Take {
+            point: &point,
+            pen: seat,
+        }
+        .settle(&held)
+        .await
+    }
+
+    async fn penned(&self, who: i64, path: String) -> Option<PathBuf> {
+        let id = self.resolve(who, &path).await?;
+        let store = self.dock.store.clone();
+        let held = tokio::task::spawn_blocking(move || store.repository(id)?.pen())
+            .await
+            .ok()?;
+        held.ok().map(|pen| pen.hold().to_path_buf())
+    }
+
+    async fn adopt(&self, id: u64, hold: PathBuf) -> Option<Pen> {
+        let store = self.dock.store.clone();
+        tokio::task::spawn_blocking(move || store.repository(id)?.adopt(&hold))
+            .await
+            .ok()?
+            .ok()
     }
 
     async fn resolve(&self, who: i64, path: &str) -> Option<u64> {
@@ -112,8 +147,18 @@ impl<W: Wire + 'static> Hall for Port<W> {
         Box::pin(self.offered(who, path))
     }
 
-    fn apply(&self, who: i64, path: String, orders: Vec<String>) -> Later<'_, Vec<u8>> {
-        Box::pin(self.applied(who, path, orders))
+    fn pen(&self, who: i64, path: String) -> Later<'_, Option<PathBuf>> {
+        Box::pin(self.penned(who, path))
+    }
+
+    fn apply(
+        &self,
+        who: i64,
+        path: String,
+        orders: Vec<String>,
+        pen: Option<PathBuf>,
+    ) -> Later<'_, Vec<u8>> {
+        Box::pin(self.applied(who, path, orders, pen))
     }
 }
 

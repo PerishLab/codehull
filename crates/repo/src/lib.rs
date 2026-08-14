@@ -1,9 +1,11 @@
 mod git;
 mod object;
+mod pen;
 mod repo;
 mod store;
 
 pub use object::Object;
+pub use pen::Pen;
 pub use repo::{REFS, RESERVED, Repository, admitted};
 pub use store::Store;
 

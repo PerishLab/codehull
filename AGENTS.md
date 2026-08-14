@@ -63,6 +63,12 @@ cargo fmt/clippy/test, biome/tsc/vitest, helm lint, Plumb, Ectropy, and acts.
   free; anything that writes is intercepted, so `receive-pack` never runs on
   either transport. Over ssh the pack streams straight into `index-pack`
   rather than being buffered, which is what the http half should grow to.
+- **Objects a reference has not accepted never enter the object store.** A push
+  is indexed into a pen inside the repository, and the pen migrates in only
+  after every check has passed, before any reference is written. Both adaptors
+  index into a pen the kernel hands out; neither writes objects anywhere else.
+  What this does not answer is the object a reference took and later abandoned:
+  collecting those needs a scheduled trigger, and a trigger is a runner.
 - A public key identifies by its material, not by its line. The comment is
   decoration and is ignored on lookup. The lookup itself is the one read that
   runs above the operator, because it runs before an operator exists — the

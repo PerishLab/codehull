@@ -44,6 +44,10 @@ owed, not excluded.
   rows, `upload-pack` piped onto the channel (act 14)
 - ✅ Transport: push over SSH, spoken by the adaptor; the pack streams straight
   into `index-pack` and every reference move routes back through `point` (act 14)
+- ✅ Objects quarantined in a pen on both transports: a refused push admits
+  nothing, an accepted one migrates before any reference is written (act 14)
+- ⬜ Collecting objects a reference accepted and later abandoned — needs a
+  trigger on a schedule, and a schedule is a runner (H3)
 - ✅ Verdicts on a commit, one live per context, combined by rollup (act 14)
 
 ## Issues

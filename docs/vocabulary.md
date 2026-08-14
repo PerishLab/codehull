@@ -101,3 +101,11 @@
 - `custody` — hold an existing sudo artifact, or mint one into a vacant estate.
 - `born` — this boot bootstraps rather than binds: a memory store, or a
   postgres store after `fresh`.
+- `pen` — the object quarantine: `index-pack` writes into a pen inside the
+  repository instead of into the object store, and the pen migrates in only
+  when a reference has accepted its bytes. A refused push leaves the store as
+  it was. Both transports index into a pen the kernel hands out; the ssh
+  adaptor is told where its pen is, never where the store is.
+- `keep` / `wipe` — the two ends a pen can have. `keep` moves the pack files
+  in, indexes last so no reader sees an index before its pack, and then
+  retires the pen; `wipe` retires it with the bytes still inside.

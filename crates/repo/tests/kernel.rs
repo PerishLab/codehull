@@ -1,6 +1,7 @@
 use codehull_repo::{Error, Object, Store};
+use std::io::Write;
 use std::path::{Path, PathBuf};
-use std::process::Command;
+use std::process::{Command, Stdio};
 use std::sync::atomic::{AtomicU64, Ordering};
 
 static NEXT: AtomicU64 = AtomicU64::new(1);
@@ -141,6 +142,62 @@ fn retention() {
         reopened.reference(main).expect("restarted main"),
         Some(source.topic)
     );
+}
+
+#[test]
+fn quarantine() {
+    let temp = Temp::new();
+    let work = temp.path().join("work");
+    std::fs::create_dir(&work).expect("work root");
+    git(&work, ["init", "-q", "-b", "main"]);
+    git(&work, ["config", "user.name", "Codehull Test"]);
+    git(&work, ["config", "user.email", "codehull@example.invalid"]);
+    std::fs::write(work.join("probe"), "penned\n").expect("probe file");
+    git(&work, ["add", "probe"]);
+    git(&work, ["commit", "-q", "-m", "seed pen"]);
+    let held = object(&work);
+    let pack = packed(&work, &held);
+
+    let store = Store::create(&temp.path().join("store")).expect("store");
+    let repo = store.provision(7).expect("repository");
+    let pen = repo.pen().expect("pen");
+    repo.index(&pen, &pack).expect("index into the pen");
+    assert!(repo.holds(&held).is_err());
+    repo.sees(&pen, &held).expect("the pen carries the object");
+    let hold = pen.hold().to_path_buf();
+    pen.wipe().expect("wipe the pen");
+    assert!(!hold.exists());
+    assert!(repo.holds(&held).is_err());
+
+    let pen = repo.pen().expect("second pen");
+    repo.index(&pen, &pack).expect("index again");
+    let hold = pen.hold().to_path_buf();
+    pen.keep().expect("keep the pen");
+    assert!(!hold.exists());
+    repo.holds(&held).expect("the store carries the object");
+    repo.project("refs/heads/main", &held)
+        .expect("project the admitted object");
+}
+
+fn packed(root: &Path, object: &Object) -> Vec<u8> {
+    let mut child = Command::new("git")
+        .arg("-C")
+        .arg(root)
+        .args(["pack-objects", "--stdout", "--revs"])
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::null())
+        .spawn()
+        .expect("pack");
+    child
+        .stdin
+        .take()
+        .expect("pack input")
+        .write_all(format!("{}\n", object.hex()).as_bytes())
+        .expect("pack revisions");
+    let output = child.wait_with_output().expect("pack output");
+    assert!(output.status.success());
+    output.stdout
 }
 
 fn git<const N: usize>(root: &Path, args: [&str; N]) {

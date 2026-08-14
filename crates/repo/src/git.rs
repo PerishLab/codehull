@@ -4,9 +4,27 @@ use std::io::Write;
 use std::path::Path;
 use std::process::{Command, Output, Stdio};
 
-pub struct Git<'a>(pub &'a Path);
+const OBJECTS: &str = "objects";
+const SEAT: &str = "GIT_OBJECT_DIRECTORY";
+const SPARE: &str = "GIT_ALTERNATE_OBJECT_DIRECTORIES";
 
-impl Git<'_> {
+pub struct Git<'a> {
+    root: &'a Path,
+    pen: Option<&'a Path>,
+}
+
+impl<'a> Git<'a> {
+    pub fn at(root: &'a Path) -> Self {
+        Self { root, pen: None }
+    }
+
+    pub fn pen(root: &'a Path, pen: &'a Path) -> Self {
+        Self {
+            root,
+            pen: Some(pen),
+        }
+    }
+
     pub fn run<I, S>(&self, args: I) -> Result<Output, Error>
     where
         I: IntoIterator<Item = S>,
@@ -71,7 +89,11 @@ impl Git<'_> {
         S: AsRef<OsStr>,
     {
         let mut held = Command::new("git");
-        held.arg("-C").arg(self.0).args(args);
+        held.arg("-C").arg(self.root).args(args);
+        if let Some(pen) = self.pen {
+            held.env(SEAT, pen);
+            held.env(SPARE, self.root.join(OBJECTS));
+        }
         held
     }
 }
