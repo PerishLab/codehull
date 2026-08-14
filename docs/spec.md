@@ -1,12 +1,21 @@
-# Stage law
+# Stage law, closed
 
-Delivery contract for the keel-ized Forgejo. A stage is done when its act
-is green under the repository guard; no calendar. The boundary is settled:
-**state, authority, events, credentials, and blobs are in; git mechanics
-(objects, pack, diff/merge, CI execution) are out.** Acceptance is
-capability equivalence on a keel-native surface — never Gitea API
-mimicry. The completeness ledger is keel's Forgejo dream-code model
-(~40 units); the opening issues (#2–#7) burn down en route.
+**This program is retired. The live stage law is `docs/host.md`.** F0 through
+F7 delivered what they promised and the table below is retained as lineage,
+not as a contract. Nothing here governs a new stage.
+
+It was the delivery contract for the keel-ized Forgejo: a stage was done when
+its act went green under the repository guard, and the boundary it settled was
+**state, authority, events, credentials, and blobs in; git mechanics (objects,
+pack, diff/merge, CI execution) out.** That boundary was drawn while Forgejo
+was to be kept. Forgejo is now being retired, so a forge-shaped need is a
+missing Codehull capability rather than a line to stay behind, and the
+successor law admits exactly what this one excluded. The reasoning and the
+stages that replace these live in `docs/host.md`.
+
+The Identity and Must-not clauses that used to close this file were live law,
+not history. They moved to `docs/host.md` unchanged rather than being copied,
+so the two files cannot drift.
 
 ## Delivery grammar
 
@@ -32,16 +41,8 @@ only through the perish registry.
 
 ## Identity
 
-codehull issues no identity. `Actor` is an anchor carrying `iss` and `sub`
-and nothing else; login, name, and suspension belong to the issuer. Gate's
-stock doors are not mounted, so an operator exists only as a `Bearer` token
-verified against `API_OIDC_ISSUER`. Rendering a person is the client's
-round trip to that issuer, never a field codehull mirrors.
+Moved to `docs/host.md`. Still live law.
 
 ## Must not
 
-- Gitea/Forgejo API mimicry (paths, payload shapes).
-- Business code beyond models, grants, seeds, and package wiring.
-- Bytes in keel or metadata truth in MinIO (each plane owns its half).
-- A stage advanced past a red act.
-- Engine workarounds living here instead of keel issues.
+Moved to `docs/host.md`. Still live law, with one clause amended there.

@@ -30,9 +30,13 @@ cargo fmt/clippy/test, biome/tsc/vitest, helm lint, Plumb, Ectropy, and acts.
   deltas remain documented in `docs/vocabulary.md`.
 - Dependency direction: codehull -> keel-gate/keel-relay -> keel. Never a
   workspace sibling of keel; distribution follows keel's channel.
-- Model changes are law-shaped: extend the slice in `docs/model.md`,
-  then code.
-- Stage law: `docs/spec.md` (F0 foundations → F7 equivalence audit).
+- Model changes are law-shaped: extend the row in `docs/ledger.md`, then
+  code. This law named a `docs/model.md` for a while; no such file was ever
+  written, and the ledger is where the model has always been recorded.
+- Stage law: `docs/host.md` (H1 change → H2 registry → H3 execution).
+  Codehull hosts what it needs before how Plumb integrates the estate is
+  evaluated. `docs/spec.md` is the closed program it succeeds, kept as
+  lineage; its boundary excluded git mechanics and no longer governs.
 - Never commit on `main`; branch, let the repository guard pass, then use `plumb land`.
 - Engine gaps become keel issues and registry releases, never local
   workarounds.

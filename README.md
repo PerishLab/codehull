@@ -40,8 +40,10 @@ cargo run --locked -p codehull -- act
 cargo run --locked -p codehull -- ship
 ```
 
-`act` runs the staged API scenarios from `docs/spec.md`. `ship` publishes the
-API and web images plus the Helm chart from a clean `main` at one exact version.
+`act` runs the staged API scenarios; the stages are `docs/host.md`, and the
+acts that predate it answer to the closed program in `docs/spec.md`. `ship`
+publishes the API image plus the Helm chart from a clean `main` at one exact
+version.
 
 ## Run
 

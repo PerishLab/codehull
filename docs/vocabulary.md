@@ -11,8 +11,9 @@
   rises.
 - `seed` — the eight-row grant policy sown once at first boot.
 - `halt` — boot failure exit.
-- `act` — the staged scenario runner over the api binary (`codehull act`,
-  one act per spec stage).
+- `act` — the staged scenario runner over the api binary (`codehull act`).
+  Acts 1 to 13 were one per stage of the closed program; the hosting stages
+  take as many acts as their capabilities need.
 - `ship` — the operator release that publishes both images and the chart at one version.
 - `join` / `want` / `visible` / `grant` — act helpers: register a user,
   assert a 201 write, probe repo visibility, seed a grant.

@@ -1,8 +1,11 @@
 # Forgejo capability ledger
 
 Honest, itemized. ✅ modeled + act-green · 🟡 modeled, not act-proven ·
-⬜ in-boundary, NOT done · ⛔ out of boundary (execution / git mechanics,
-app code that consumes keel).
+⬜ in-boundary, NOT done · ⛔ outside the stages `docs/host.md` names.
+
+The boundary moved when `docs/spec.md` closed: git mechanics and CI execution
+are in-boundary now, staged as H1, H2 and H3. Rows carrying a stage tag are
+owed, not excluded.
 
 ## Identity & access
 - ✅ Users (Actor kind=user)
@@ -30,6 +33,9 @@ app code that consumes keel).
 - 🟡 Default branch (trunk field)
 - ✅ Branch protection (Shield, act 9)
 - ✅ Mirrors (Mirror one2one Repo, act 10)
+- ✅ Bare seat, bundle ingress, ref compare-and-swap (`crates/repo`, act 13)
+- ⬜ Transport: clone / fetch / push — H1
+- ⬜ Commit status, read by context and combined — H1
 
 ## Issues
 - ✅ Open / close (business `closed`, act 2)
@@ -52,7 +58,7 @@ app code that consumes keel).
 - ✅ Line notes (Note, act 3)
 - ✅ Merge state, gated by authority (merged field, act 3)
 - ✅ Draft PRs (Pull.merged / Release.draft fields, act 3,9)
-- ⛔ Diff / conflict / actual merge (git mechanics)
+- ⬜ Diff / conflict / actual merge — H1
 
 ## Actions (CI)
 - ✅ Runners (act 8)
@@ -61,15 +67,18 @@ app code that consumes keel).
 - ✅ Variables (act 8)
 - ✅ Artifacts (= blob Asset)
 - ✅ Org runners & secrets (OrgRunner/OrgSecret, team-subtree gated, act 11)
-- ⛔ Workflow execution (spin runners, stream logs)
+- ⬜ Workflow execution: registration, queue, dispatch, logs — H3
+- ⬜ Workflow and action resolution, including across repositories — H3
 
 ## Planning & delivery
 - ✅ Projects / kanban columns (Project, Column with card sort, act 9)
 - ✅ Releases + release notes (Release, scoped-unique tag, act 9)
 - ✅ Release assets (= blob Asset, act 5)
 - ✅ Package registry metadata (Package, act 9; bytes = blob)
-- 🟡 Wiki metadata (trivial unit; content ⛔ in git)
-- ⛔ Tags (git)
+- ⬜ Cargo sparse index, served and published — H2
+- ⬜ OCI distribution, served and published — H2
+- 🟡 Wiki metadata (trivial unit; content lives in git)
+- ⬜ Tags — H1
 
 ## Notifications & social
 - ✅ Watch (act 4)
@@ -90,12 +99,24 @@ app code that consumes keel).
 
 ## Verdict
 
-Every in-boundary Forgejo capability plane is now ✅ — modeled and act-green
-on **sqlite and real Postgres**, blobs on real MinIO. 30 business units +
-7 keel-provided. Remaining items are all explicitly ⛔ or caller-space:
+Every metadata plane is ✅ — modeled and act-green on **sqlite and real
+Postgres**, blobs on real MinIO. 30 business units + 7 keel-provided. That was
+the whole of the boundary `docs/spec.md` settled, and against that boundary it
+was complete.
 
-- ⛔ **Execution / git mechanics**: workflow runs, merge/diff, tags, wiki &
-  package *content* — app code that consumes keel, never modeled (boundary law).
+**It is no longer the whole of the ledger.** `docs/host.md` moved the boundary,
+and what used to sit behind ⛔ is now owed:
+
+- ⬜ **H1 change plane**: transport, tags, real merge, commit status.
+- ⬜ **H2 registry plane**: cargo sparse index and OCI distribution.
+- ⬜ **H3 execution plane**: runner registration, queue, dispatch, logs,
+  workflow and action resolution, artifacts.
+
+What Codehull records about these planes it already records well; what it does
+about them is close to nothing. The gap is doing, not recording.
+
+Still not owed here:
+
 - **Caller-space auth integrations**: 2FA / passkeys — gate is the seam; these
   are middleware the caller adds, not keel. OAuth2 / external login is no
   longer pending: codehull issues no identity at all, and an operator exists
@@ -104,5 +125,3 @@ on **sqlite and real Postgres**, blobs on real MinIO. 30 business units +
   runners / secrets are the two-unit pattern, added when a live need appears.
 - **Minor**: Action feed = the `@pulse` stream (audit already ✅); Stopwatch,
   pinned issues, issue templates are trivial units addable on demand.
-
-The keel-ization is capability-complete for the settled boundary.
