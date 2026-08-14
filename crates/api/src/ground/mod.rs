@@ -1,3 +1,5 @@
+mod haul;
+
 use axum::extract::{Path, Query, State};
 use axum::http::StatusCode;
 use axum::routing::{get, post};
@@ -53,6 +55,8 @@ pub(crate) fn routes<W: Wire + 'static>(core: Arc<Core<W>>, store: Store) -> Rou
         .route("/repo/{id}/git", get(show::<W>).put(make::<W>))
         .route("/repo/{id}/git/object", post(ingest::<W>))
         .route("/repo/{id}/git/ref", get(read::<W>).post(advance::<W>))
+        .route("/repo/{id}/git/info/refs", get(haul::refs::<W>))
+        .route("/repo/{id}/git/git-upload-pack", post(haul::upload::<W>))
         .with_state(dock)
 }
 

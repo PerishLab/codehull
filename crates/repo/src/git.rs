@@ -1,40 +1,84 @@
 use crate::{Error, io};
 use std::ffi::OsStr;
+use std::io::Write;
 use std::path::Path;
-use std::process::{Command, Output};
+use std::process::{Command, Output, Stdio};
 
-pub fn run<I, S>(root: &Path, args: I) -> Result<Output, Error>
-where
-    I: IntoIterator<Item = S>,
-    S: AsRef<OsStr>,
-{
-    Command::new("git")
-        .arg("-C")
-        .arg(root)
-        .args(args)
-        .output()
-        .map_err(|error| io("cannot run git", error))
-}
+pub struct Git<'a>(pub &'a Path);
 
-pub fn text<I, S>(root: &Path, args: I, action: &str) -> Result<String, Error>
-where
-    I: IntoIterator<Item = S>,
-    S: AsRef<OsStr>,
-{
-    let output = run(root, args)?;
-    if !output.status.success() {
-        return Err(Error::Git(format!(
-            "{action}: {}",
-            String::from_utf8_lossy(&output.stderr).trim()
-        )));
+impl Git<'_> {
+    pub fn run<I, S>(&self, args: I) -> Result<Output, Error>
+    where
+        I: IntoIterator<Item = S>,
+        S: AsRef<OsStr>,
+    {
+        self.command(args)
+            .output()
+            .map_err(|error| io("cannot run git", error))
     }
-    Ok(String::from_utf8_lossy(&output.stdout).trim().to_string())
+
+    pub fn text<I, S>(&self, args: I, action: &str) -> Result<String, Error>
+    where
+        I: IntoIterator<Item = S>,
+        S: AsRef<OsStr>,
+    {
+        let output = self.run(args)?;
+        if !output.status.success() {
+            return Err(refused(action, &output.stderr));
+        }
+        Ok(String::from_utf8_lossy(&output.stdout).trim().to_string())
+    }
+
+    pub fn success<I, S>(&self, args: I, action: &str) -> Result<(), Error>
+    where
+        I: IntoIterator<Item = S>,
+        S: AsRef<OsStr>,
+    {
+        self.text(args, action).map(drop)
+    }
+
+    pub fn feed<I, S>(&self, args: I, input: &[u8], action: &str) -> Result<Vec<u8>, Error>
+    where
+        I: IntoIterator<Item = S>,
+        S: AsRef<OsStr>,
+    {
+        let mut child = self
+            .command(args)
+            .stdin(Stdio::piped())
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .spawn()
+            .map_err(|error| io("cannot run git", error))?;
+        let mut sink = child
+            .stdin
+            .take()
+            .ok_or_else(|| Error::Io("git input is absent".into()))?;
+        sink.write_all(input)
+            .map_err(|error| io("cannot write git input", error))?;
+        drop(sink);
+        let output = child
+            .wait_with_output()
+            .map_err(|error| io("cannot wait for git", error))?;
+        if !output.status.success() {
+            return Err(refused(action, &output.stderr));
+        }
+        Ok(output.stdout)
+    }
+
+    fn command<I, S>(&self, args: I) -> Command
+    where
+        I: IntoIterator<Item = S>,
+        S: AsRef<OsStr>,
+    {
+        let mut held = Command::new("git");
+        held.arg("-C").arg(self.0).args(args);
+        held
+    }
 }
 
-pub fn success<I, S>(root: &Path, args: I, action: &str) -> Result<(), Error>
-where
-    I: IntoIterator<Item = S>,
-    S: AsRef<OsStr>,
-{
-    text(root, args, action).map(drop)
+fn refused(action: &str, stderr: &[u8]) -> Error {
+    Error::Git(format!(
+        "{action}: {}",
+        String::from_utf8_lossy(stderr).trim()
+    ))
 }

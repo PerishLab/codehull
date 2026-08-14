@@ -42,6 +42,12 @@
   without an engine primitive — batch + forward queries suffice.
 - Route (alias) — axum Path renamed to avoid the std::path::Path clash.
 - Act 7 suspension: Actor.barred + gate.bar hook; a suspended token stops resolving to an operator (private repo 200→404).
+- `haul` — the transport plane: git's own smart HTTP over a ground seat,
+  `info/refs` and `git-upload-pack` under the same `Bearer` every other route
+  takes. The paths are git's specification, not a forge's API. Read only so
+  far; push is owed.
+- `feed` — run git with bytes on stdin and raw bytes back. The protocol paths
+  need it because trimmed text would corrupt the stream.
 - `seat` — the receiver over a repository root: reads the cascade, opens the
   store, and runs one of the two boot ceremonies.
 - `berth` — the receiver over a raised core: `seed` sows gate and codehull

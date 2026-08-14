@@ -34,7 +34,8 @@ owed, not excluded.
 - ✅ Branch protection (Shield, act 9)
 - ✅ Mirrors (Mirror one2one Repo, act 10)
 - ✅ Bare seat, bundle ingress, ref compare-and-swap (`crates/repo`, act 13)
-- ⬜ Transport: clone / fetch / push — H1
+- ✅ Transport: clone and fetch, git smart HTTP over the seat (act 14)
+- ⬜ Transport: push, and git over SSH — H1
 - ⬜ Commit status, read by context and combined — H1
 
 ## Issues

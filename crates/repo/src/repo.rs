@@ -1,4 +1,4 @@
-use crate::git;
+use crate::git::Git;
 use crate::store::{sync, write};
 use crate::{Error, Object, io};
 use std::ffi::OsString;
@@ -48,8 +48,7 @@ impl Repository {
         if held != expected {
             return Err(Error::Foreign("repository marker disagrees".into()));
         }
-        let bare = git::text(
-            root,
+        let bare = Git(root).text(
             ["rev-parse", "--is-bare-repository"],
             "cannot inspect repository",
         )?;
@@ -87,13 +86,13 @@ impl Repository {
             source.as_os_str().to_os_string(),
             OsString::from(object.hex()),
         ];
-        git::success(&self.root, args, "cannot ingest object")?;
+        Git(&self.root).success(args, "cannot ingest object")?;
         self.require(object)
     }
 
     pub fn reference(&self, name: &str) -> Result<Option<Object>, Error> {
         valid(&self.root, name)?;
-        let output = git::run(&self.root, ["show-ref", "--verify", "--hash", name])?;
+        let output = Git(&self.root).run(["show-ref", "--verify", "--hash", name])?;
         match output.status.code() {
             Some(0) => Object::parse(String::from_utf8_lossy(&output.stdout).trim()).map(Some),
             Some(1) => Ok(None),
@@ -116,10 +115,8 @@ impl Repository {
             Some(object) => object.hex().to_string(),
             None => self.zero()?,
         };
-        let output = git::run(
-            &self.root,
-            ["update-ref", "--create-reflog", name, after.hex(), &old],
-        )?;
+        let output =
+            Git(&self.root).run(["update-ref", "--create-reflog", name, after.hex(), &old])?;
         if !output.status.success() {
             return Err(Error::Conflict(format!(
                 "reference compare-and-swap refused: {}",
@@ -130,17 +127,31 @@ impl Repository {
             .ok_or_else(|| Error::Git("accepted reference is absent".into()))
     }
 
+    pub fn advertise(&self) -> Result<Vec<u8>, Error> {
+        Git(&self.root).feed(
+            ["upload-pack", "--stateless-rpc", "--advertise-refs", "."],
+            &[],
+            "cannot advertise references",
+        )
+    }
+
+    pub fn upload(&self, want: &[u8]) -> Result<Vec<u8>, Error> {
+        Git(&self.root).feed(
+            ["upload-pack", "--stateless-rpc", "."],
+            want,
+            "cannot upload objects",
+        )
+    }
+
     fn require(&self, object: &Object) -> Result<(), Error> {
-        git::success(
-            &self.root,
+        Git(&self.root).success(
             ["cat-file", "-e", &format!("{}^{{commit}}", object.hex())],
             "commit object is absent",
         )
     }
 
     fn zero(&self) -> Result<String, Error> {
-        let format = git::text(
-            &self.root,
+        let format = Git(&self.root).text(
             ["rev-parse", "--show-object-format"],
             "cannot read object format",
         )?;
@@ -153,8 +164,7 @@ impl Repository {
 }
 
 fn initialize(root: &Path, id: u64) -> Result<(), Error> {
-    git::success(
-        root,
+    Git(root).success(
         ["init", "--bare", "--initial-branch=main", "."],
         "cannot initialize repository",
     )?;
@@ -174,5 +184,5 @@ fn valid(root: &Path, name: &str) -> Result<(), Error> {
     if !name.starts_with("refs/heads/") {
         return Err(Error::Invalid("reference must be below refs/heads".into()));
     }
-    git::success(root, ["check-ref-format", name], "invalid reference")
+    Git(root).success(["check-ref-format", name], "invalid reference")
 }

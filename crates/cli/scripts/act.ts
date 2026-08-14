@@ -1,5 +1,6 @@
 import { bin } from "./lib/cmd.ts";
 import { ground } from "./lib/ground.ts";
+import { haul } from "./lib/haul.ts";
 import { io } from "./lib/io.ts";
 import { issuer } from "./lib/issuer.ts";
 
@@ -687,6 +688,9 @@ try {
 
   io.print("==> act 13: repository truth");
   await ground(root, mint, 13402);
+
+  io.print("==> act 14: transport");
+  await haul(root, mint, 13404);
 
   if (!s3) {
     io.print("API_BLOB_ENDPOINT absent: the blob plane stays unproven this run");
