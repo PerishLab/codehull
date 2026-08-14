@@ -55,6 +55,13 @@
   the kernel stays the only writer of references.
 - `line` — pkt-line: the four-hex length framing git uses on the wire, and the
   advertisement and report-status shapes built from it.
+- `weld` — the merge plane. `forward` moves the base when it is an ancestor,
+  `join` writes a two-parent commit, `squash` writes a one-parent commit. The
+  tree comes from `merge-tree --write-tree` and the commit from `commit-tree`,
+  so the merge is git's own; only the choice of shape is Codehull's.
+- `Weld` — one row per merge shape a repository permits. A repository with no
+  rows permits nothing, on purpose: the permitted set is data, and a default
+  living in code would be the plane deciding for itself.
 - `admitted` — the namespace law in one predicate: anything below `refs` that
   is not in the reserved set, shared by the kernel and the adaptor so the two
   cannot drift. `RESERVED` is empty and gains an entry only when Codehull

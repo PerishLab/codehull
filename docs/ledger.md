@@ -64,7 +64,9 @@ owed, not excluded.
 - ✅ Line notes (Note, act 3)
 - ✅ Merge state, gated by authority (merged field, act 3)
 - ✅ Draft PRs (Pull.merged / Release.draft fields, act 3,9)
-- ⬜ Diff / conflict / actual merge — H1
+- ✅ Actual merge: forward, join and squash, each proven by cloning the result
+  back and counting parents (`Weld`, act 14)
+- ⬜ Conflict presentation — a conflicting merge refuses; nothing reports where
 
 ## Actions (CI)
 - ✅ Runners (act 8)

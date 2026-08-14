@@ -148,6 +148,46 @@ impl Repository {
             .map(drop)
     }
 
+    pub fn ancestor(&self, old: &Object, new: &Object) -> Result<bool, Error> {
+        let output = Git(&self.root).run(["merge-base", "--is-ancestor", old.hex(), new.hex()])?;
+        match output.status.code() {
+            Some(0) => Ok(true),
+            Some(1) => Ok(false),
+            _ => Err(Error::Git(format!(
+                "cannot compare objects: {}",
+                String::from_utf8_lossy(&output.stderr).trim()
+            ))),
+        }
+    }
+
+    pub fn weld(&self, base: &Object, head: &Object) -> Result<Object, Error> {
+        let output = Git(&self.root).run(["merge-tree", "--write-tree", base.hex(), head.hex()])?;
+        if !output.status.success() {
+            return Err(Error::Conflict("the two sides do not merge cleanly".into()));
+        }
+        let text = String::from_utf8_lossy(&output.stdout);
+        let first = text.lines().next().unwrap_or_default().trim();
+        Object::parse(first)
+    }
+
+    pub fn commit(&self, tree: &Object, parents: &[&Object], note: &str) -> Result<Object, Error> {
+        let mut args = vec![
+            "-c".to_owned(),
+            "user.name=Codehull".to_owned(),
+            "-c".to_owned(),
+            "user.email=codehull@invalid".to_owned(),
+            "commit-tree".to_owned(),
+            tree.hex().to_owned(),
+        ];
+        for parent in parents {
+            args.push("-p".to_owned());
+            args.push(parent.hex().to_owned());
+        }
+        args.push("-m".to_owned());
+        args.push(note.to_owned());
+        Object::parse(&Git(&self.root).text(args, "cannot write the merge commit")?)
+    }
+
     pub fn holds(&self, object: &Object) -> Result<(), Error> {
         self.require(object)
     }

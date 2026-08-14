@@ -21,6 +21,14 @@ pub(crate) struct Repo {
 }
 
 #[resource]
+pub(crate) struct Weld {
+    #[field(string, unique = repo)]
+    mode: string,
+    #[relation(Repo, many2one, root)]
+    repo: Repo,
+}
+
+#[resource]
 pub(crate) struct Ref {
     #[field(string, unique = repo)]
     name: string,

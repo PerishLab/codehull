@@ -173,6 +173,22 @@ impl<W: Wire + 'static> Point<'_, W> {
             .map_err(|_| clash())
     }
 
+    pub(super) async fn welds(&self) -> Result<Vec<String>, Fault> {
+        let id = self.id;
+        let pack = self
+            .dock
+            .core
+            .of(self.who)
+            .query(&format!(r#"from Weld where repo = "{id}""#))
+            .await
+            .map_err(|_| deny())?;
+        Ok(pack
+            .rows()
+            .iter()
+            .filter_map(|row| row.text("mode").map(str::to_owned))
+            .collect())
+    }
+
     pub(super) async fn listing(&self) -> Result<Vec<(String, String)>, Fault> {
         let mut held = Vec::new();
         for row in self.rows(None).await? {

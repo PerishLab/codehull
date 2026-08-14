@@ -200,6 +200,103 @@ export async function haul(root: string, mint: Issuer, port: number): Promise<vo
       }
     });
 
+    await check("merges join two trees for real", async () => {
+      for (const mode of ["forward", "join", "squash"]) {
+        const made = await send(base, "/batch", seat, "POST", {
+          deeds: [{ verb: "put", unit: "Weld", fields: { mode, repo: repo } }],
+        });
+        await made.body?.cancel();
+        if (made.status !== 200) {
+          throw new Error(`permitting ${mode} returned ${made.status}`);
+        }
+      }
+      const work = `${dir}/weld`;
+      if (await clone(url, work, seat) !== 0) {
+        throw new Error("clone for merge failed");
+      }
+      const at = (args: string[]) => bin("git").text(["-C", work, ...args], { stderr: "null" });
+      await at(["config", "user.name", "Codehull Act"]);
+      await at(["config", "user.email", "codehull@example.invalid"]);
+      const trunk = await at(["rev-parse", "HEAD"]);
+
+      await at(["checkout", "-q", "-b", "ahead"]);
+      await Deno.writeTextFile(`${work}/ahead`, "ahead\n");
+      await at(["add", "ahead"]);
+      await at(["commit", "-q", "-m", "ahead"]);
+      const ahead = await at(["rev-parse", "HEAD"]);
+      if (await push(work, seat, ["origin", "ahead"]) !== 0) {
+        throw new Error("push refused the ahead branch");
+      }
+      if (await merge(base, repo, seat, "forward", "ahead") !== ahead) {
+        throw new Error("a forward merge did not move main to head");
+      }
+
+      await at(["checkout", "-q", "-b", "side", trunk]);
+      await Deno.writeTextFile(`${work}/side`, "side\n");
+      await at(["add", "side"]);
+      await at(["commit", "-q", "-m", "side"]);
+      if (await push(work, seat, ["origin", "side"]) !== 0) {
+        throw new Error("push refused the side branch");
+      }
+      const joined = await merge(base, repo, seat, "join", "side");
+      const back = `${dir}/joined`;
+      if (await clone(url, back, seat) !== 0) {
+        throw new Error("clone after join failed");
+      }
+      const parents = await bin("git").text(
+        ["-C", back, "rev-list", "--parents", "-n", "1", joined],
+      );
+      if (parents.trim().split(" ").length !== 3) {
+        throw new Error(`a join did not produce two parents: ${parents}`);
+      }
+      if (await Deno.readTextFile(`${back}/side`) !== "side\n") {
+        throw new Error("the joined tree lost one side");
+      }
+
+      await at(["checkout", "-q", "-b", "flat", trunk]);
+      await Deno.writeTextFile(`${work}/flat`, "flat\n");
+      await at(["add", "flat"]);
+      await at(["commit", "-q", "-m", "flat"]);
+      if (await push(work, seat, ["origin", "flat"]) !== 0) {
+        throw new Error("push refused the flat branch");
+      }
+      const flat = await merge(base, repo, seat, "squash", "flat");
+      const seen = await bin("git").text(
+        [
+          "-C",
+          back,
+          "-c",
+          `http.extraHeader=Authorization: ${seat.head.authorization}`,
+          "fetch",
+          "-q",
+          "origin",
+          "main",
+        ],
+        { env: quiet },
+      );
+      void seen;
+      const single = await bin("git").text(["-C", back, "rev-list", "--parents", "-n", "1", flat]);
+      if (single.trim().split(" ").length !== 2) {
+        throw new Error(`a squash did not produce one parent: ${single}`);
+      }
+    });
+
+    await check("an unpermitted merge is refused", async () => {
+      const held = await tip(base, repo, seat, "refs/heads/main");
+      const res = await send(base, `/repo/${repo}/git/merge`, seat, "POST", {
+        base: "refs/heads/main",
+        head: "refs/heads/side",
+        mode: "rebase",
+      });
+      await res.body?.cancel();
+      if (res.status !== 400) {
+        throw new Error(`an unknown mode returned ${res.status}`);
+      }
+      if (await tip(base, repo, seat, "refs/heads/main") !== held) {
+        throw new Error("a refused merge still moved main");
+      }
+    });
+
     await check("a stranger pushes nothing", async () => {
       const work = `${dir}/thief`;
       if (await clone(url, work, seat) !== 0) {
@@ -228,6 +325,25 @@ export async function haul(root: string, mint: Issuer, port: number): Promise<vo
     await stop(held);
     await wipe(dir);
   }
+}
+
+async function merge(
+  base: string,
+  repo: number,
+  seat: Seat,
+  mode: string,
+  head: string,
+): Promise<string> {
+  const res = await send(base, `/repo/${repo}/git/merge`, seat, "POST", {
+    base: "refs/heads/main",
+    head: `refs/heads/${head}`,
+    mode,
+  });
+  if (res.status !== 200) {
+    await res.body?.cancel();
+    throw new Error(`merge ${mode} returned ${res.status}`);
+  }
+  return (await res.json() as Record<string, string>).object;
 }
 
 function push(work: string, seat: Seat, args: string[]): Promise<number> {

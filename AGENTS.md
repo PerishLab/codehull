@@ -56,6 +56,11 @@ cargo fmt/clippy/test, biome/tsc/vitest, helm lint, Plumb, Ectropy, and acts.
   A tag moves and retires by the same rules a branch does; making tags
   immutable would be release governance, and that belongs to Plumb, not to a
   transport.
+- Which merge shapes a repository permits is data — one `Weld` row per shape —
+  and a repository with no rows permits none. There is no default in code,
+  because a default in code is this plane deciding a policy question for
+  itself. The merge itself is git's: `merge-tree` writes the tree and
+  `commit-tree` writes the commit, and Codehull chooses only the shape.
 - Reference names are still refused when they carry a character that would
   break the query they are interpolated into. That is a guard against
   injection, not a statement about the model, and the two must not be confused
