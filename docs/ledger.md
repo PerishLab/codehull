@@ -31,7 +31,8 @@ owed, not excluded.
 - ✅ Archive (archived field, act 10)
 - 🟡 Transfer ownership (set owner — subtree follows, keel act)
 - 🟡 Default branch (trunk field)
-- ✅ Branch protection (Shield, act 9)
+- 🟡 Branch protection — `Shield` records a branch's force and approval policy
+  and act 9 proves it stores, but nothing reads it: no path enforces it yet
 - ✅ Mirrors (Mirror one2one Repo, act 10)
 - ✅ Bare seat and bundle ingress (`crates/repo`, act 13)
 - ✅ References as Keel rows: compare-and-swap by liveness, projection to the
@@ -69,10 +70,17 @@ owed, not excluded.
 - ✅ Create from issue (Pull one2one Issue, act 3)
 - ✅ Reviews + approval state (Review, act 3)
 - ✅ Line notes (Note, act 3)
-- ✅ Merge state, gated by authority (merged field, act 3)
-- ✅ Draft PRs (Pull.merged / Release.draft fields, act 3,9)
 - ✅ Actual merge: forward, join and squash, each proven by cloning the result
   back and counting parents (`Weld`, act 14)
+- ✅ Merging a proposal through its own door: base and head come from the `Pull`
+  row, and the row carries the commit the merge produced (act 14)
+- ✅ A merge may carry the head it expects, and refuses when the head moved
+  under it — the same compare and swap a reference move takes (act 14)
+- ⬜ Draft PRs — `Pull` carries no draft field. This row read ✅ against
+  `Release.draft`, which is a different unit answering a different question
+- ⬜ Merging a proposal whose head lives in another repository — the `source`
+  relation exists, the fetch across repositories does not, and the door refuses
+  with a reason rather than merging the wrong branch
 - ⬜ Conflict presentation — a conflicting merge refuses; nothing reports where
 
 ## Actions (CI)

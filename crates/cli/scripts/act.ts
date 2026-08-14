@@ -289,9 +289,9 @@ try {
     );
     const pull = num(
       (await want("/pull", {
-        base: "main",
-        head: "feat",
-        merged: false,
+        base: "refs/heads/main",
+        head: "refs/heads/feat",
+        weld: "",
         issue,
       }, bob.head)).id,
     );
@@ -317,22 +317,23 @@ try {
     if (!Array.isArray(seen) || seen.length < 1) {
       throw new Error("reviewer cannot see own review");
     }
-    const merge = await fetch(`${base}/pull/${pull}`, {
+    const owned = await fetch(`${base}/pull/${pull}`, {
       method: "PATCH",
       headers: { "content-type": "application/json", ...bob.head },
-      body: JSON.stringify({ merged: true }),
+      body: JSON.stringify({ head: "refs/heads/feat2" }),
     });
-    if (!merge.ok) {
-      throw new Error(`merge ${merge.status}`);
+    await owned.body?.cancel();
+    if (!owned.ok) {
+      throw new Error(`author cannot edit own proposal ${owned.status}`);
     }
     const grab = await fetch(`${base}/pull/${pull}`, {
       method: "PATCH",
       headers: { "content-type": "application/json", ...cy.head },
-      body: JSON.stringify({ merged: false }),
+      body: JSON.stringify({ head: "refs/heads/theirs" }),
     });
     await grab.body?.cancel();
     if (grab.status !== 403 && grab.status !== 404) {
-      throw new Error(`stranger merge ${grab.status}`);
+      throw new Error(`stranger edited a proposal ${grab.status}`);
     }
   });
 

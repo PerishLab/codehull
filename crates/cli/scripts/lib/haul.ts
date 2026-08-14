@@ -318,6 +318,79 @@ export async function haul(root: string, mint: Issuer, port: number): Promise<vo
       }
     });
 
+    await check("a proposal merges through its own door", async () => {
+      const work = `${dir}/proposal`;
+      if (await clone(url, work, seat) !== 0) {
+        throw new Error("clone for the proposal failed");
+      }
+      const at = (args: string[]) => bin("git").text(["-C", work, ...args], { stderr: "null" });
+      await at(["config", "user.name", "Codehull Act"]);
+      await at(["config", "user.email", "codehull@example.invalid"]);
+      await at(["checkout", "-q", "-b", "proposed"]);
+      await Deno.writeTextFile(`${work}/proposed`, "proposed\n");
+      await at(["add", "proposed"]);
+      await at(["commit", "-q", "-m", "propose a change"]);
+      const offered = await at(["rev-parse", "HEAD"]);
+      if (await push(work, seat, ["origin", "proposed"]) !== 0) {
+        throw new Error("push refused the proposed branch");
+      }
+      const issue = await made(base, "/issue", seat, {
+        title: "PR: proposed",
+        body: "",
+        closed: false,
+        repo,
+        author: seat.id,
+      });
+      const pull = await made(base, "/pull", seat, {
+        base: "refs/heads/main",
+        head: "refs/heads/proposed",
+        weld: "",
+        issue,
+      });
+
+      const held = await tip(base, repo, seat, "refs/heads/main");
+      const stale = await send(base, `/pull/${pull}/weld`, seat, "POST", {
+        mode: "join",
+        expect: "0".repeat(40),
+      });
+      await stale.body?.cancel();
+      if (stale.status !== 409) {
+        throw new Error(`a stale expectation returned ${stale.status}`);
+      }
+      if (await tip(base, repo, seat, "refs/heads/main") !== held) {
+        throw new Error("a refused proposal still moved the base");
+      }
+      if (await welded(base, seat, pull) !== "") {
+        throw new Error("a refused proposal recorded a merge");
+      }
+
+      const done = await send(base, `/pull/${pull}/weld`, seat, "POST", {
+        mode: "join",
+        expect: offered,
+      });
+      if (done.status !== 200) {
+        await done.body?.cancel();
+        throw new Error(`merging a proposal returned ${done.status}`);
+      }
+      const object = (await done.json() as Record<string, string>).object;
+      if (await tip(base, repo, seat, "refs/heads/main") !== object) {
+        throw new Error("the base did not move to the merge");
+      }
+      if (await welded(base, seat, pull) !== object) {
+        throw new Error("the proposal does not carry the commit it produced");
+      }
+      const back = `${dir}/proposed-back`;
+      if (await clone(url, back, seat) !== 0) {
+        throw new Error("clone after the proposal merge failed");
+      }
+      const parents = await bin("git").text(
+        ["-C", back, "rev-list", "--parents", "-n", "1", object],
+      );
+      if (!parents.trim().split(" ").includes(offered)) {
+        throw new Error("the merge does not carry the proposed head as a parent");
+      }
+    });
+
     await check("an unpermitted merge is refused", async () => {
       const held = await tip(base, repo, seat, "refs/heads/main");
       const res = await send(base, `/repo/${repo}/git/merge`, seat, "POST", {
@@ -763,6 +836,37 @@ async function make(base: string, seat: Seat): Promise<number> {
     throw new Error(`POST /repo ${res.status}`);
   }
   return (await res.json() as Record<string, number>).id;
+}
+
+async function made(
+  base: string,
+  path: string,
+  seat: Seat,
+  body: Record<string, unknown>,
+): Promise<number> {
+  const res = await send(base, path, seat, "POST", body);
+  if (res.status !== 201) {
+    await res.body?.cancel();
+    throw new Error(`POST ${path} ${res.status}`);
+  }
+  return (await res.json() as Record<string, number>).id;
+}
+
+async function welded(base: string, seat: Seat, pull: number): Promise<string> {
+  const res = await send(base, "/query", seat, "POST", {
+    q: `from Pull where id = "${pull}"`,
+  });
+  if (!res.ok) {
+    await res.body?.cancel();
+    throw new Error(`reading a proposal returned ${res.status}`);
+  }
+  const body = await res.json() as Record<string, unknown>;
+  const bags = body.bags as Record<string, unknown> | undefined;
+  const rows = bags?.[body.root as string];
+  if (!Array.isArray(rows) || rows.length !== 1) {
+    throw new Error("the proposal row is missing");
+  }
+  return (rows[0] as Record<string, string>).weld;
 }
 
 async function want(

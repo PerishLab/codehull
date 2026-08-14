@@ -55,6 +55,7 @@ pub(crate) fn routes<W: Wire + 'static>(core: Arc<Core<W>>, store: Arc<Store>) -
         .route("/repo/{id}/git/git-upload-pack", post(haul::upload::<W>))
         .route("/repo/{id}/git/git-receive-pack", post(take::take::<W>))
         .route("/repo/{id}/git/merge", post(weld::weld::<W>))
+        .route("/pull/{id}/weld", post(weld::pull::<W>))
         .route(
             "/repo/{id}/git/verdict",
             get(verdict::read::<W>).post(verdict::cast::<W>),

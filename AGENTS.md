@@ -83,6 +83,12 @@ cargo fmt/clippy/test, biome/tsc/vitest, helm lint, Plumb, Ectropy, and acts.
   because a default in code is this plane deciding a policy question for
   itself. The merge itself is git's: `merge-tree` writes the tree and
   `commit-tree` writes the commit, and Codehull chooses only the shape.
+- A merge has two doors and one implementation: name two references, or name a
+  proposal and let its row supply them. Both may carry the head they expect and
+  both refuse when it moved, because a merge is a write and every other write
+  here states what it believed. A proposal records the commit its merge
+  produced, never a flag saying it happened — a flag cannot be checked against
+  the repository, and a commit can.
 - Reference names are still refused when they carry a character that would
   break the query they are interpolated into. That is a guard against
   injection, not a statement about the model, and the two must not be confused

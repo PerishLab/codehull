@@ -109,3 +109,15 @@
 - `keep` / `wipe` — the two ends a pen can have. `keep` moves the pack files
   in, indexes last so no reader sees an index before its pack, and then
   retires the pen; `wipe` retires it with the bytes still inside.
+- `pull` — the merge door named after a proposal: base and head come from the
+  `Pull` row, the merge is the same `weld` the repository door runs, and the
+  row records the commit it produced. A proposal whose head lives in another
+  repository is refused with a reason; that fetch does not exist yet.
+- `weld` (the `Pull` field) — the commit this proposal's merge produced, empty
+  until it is merged. It replaced a boolean, which could say a merge happened
+  but never which commit it was. Open and closed stay on the `Issue`; who
+  merged and when stay in the audit stream.
+- `expect` — the head a merge is willing to merge. It is the caller's
+  compare and swap: the seat refuses when the head moved under the expectation,
+  the same refusal a reference move gives.
+

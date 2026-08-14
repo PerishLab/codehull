@@ -52,8 +52,8 @@ pub(crate) struct Pull {
     base: string,
     #[field(string)]
     head: string,
-    #[field(bool)]
-    merged: bool,
+    #[field(string)]
+    weld: string,
     #[relation(Issue, one2one, root)]
     issue: Issue,
     #[relation(Repo, many2one, opt)]
