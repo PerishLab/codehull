@@ -41,7 +41,7 @@ owed, not excluded.
 - ✅ Transport: push, spoken by the api rather than by `git-receive-pack`;
   deletes arrive as retirements (act 14)
 - ⬜ Transport: git over SSH — H1
-- ⬜ Commit status, read by context and combined — H1
+- ✅ Verdicts on a commit, one live per context, combined by rollup (act 14)
 
 ## Issues
 - ✅ Open / close (business `closed`, act 2)

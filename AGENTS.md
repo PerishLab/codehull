@@ -56,6 +56,11 @@ cargo fmt/clippy/test, biome/tsc/vitest, helm lint, Plumb, Ectropy, and acts.
   A tag moves and retires by the same rules a branch does; making tags
   immutable would be release governance, and that belongs to Plumb, not to a
   transport.
+- A verdict is an assertion about a commit, not a record of an execution.
+  `Run` stays what it was; a commit may carry verdicts under several contexts
+  and may carry one with no run behind it. Landing decisions read the combined
+  rollup, so the rollup rule — any failure, then any pending, otherwise
+  success — is law rather than an implementation detail.
 - Which merge shapes a repository permits is data — one `Weld` row per shape —
   and a repository with no rows permits none. There is no default in code,
   because a default in code is this plane deciding a policy question for

@@ -2,6 +2,7 @@ mod haul;
 mod line;
 mod point;
 mod take;
+mod verdict;
 mod weld;
 
 use axum::extract::{Path, State};
@@ -56,6 +57,10 @@ pub(crate) fn routes<W: Wire + 'static>(core: Arc<Core<W>>, store: Store) -> Rou
         .route("/repo/{id}/git/git-upload-pack", post(haul::upload::<W>))
         .route("/repo/{id}/git/git-receive-pack", post(take::take::<W>))
         .route("/repo/{id}/git/merge", post(weld::weld::<W>))
+        .route(
+            "/repo/{id}/git/verdict",
+            get(verdict::read::<W>).post(verdict::cast::<W>),
+        )
         .with_state(dock)
 }
 

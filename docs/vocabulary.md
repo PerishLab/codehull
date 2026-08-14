@@ -55,6 +55,13 @@
   the kernel stays the only writer of references.
 - `line` — pkt-line: the four-hex length framing git uses on the wire, and the
   advertisement and report-status shapes built from it.
+- `verdict` — an assertion about one commit under one context. One live row
+  per `(repo, commit, context)`; posting again ends the old row and puts a new
+  one, the same replace `point` uses. Combined is a rollup — any failure wins,
+  then any pending, otherwise success, and a commit nobody judged reads null.
+- `verdict` is not `Run`. A run is one execution; a verdict is a claim about a
+  commit. A commit can carry several verdicts under different contexts, and it
+  can carry one with no run behind it at all.
 - `weld` — the merge plane. `forward` moves the base when it is an ancestor,
   `join` writes a two-parent commit, `squash` writes a one-parent commit. The
   tree comes from `merge-tree --write-tree` and the commit from `commit-tree`,

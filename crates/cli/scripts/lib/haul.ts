@@ -297,6 +297,73 @@ export async function haul(root: string, mint: Issuer, port: number): Promise<vo
       }
     });
 
+    await check("a commit carries verdicts by context", async () => {
+      const head = await tip(base, repo, seat, "refs/heads/main");
+      if (head === null) {
+        throw new Error("main is absent");
+      }
+      const combined = async () => {
+        const res = await send(
+          base,
+          `/repo/${repo}/git/verdict?commit=${head}`,
+          seat,
+          "GET",
+        );
+        if (res.status !== 200) {
+          await res.body?.cancel();
+          throw new Error(`verdict read ${res.status}`);
+        }
+        return await res.json() as { state: string | null; verdicts: unknown[] };
+      };
+      const put = async (context: string, state: string) => {
+        const res = await send(base, `/repo/${repo}/git/verdict`, seat, "POST", {
+          commit: head,
+          context,
+          state,
+        });
+        await res.body?.cancel();
+        return res.status;
+      };
+
+      const empty = await combined();
+      if (empty.state !== null || empty.verdicts.length !== 0) {
+        throw new Error("a commit with no verdicts is not empty");
+      }
+      if (await put("guard", "pending") !== 200) {
+        throw new Error("posting a verdict failed");
+      }
+      if ((await combined()).state !== "pending") {
+        throw new Error("one pending verdict did not roll up to pending");
+      }
+      if (await put("guard", "success") !== 200) {
+        throw new Error("replacing a verdict failed");
+      }
+      const once = await combined();
+      if (once.state !== "success" || once.verdicts.length !== 1) {
+        throw new Error(`replacing left ${once.verdicts.length} verdicts at ${once.state}`);
+      }
+      if (await put("ship", "failure") !== 200) {
+        throw new Error("posting a second context failed");
+      }
+      const both = await combined();
+      if (both.state !== "failure" || both.verdicts.length !== 2) {
+        throw new Error(`two contexts rolled up to ${both.state}`);
+      }
+      if (await put("guard", "flaky") !== 400) {
+        throw new Error("an unknown state was accepted");
+      }
+      const blind = await send(
+        base,
+        `/repo/${repo}/git/verdict?commit=${head}`,
+        stranger,
+        "GET",
+      );
+      await blind.body?.cancel();
+      if (blind.status !== 403) {
+        throw new Error(`a stranger read verdicts ${blind.status}`);
+      }
+    });
+
     await check("a stranger pushes nothing", async () => {
       const work = `${dir}/thief`;
       if (await clone(url, work, seat) !== 0) {
