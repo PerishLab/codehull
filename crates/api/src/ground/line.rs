@@ -18,6 +18,12 @@ pub(super) fn flush() -> Vec<u8> {
 pub(super) fn offer(service: &str, refs: &[(String, String)], caps: &str) -> Vec<u8> {
     let mut body = pkt(&format!("# service={service}\n"));
     body.extend_from_slice(&flush());
+    body.extend_from_slice(&plain(refs, caps));
+    body
+}
+
+pub(super) fn plain(refs: &[(String, String)], caps: &str) -> Vec<u8> {
+    let mut body = Vec::new();
     if refs.is_empty() {
         let zero = "0".repeat(40);
         body.extend_from_slice(&pkt(&format!("{zero} capabilities^{{}}\0{caps}\n")));
@@ -31,6 +37,10 @@ pub(super) fn offer(service: &str, refs: &[(String, String)], caps: &str) -> Vec
     }
     body.extend_from_slice(&flush());
     body
+}
+
+pub(super) fn triple(text: &str) -> Option<Order> {
+    order(text.as_bytes()).ok()
 }
 
 pub(super) fn orders(body: &[u8]) -> Result<(Vec<Order>, &[u8]), String> {

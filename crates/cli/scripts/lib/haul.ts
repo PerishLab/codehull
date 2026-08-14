@@ -375,7 +375,7 @@ export async function haul(root: string, mint: Issuer, port: number): Promise<vo
     });
 
     if (await exists("ssh-keygen") && await exists("ssh")) {
-      await check("a real git client clones over ssh", async () => {
+      await check("a real git client clones, pushes and deletes over ssh", async () => {
         const hold = `${dir}/client`;
         await bin("ssh-keygen").text(
           ["-q", "-t", "ed25519", "-N", "", "-C", "act", "-f", hold],
@@ -409,6 +409,41 @@ export async function haul(root: string, mint: Issuer, port: number): Promise<vo
         const held = await tip(base, repo, seat, "refs/heads/main");
         if (seen !== held) {
           throw new Error(`ssh clone head ${seen} is not ${held}`);
+        }
+        await bin("git").text(["-C", into, "config", "user.name", "Codehull Act"]);
+        await bin("git").text(["-C", into, "config", "user.email", "codehull@example.invalid"]);
+        await Deno.writeTextFile(`${into}/over`, "over ssh\n");
+        await bin("git").text(["-C", into, "add", "over"]);
+        await bin("git").text(["-C", into, "commit", "-q", "-m", "over ssh"], { stderr: "null" });
+        const moved = await bin("git").text(["-C", into, "rev-parse", "HEAD"]);
+        const sent = await bin("git").status([...over, "-C", into, "push", "origin", "main"], {
+          env: quiet,
+          stdin: "null",
+          stdout: "null",
+          stderr: "null",
+        });
+        if (sent !== 0) {
+          throw new Error(`ssh push exited ${sent}`);
+        }
+        if (await tip(base, repo, seat, "refs/heads/main") !== moved) {
+          throw new Error("an ssh push did not move main");
+        }
+        const gone = await bin("git").status(
+          [...over, "-C", into, "push", "origin", "--delete", "flat"],
+          { env: quiet, stdin: "null", stdout: "null", stderr: "null" },
+        );
+        if (gone !== 0) {
+          throw new Error(`ssh delete exited ${gone}`);
+        }
+        if (await tip(base, repo, seat, "refs/heads/flat") !== null) {
+          throw new Error("an ssh delete left the reference reading");
+        }
+        const outside = await bin("git").status(
+          [...over, "-C", into, "push", "origin", "HEAD:refs/heads/main~bad"],
+          { env: quiet, stdin: "null", stdout: "null", stderr: "null" },
+        );
+        if (outside === 0) {
+          throw new Error("an invalid reference name was accepted over ssh");
         }
         const other = `${dir}/no-key`;
         const blind = await bin("git").status(

@@ -1,5 +1,7 @@
 use super::Dock;
+use super::line;
 use super::point::Point;
+use super::take::{CAPS, settle};
 use codehull_repo::Store;
 use codehull_ssh::{Hall, Later};
 use keel::{Core, Wire};
@@ -33,8 +35,35 @@ impl<W: Wire + 'static> Port<W> {
         row.int("owner_id").or_else(|| row.int("owner"))
     }
 
-    async fn root(&self, who: i64, path: String) -> Option<PathBuf> {
-        let (owner, name) = named(&path)?;
+    async fn offered(&self, who: i64, path: String) -> Option<Vec<u8>> {
+        let id = self.resolve(who, &path).await?;
+        let point = Point {
+            dock: &self.dock,
+            who,
+            id,
+        };
+        let listing = point.listing().await.ok()?;
+        Some(line::plain(&listing, CAPS))
+    }
+
+    async fn applied(&self, who: i64, path: String, orders: Vec<String>) -> Vec<u8> {
+        let Some(id) = self.resolve(who, &path).await else {
+            return line::pkt("unpack no such repository\n");
+        };
+        let point = Point {
+            dock: &self.dock,
+            who,
+            id,
+        };
+        let held: Vec<_> = orders
+            .iter()
+            .filter_map(|text| line::triple(text))
+            .collect();
+        settle(&point, &held).await
+    }
+
+    async fn resolve(&self, who: i64, path: &str) -> Option<u64> {
+        let (owner, name) = named(path)?;
         let face = self.dock.core.of(who);
         let held = face
             .query(&format!(r#"from Actor where sub = "{owner}""#))
@@ -47,7 +76,11 @@ impl<W: Wire + 'static> Port<W> {
             ))
             .await
             .ok()?;
-        let id = u64::try_from(pack.rows().first()?.key()).ok()?;
+        u64::try_from(pack.rows().first()?.key()).ok()
+    }
+
+    async fn root(&self, who: i64, path: String) -> Option<PathBuf> {
+        let id = self.resolve(who, &path).await?;
         let point = Point {
             dock: &self.dock,
             who,
@@ -73,6 +106,14 @@ impl<W: Wire + 'static> Hall for Port<W> {
 
     fn seat(&self, who: i64, path: String) -> Later<'_, Option<PathBuf>> {
         Box::pin(self.root(who, path))
+    }
+
+    fn offer(&self, who: i64, path: String) -> Later<'_, Option<Vec<u8>>> {
+        Box::pin(self.offered(who, path))
+    }
+
+    fn apply(&self, who: i64, path: String, orders: Vec<String>) -> Later<'_, Vec<u8>> {
+        Box::pin(self.applied(who, path, orders))
     }
 }
 

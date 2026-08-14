@@ -33,16 +33,19 @@ pub(super) async fn take<W: Wire + 'static>(
         let held = pack.to_vec();
         work(move || store.repository(id)?.index(&held)).await?;
     }
+    Ok(sent(REPLY, settle(&point, &orders).await))
+}
+
+pub(super) async fn settle<W: Wire + 'static>(point: &Point<'_, W>, orders: &[Order]) -> Vec<u8> {
     let mut report = line::pkt("unpack ok\n");
-    for order in &orders {
-        let note = apply(&point, order).await;
-        report.extend_from_slice(&line::pkt(&match note {
+    for order in orders {
+        report.extend_from_slice(&line::pkt(&match apply(point, order).await {
             Ok(()) => format!("ok {}\n", order.name),
             Err(note) => format!("ng {} {note}\n", order.name),
         }));
     }
     report.extend_from_slice(&line::flush());
-    Ok(sent(REPLY, report))
+    report
 }
 
 async fn apply<W: Wire + 'static>(point: &Point<'_, W>, order: &Order) -> Result<(), String> {

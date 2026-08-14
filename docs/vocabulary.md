@@ -78,6 +78,8 @@
 - `hall` — what `crates/ssh` asks of its host: admit a public key to an actor,
   and resolve a path to a repository seat. The crate speaks ssh and knows
   nothing about Keel; everything it decides, it asks for.
+- `wanted` — whether an update request carries objects at all. A delete-only
+  push sends no pack, so asking `index-pack` to read one hangs up the session.
 - `port` — the api side of that trait. It resolves a key through a sudo read,
   because the lookup runs before an operator exists, and it resolves
   `owner/name` through ordinary operator-visible queries.

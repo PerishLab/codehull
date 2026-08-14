@@ -42,7 +42,8 @@ owed, not excluded.
   deletes arrive as retirements (act 14)
 - ✅ Transport: fetch over SSH, public-key authenticated against `actor:key`
   rows, `upload-pack` piped onto the channel (act 14)
-- ⬜ Transport: push over SSH — the adaptor serves only `git-upload-pack`
+- ✅ Transport: push over SSH, spoken by the adaptor; the pack streams straight
+  into `index-pack` and every reference move routes back through `point` (act 14)
 - ✅ Verdicts on a commit, one live per context, combined by rollup (act 14)
 
 ## Issues

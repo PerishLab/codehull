@@ -12,6 +12,7 @@ use tokio::process::Command;
 
 const UPLOAD: &str = "git-upload-pack";
 const PACK: &str = "upload-pack";
+const RECEIVE: &str = "git-receive-pack";
 
 pub fn key(hold: &Path) -> Result<PrivateKey, String> {
     if let Ok(text) = std::fs::read_to_string(hold) {
@@ -103,14 +104,29 @@ impl Handler for Seat {
         let Some(who) = self.who else {
             return refuse(id, session, "unauthenticated");
         };
-        let Some(path) = order(&text) else {
-            return refuse(id, session, "only git-upload-pack is served over ssh");
-        };
-        let Some(root) = self.hall.seat(who, path).await else {
-            return refuse(id, session, "no such repository");
+        let Some((verb, path)) = order(&text) else {
+            return refuse(
+                id,
+                session,
+                "only git-upload-pack and git-receive-pack are served",
+            );
         };
         let Some(channel) = self.held.remove(&id) else {
             return refuse(id, session, "channel is absent");
+        };
+        if verb == RECEIVE {
+            session.channel_success(id)?;
+            let (hall, handle) = (self.hall.clone(), session.handle());
+            tokio::spawn(async move {
+                let code = crate::take::take(hall, who, path, channel.into_stream()).await;
+                let _ = handle.exit_status_request(id, code).await;
+                let _ = handle.eof(id).await;
+                let _ = handle.close(id).await;
+            });
+            return Ok(());
+        }
+        let Some(root) = self.hall.seat(who, path).await else {
+            return refuse(id, session, "no such repository");
         };
         session.channel_success(id)?;
         let handle = session.handle();
@@ -162,11 +178,14 @@ async fn pipe(channel: Channel<Msg>, root: &Path) -> u32 {
         .unwrap_or(1)
 }
 
-fn order(text: &str) -> Option<String> {
-    let rest = text.strip_prefix(UPLOAD)?.trim_start();
-    let held = rest.trim_matches(['\'', '"']).trim();
+fn order(text: &str) -> Option<(&'static str, String)> {
+    let (verb, rest) = match text.strip_prefix(UPLOAD) {
+        Some(rest) => (UPLOAD, rest),
+        None => (RECEIVE, text.strip_prefix(RECEIVE)?),
+    };
+    let held = rest.trim_start().trim_matches(['\'', '"']).trim();
     if held.is_empty() {
         return None;
     }
-    Some(held.trim_start_matches('/').to_owned())
+    Some((verb, held.trim_start_matches('/').to_owned()))
 }

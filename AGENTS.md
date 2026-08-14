@@ -60,8 +60,9 @@ cargo fmt/clippy/test, biome/tsc/vitest, helm lint, Plumb, Ectropy, and acts.
   keeps its own framing, its own credential translation and its own naming,
   and it lands on the same Keel operations everything else lands on. Fetch is
   piped straight to `upload-pack`, because a piped half gets whole-git for
-  free; anything that writes must be intercepted, which is why push over ssh
-  is not served yet rather than served loosely.
+  free; anything that writes is intercepted, so `receive-pack` never runs on
+  either transport. Over ssh the pack streams straight into `index-pack`
+  rather than being buffered, which is what the http half should grow to.
 - A public key identifies by its material, not by its line. The comment is
   decoration and is ignored on lookup. The lookup itself is the one read that
   runs above the operator, because it runs before an operator exists — the
