@@ -32,6 +32,13 @@ API_STORE_URL
   value: {{ .Values.oidc.audience | quote }}
 {{- end -}}
 
+{{- define "codehull.seat" -}}
+{{- if .Values.api.repo.enabled }}
+- name: API_REPO_PATH
+  value: {{ printf "%s/store" .Values.api.repo.mount | quote }}
+{{- end }}
+{{- end -}}
+
 {{- define "codehull.store" -}}
 - name: API_STORE_KIND
   value: "pg"

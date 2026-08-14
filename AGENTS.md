@@ -11,6 +11,8 @@ A monorepo of four delivery planes, split by toolchain:
 
 - `crates/api` — the server; the keel caller (bin `api`).
 - `crates/cli` — the client; gh for codehull (bin `codehull`).
+- `crates/repo` — the repository seat; ordinary git plumbing behind a
+  private crate, reached only through the api's ground routes.
 - `apps/web` — the pnpm web application (node 24, vite, react,
   typescript, vitest, biome); every version is pinned in the
   `pnpm-workspace.yaml` catalog and dependencies reference `catalog:` only.
@@ -34,3 +36,8 @@ cargo fmt/clippy/test, biome/tsc/vitest, helm lint, Plumb, Ectropy, and acts.
 - Never commit on `main`; branch, let the repository guard pass, then use `plumb land`.
 - Engine gaps become keel issues and registry releases, never local
   workarounds.
+- Codehull hosts its own git. Repo metadata and the object/ref store are
+  separate authorities bound by one repository id; the ground plane mounts
+  only where a repository path is configured, and with none the api serves
+  metadata and hosts no git at all. Losing that plane is a regression, not a
+  simplification — it was deleted once and went unnoticed for eleven days.

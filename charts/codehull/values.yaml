@@ -10,6 +10,19 @@ api:
   # Raising this needs the keel cache off first — see keel docs/run/cache.md.
   replicas: 1
   port: 3400
+  # The git seat. Repository objects and refs are the api's own durable truth,
+  # held beside the metadata store rather than inside it, so they need a volume
+  # of their own. Turn this off and the ground plane never mounts: the api
+  # serves metadata and hosts no git at all.
+  repo:
+    enabled: true
+    storage: 1Gi
+    # Where the volume mounts. The store is created in a "store" directory
+    # inside it, never at the mount itself — the store refuses a directory that
+    # already exists without its marker, and a freshly provisioned volume is
+    # exactly that. The claim outlives the release; deleting it destroys every
+    # repository this deployment holds.
+    mount: /codehull/ground
 web:
   image: git.perish.top/perishlab/codehull-web
   tag: ""

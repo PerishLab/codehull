@@ -4,6 +4,12 @@ metadata:
   name: {{ .Release.Name }}-api
 spec:
   replicas: {{ .Values.api.replicas }}
+  {{- if .Values.api.repo.enabled }}
+  # The seat is ReadWriteOnce, so a rolling update would deadlock: the new pod
+  # waits for a volume the old pod still holds.
+  strategy:
+    type: Recreate
+  {{- end }}
   selector:
     matchLabels:
       app: {{ .Release.Name }}-api
@@ -41,6 +47,12 @@ spec:
           env:
             {{- include "codehull.store" . | nindent 12 }}
             {{- include "codehull.seam" . | nindent 12 }}
+            {{- include "codehull.seat" . | nindent 12 }}
+          {{- if .Values.api.repo.enabled }}
+          volumeMounts:
+            - name: seat
+              mountPath: {{ .Values.api.repo.mount }}
+          {{- end }}
           ports:
             - containerPort: {{ .Values.api.port }}
           readinessProbe:
@@ -49,6 +61,12 @@ spec:
               port: {{ .Values.api.port }}
             initialDelaySeconds: 3
             periodSeconds: 5
+      {{- if .Values.api.repo.enabled }}
+      volumes:
+        - name: seat
+          persistentVolumeClaim:
+            claimName: {{ .Release.Name }}-seat
+      {{- end }}
 ---
 apiVersion: v1
 kind: Service

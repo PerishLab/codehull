@@ -1,0 +1,15 @@
+{{- if .Values.api.repo.enabled }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ .Release.Name }}-seat
+  annotations:
+    # Repository bytes are the only copy of what this deployment hosts. They
+    # outlive the release the way the store credential does.
+    helm.sh/resource-policy: keep
+spec:
+  accessModes: ["ReadWriteOnce"]
+  resources:
+    requests:
+      storage: {{ .Values.api.repo.storage | quote }}
+{{- end }}
