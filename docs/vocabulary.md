@@ -42,6 +42,13 @@
   without an engine primitive — batch + forward queries suffice.
 - Route (alias) — axum Path renamed to avoid the std::path::Path clash.
 - Act 7 suspension: Actor.barred + gate.bar hook; a suspended token stops resolving to an operator (private repo 200→404).
+- `point` — the reference plane: a `Ref` row is the authority, the on-disk
+  reference store is its projection. A move is `end` plus `put` in one batch,
+  so Keel's liveness check is the compare and swap and no engine change was
+  needed. Retiring is the `end` alone.
+- `align` — reconcile the projection from the rows before serving an
+  advertisement, so a crash between the two writes leaves the projection
+  behind rather than ahead.
 - `haul` — the transport plane: git's own smart HTTP over a ground seat,
   `info/refs` and `git-upload-pack` under the same `Bearer` every other route
   takes. The paths are git's specification, not a forge's API. Read only so

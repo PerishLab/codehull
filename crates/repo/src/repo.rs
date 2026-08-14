@@ -92,39 +92,54 @@ impl Repository {
 
     pub fn reference(&self, name: &str) -> Result<Option<Object>, Error> {
         valid(&self.root, name)?;
-        let output = Git(&self.root).run(["show-ref", "--verify", "--hash", name])?;
-        match output.status.code() {
-            Some(0) => Object::parse(String::from_utf8_lossy(&output.stdout).trim()).map(Some),
-            Some(1) => Ok(None),
-            _ => Err(Error::Git(format!(
-                "cannot read reference: {}",
-                String::from_utf8_lossy(&output.stderr).trim()
-            ))),
-        }
+        Ok(self
+            .references()?
+            .into_iter()
+            .find(|(held, _)| held == name)
+            .map(|(_, object)| object))
     }
 
-    pub fn advance(
-        &self,
-        name: &str,
-        before: Option<&Object>,
-        after: &Object,
-    ) -> Result<Object, Error> {
-        valid(&self.root, name)?;
-        self.require(after)?;
-        let old = match before {
-            Some(object) => object.hex().to_string(),
-            None => self.zero()?,
-        };
-        let output =
-            Git(&self.root).run(["update-ref", "--create-reflog", name, after.hex(), &old])?;
-        if !output.status.success() {
-            return Err(Error::Conflict(format!(
-                "reference compare-and-swap refused: {}",
+    pub fn references(&self) -> Result<Vec<(String, Object)>, Error> {
+        let output = Git(&self.root).run(["show-ref"])?;
+        if !matches!(output.status.code(), Some(0) | Some(1)) {
+            return Err(Error::Git(format!(
+                "cannot list references: {}",
                 String::from_utf8_lossy(&output.stderr).trim()
             )));
         }
-        self.reference(name)?
-            .ok_or_else(|| Error::Git("accepted reference is absent".into()))
+        let text = String::from_utf8_lossy(&output.stdout);
+        let mut held = Vec::new();
+        for line in text.lines() {
+            let Some((hex, name)) = line.split_once(' ') else {
+                continue;
+            };
+            held.push((name.to_string(), Object::parse(hex)?));
+        }
+        Ok(held)
+    }
+
+    pub fn project(&self, name: &str, object: &Object) -> Result<(), Error> {
+        valid(&self.root, name)?;
+        self.holds(object)?;
+        Git(&self.root).success(
+            ["update-ref", "--create-reflog", name, object.hex()],
+            "cannot project reference",
+        )
+    }
+
+    pub fn retire(&self, name: &str) -> Result<(), Error> {
+        valid(&self.root, name)?;
+        let Some(object) = self.reference(name)? else {
+            return Ok(());
+        };
+        Git(&self.root).success(
+            ["update-ref", "--create-reflog", "-d", name, object.hex()],
+            "cannot retire reference",
+        )
+    }
+
+    pub fn holds(&self, object: &Object) -> Result<(), Error> {
+        self.require(object)
     }
 
     pub fn advertise(&self) -> Result<Vec<u8>, Error> {
@@ -148,18 +163,6 @@ impl Repository {
             ["cat-file", "-e", &format!("{}^{{commit}}", object.hex())],
             "commit object is absent",
         )
-    }
-
-    fn zero(&self) -> Result<String, Error> {
-        let format = Git(&self.root).text(
-            ["rev-parse", "--show-object-format"],
-            "cannot read object format",
-        )?;
-        match format.as_str() {
-            "sha1" => Ok("0".repeat(40)),
-            "sha256" => Ok("0".repeat(64)),
-            _ => Err(Error::Git(format!("unknown object format: {format}"))),
-        }
     }
 }
 

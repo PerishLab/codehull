@@ -111,24 +111,27 @@ fn retention() {
 
     let main = "refs/heads/main";
     let topic = "refs/heads/topic";
-    assert_eq!(
-        repo.advance(main, None, &source.main).expect("seed"),
-        source.main
-    );
-    repo.advance(topic, None, &source.topic).expect("topic");
-    let stale = repo.advance(main, Some(&source.topic), &source.topic);
-    assert!(matches!(stale, Err(Error::Conflict(_))));
+    repo.project(main, &source.main).expect("seed main");
+    repo.project(topic, &source.topic).expect("seed topic");
     assert_eq!(
         repo.reference(main).expect("main"),
         Some(source.main.clone())
     );
+    let held = repo.references().expect("references");
+    assert_eq!(held.len(), 2);
+    assert!(held.contains(&(main.to_string(), source.main.clone())));
+    assert!(held.contains(&(topic.to_string(), source.topic.clone())));
 
-    repo.advance(main, Some(&source.main), &source.topic)
-        .expect("advance main");
+    repo.project(main, &source.topic).expect("move main");
     assert_eq!(
         repo.reference(topic).expect("topic"),
         Some(source.topic.clone())
     );
+
+    repo.retire(topic).expect("retire topic");
+    assert_eq!(repo.reference(topic).expect("retired"), None);
+    repo.retire(topic)
+        .expect("retiring a projection is idempotent");
 
     let reopened = Store::open(&root)
         .expect("reopen store")

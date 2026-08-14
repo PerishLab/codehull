@@ -1,6 +1,7 @@
 mod haul;
+mod point;
 
-use axum::extract::{Path, Query, State};
+use axum::extract::{Path, State};
 use axum::http::StatusCode;
 use axum::routing::{get, post};
 use axum::{Extension, Json, Router};
@@ -32,18 +33,6 @@ struct Ingest {
     bundle: String,
 }
 
-#[derive(Deserialize)]
-struct Move {
-    name: String,
-    before: Option<String>,
-    after: String,
-}
-
-#[derive(Deserialize)]
-struct Name {
-    name: String,
-}
-
 type Fault = (StatusCode, Json<Value>);
 
 pub(crate) fn routes<W: Wire + 'static>(core: Arc<Core<W>>, store: Store) -> Router {
@@ -54,7 +43,12 @@ pub(crate) fn routes<W: Wire + 'static>(core: Arc<Core<W>>, store: Store) -> Rou
     Router::new()
         .route("/repo/{id}/git", get(show::<W>).put(make::<W>))
         .route("/repo/{id}/git/object", post(ingest::<W>))
-        .route("/repo/{id}/git/ref", get(read::<W>).post(advance::<W>))
+        .route(
+            "/repo/{id}/git/ref",
+            get(point::read::<W>)
+                .post(point::advance::<W>)
+                .delete(point::drop::<W>),
+        )
         .route("/repo/{id}/git/info/refs", get(haul::refs::<W>))
         .route("/repo/{id}/git/git-upload-pack", post(haul::upload::<W>))
         .with_state(dock)
@@ -101,52 +95,6 @@ async fn ingest<W: Wire + 'static>(
     })
     .await?;
     Ok(Json(json!({ "object": object.hex() })))
-}
-
-async fn advance<W: Wire + 'static>(
-    State(dock): State<Dock<W>>,
-    Path(id): Path<i64>,
-    op: Option<Extension<Operator>>,
-    Json(body): Json<Move>,
-) -> Result<Json<Value>, Fault> {
-    let id = admit(&dock, id, actor(op)?).await?;
-    let before = body
-        .before
-        .as_deref()
-        .map(Object::parse)
-        .transpose()
-        .map_err(fault)?;
-    let after = Object::parse(&body.after).map_err(fault)?;
-    let name = body.name;
-    let store = dock.store.clone();
-    let held = name.clone();
-    let object = work(move || {
-        let repo = store.repository(id)?;
-        repo.advance(&held, before.as_ref(), &after)
-    })
-    .await?;
-    Ok(Json(json!({ "name": name, "object": object.hex() })))
-}
-
-async fn read<W: Wire + 'static>(
-    State(dock): State<Dock<W>>,
-    Path(id): Path<i64>,
-    op: Option<Extension<Operator>>,
-    Query(query): Query<Name>,
-) -> Result<Json<Value>, Fault> {
-    let id = admit(&dock, id, actor(op)?).await?;
-    let name = query.name;
-    let store = dock.store.clone();
-    let held = name.clone();
-    let object = work(move || {
-        let repo = store.repository(id)?;
-        repo.reference(&held)
-    })
-    .await?;
-    Ok(Json(json!({
-        "name": name,
-        "object": object.as_ref().map(Object::hex),
-    })))
 }
 
 async fn admit<W: Wire + 'static>(dock: &Dock<W>, id: i64, who: i64) -> Result<u64, Fault> {

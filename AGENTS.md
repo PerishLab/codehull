@@ -40,8 +40,14 @@ cargo fmt/clippy/test, biome/tsc/vitest, helm lint, Plumb, Ectropy, and acts.
 - Never commit on `main`; branch, let the repository guard pass, then use `plumb land`.
 - Engine gaps become keel issues and registry releases, never local
   workarounds.
-- Codehull hosts its own git. Repo metadata and the object/ref store are
-  separate authorities bound by one repository id; the ground plane mounts
-  only where a repository path is configured, and with none the api serves
-  metadata and hosts no git at all. Losing that plane is a regression, not a
-  simplification — it was deleted once and went unnoticed for eleven days.
+- Codehull hosts its own git. **Keel owns metadata and references; the git
+  store owns objects.** A reference is a `Ref` row, so moving one is an `end`
+  plus a `put` in one batch — Keel's own liveness check is the compare and
+  swap, and ending releases the name because live uniqueness is a partial
+  index. The on-disk reference store is a projection of those rows, written
+  after Keel commits and reconciled from Keel before every advertisement;
+  it is never the authority and never the thing that decides.
+- The ground plane mounts only where a repository path is configured, and with
+  none the api serves metadata and hosts no git at all. Losing that plane is a
+  regression, not a simplification — it was deleted once and went unnoticed
+  for eleven days.

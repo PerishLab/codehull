@@ -93,6 +93,35 @@ export async function ground(root: string, mint: Issuer, port: number): Promise<
 
     await move(base, repo, seat, "refs/heads/main", seed.main, seed.topic);
 
+    await check("retiring a reference releases its name", async () => {
+      const gone = await send(base, `/repo/${repo}/git/ref?name=refs/heads/topic`, seat, "DELETE");
+      await gone.body?.cancel();
+      if (gone.status !== 204) {
+        throw new Error(`retire ${gone.status}`);
+      }
+      if (await peek(base, repo, seat, "refs/heads/topic") !== null) {
+        throw new Error("a retired reference still reads");
+      }
+      const twice = await send(base, `/repo/${repo}/git/ref?name=refs/heads/topic`, seat, "DELETE");
+      await twice.body?.cancel();
+      if (twice.status !== 404) {
+        throw new Error(`retiring twice expected 404, got ${twice.status}`);
+      }
+      const offer = await send(
+        base,
+        `/repo/${repo}/git/info/refs?service=git-upload-pack`,
+        seat,
+        "GET",
+      );
+      if ((await offer.text()).includes("refs/heads/topic")) {
+        throw new Error("a retired reference is still advertised");
+      }
+      await move(base, repo, seat, "refs/heads/topic", undefined, seed.topic);
+      if (await peek(base, repo, seat, "refs/heads/topic") !== seed.topic) {
+        throw new Error("a released name did not accept a new reference");
+      }
+    });
+
     await check("both authorities reconstruct after restart", async () => {
       await stop(held);
       held = await boot(root, dir, base, mint);

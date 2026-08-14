@@ -1,3 +1,4 @@
+use super::point::Point;
 use super::{Dock, Fault, actor, admit, bad, work};
 use axum::Extension;
 use axum::body::Bytes;
@@ -25,7 +26,15 @@ pub(super) async fn refs<W: Wire + 'static>(
     if query.service != UPLOAD {
         return Err(bad(format!("unsupported service {}", query.service)));
     }
-    let id = admit(&dock, id, actor(op)?).await?;
+    let who = actor(op)?;
+    let id = admit(&dock, id, who).await?;
+    Point {
+        dock: &dock,
+        who,
+        id,
+    }
+    .align()
+    .await?;
     let store = dock.store.clone();
     let held = work(move || store.repository(id)?.advertise()).await?;
     let mut body = banner(UPLOAD);

@@ -21,6 +21,16 @@ pub(crate) struct Repo {
 }
 
 #[resource]
+pub(crate) struct Ref {
+    #[field(string, unique = repo)]
+    name: string,
+    #[field(string)]
+    object: string,
+    #[relation(Repo, many2one, root)]
+    repo: Repo,
+}
+
+#[resource]
 pub(crate) struct Label {
     #[field(string, unique = org)]
     name: string,

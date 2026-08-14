@@ -24,6 +24,7 @@ pub(crate) fn shape() -> Graph {
         .plug::<Team>()
         .plug::<Topic>()
         .plug::<Repo>()
+        .plug::<Ref>()
         .plug::<build::Label>()
         .plug::<repo::Label>()
         .plug::<repo::Runner>()

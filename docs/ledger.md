@@ -33,7 +33,10 @@ owed, not excluded.
 - 🟡 Default branch (trunk field)
 - ✅ Branch protection (Shield, act 9)
 - ✅ Mirrors (Mirror one2one Repo, act 10)
-- ✅ Bare seat, bundle ingress, ref compare-and-swap (`crates/repo`, act 13)
+- ✅ Bare seat and bundle ingress (`crates/repo`, act 13)
+- ✅ References as Keel rows: compare-and-swap by liveness, projection to the
+  git store, reconciled before advertisement (`Ref`, act 13)
+- ✅ Reference retirement, releasing the name for reuse (act 13)
 - ✅ Transport: clone and fetch, git smart HTTP over the seat (act 14)
 - ⬜ Transport: push, and git over SSH — H1
 - ⬜ Commit status, read by context and combined — H1
