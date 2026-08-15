@@ -967,7 +967,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "39cab71617ae0d63f51a36d69f866391735b51691dbda63cf6f96d042b63efeb"
 dependencies = [
  "libc",
- "windows-sys 0.52.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -1642,9 +1642,9 @@ dependencies = [
 
 [[package]]
 name = "keel"
-version = "0.10.3"
+version = "0.10.4"
 source = "sparse+https://git.perish.top/api/packages/PerishLab/cargo/"
-checksum = "84cfb4a7b78ee7c1e9b21d2af8d5d8a66ecc6a1d8540fff9a38f612de683fceb"
+checksum = "3708dda80f1db17bfe7bc19e61eba6013661bbc2f4706e4e834e3a59c226bf2b"
 dependencies = [
  "axum",
  "getrandom 0.3.4",
@@ -1658,9 +1658,9 @@ dependencies = [
 
 [[package]]
 name = "keel-blob"
-version = "0.10.3"
+version = "0.10.4"
 source = "sparse+https://git.perish.top/api/packages/PerishLab/cargo/"
-checksum = "f1e2542b9c75144a9059cbcab21eec087fca67f14a99ff9b5ae3a0ecded66486"
+checksum = "91cc5027bb21b4081224b44cd514bde975a181acfe68522d603faca194696731"
 dependencies = [
  "axum",
  "keel",
@@ -1671,9 +1671,9 @@ dependencies = [
 
 [[package]]
 name = "keel-gate"
-version = "0.10.3"
+version = "0.10.4"
 source = "sparse+https://git.perish.top/api/packages/PerishLab/cargo/"
-checksum = "08eef4733cb48e0416d462b5e42bfc39f16587faf13ad1c6fdadaeb9834e287f"
+checksum = "daa14a935542865cc42c49e12d9f4e820437a7741707f6a630ca3a3c6b52750d"
 dependencies = [
  "axum",
  "getrandom 0.3.4",
@@ -1684,9 +1684,9 @@ dependencies = [
 
 [[package]]
 name = "keel-macro"
-version = "0.10.3"
+version = "0.10.4"
 source = "sparse+https://git.perish.top/api/packages/PerishLab/cargo/"
-checksum = "2fe79c30fbfd4a59252342232a4558733214f4ee9261cd94faf6fb431aff58c4"
+checksum = "d33ee8207404c19d8c2aed528cda15f3cde65020cabead9be3f28a18707a7c9c"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -1695,9 +1695,9 @@ dependencies = [
 
 [[package]]
 name = "keel-relay"
-version = "0.10.3"
+version = "0.10.4"
 source = "sparse+https://git.perish.top/api/packages/PerishLab/cargo/"
-checksum = "5f224b3fe0fb126cd002ccf4147439a6f285024ebf3f06aa41723ead9d96f386"
+checksum = "84962609c656679b42178c4d86518a5377564c99daf01cbabc96f901f5e6be6a"
 dependencies = [
  "keel",
  "serde_json",

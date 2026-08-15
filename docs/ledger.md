@@ -55,7 +55,10 @@ owed, not excluded.
   roughly 0.3s is engine work and the rest is one `fsync` per reference,
   because a reference moves in its own transaction so that a push can report
   per-reference success the way git's protocol requires. Batching those
-  transactions would trade that reporting away; group commit would not
+  transactions would trade that reporting away; group commit would not.
+  Keel 0.10.4 removed the part that grew with the estate: a write no longer
+  mints coverage a grant already carries, so per-write cost stopped rising with
+  how many rows the estate holds. What is left is durability, and it is flat
 - ✅ Transport: fetch over SSH, public-key authenticated against `actor:key`
   rows, `upload-pack` piped onto the channel (act 14)
 - ✅ Transport: push over SSH, spoken by the adaptor; the pack streams straight

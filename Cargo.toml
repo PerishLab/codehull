@@ -14,10 +14,10 @@ axum = "0.8"
 flate2 = "1"
 base64 = "0.22"
 jsonwebtoken = { version = "10", default-features = false, features = ["rust_crypto"] }
-keel = { version = "0.10.3", registry = "perish", features = ["pg"] }
-keel-gate = { version = "0.10.3", registry = "perish" }
-keel-blob = { version = "0.10.3", registry = "perish" }
-keel-relay = { version = "0.10.3", registry = "perish" }
+keel = { version = "0.10.4", registry = "perish", features = ["pg"] }
+keel-gate = { version = "0.10.4", registry = "perish" }
+keel-blob = { version = "0.10.4", registry = "perish" }
+keel-relay = { version = "0.10.4", registry = "perish" }
 plumb = { version = "0.19.0", registry = "perish" }
 rand = "0.10"
 russh = { version = "0.62", default-features = false, features = ["flate2", "ring", "rsa"] }
