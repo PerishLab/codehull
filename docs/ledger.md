@@ -38,7 +38,9 @@ owed, not excluded.
 - ✅ Mirrors (Mirror one2one Repo, act 10)
 - ✅ Bare seat and bundle ingress (`crates/repo`, act 13)
 - ✅ References as Keel rows: compare-and-swap by liveness, projection to the
-  git store, reconciled before advertisement (`Ref`, act 13)
+  git store, reconciled before advertisement (`Ref`, act 13). Reconciliation
+  writes only what differs: it used to re-project every reference on every
+  advertisement, which cost three `git` processes per reference per fetch
 - ✅ Reference retirement, releasing the name for reuse (act 13)
 - ✅ Transport: clone and fetch, git smart HTTP over the seat (act 14)
 - ✅ Transport: push, spoken by the api rather than by `git-receive-pack`;

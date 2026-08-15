@@ -139,4 +139,10 @@
   gate that treats silence as consent is not a gate. A refusal is 412 with the
   context and what it read, which is a different answer from 409, the one a
   reference that moved under the expectation gives.
+- `align` writes only the difference. The projection is compared against the
+  rows before anything is spawned, so a repository whose references have not
+  moved costs nothing to advertise. Re-projecting unconditionally was correct
+  and unusably slow: three `git` processes per reference, on every clone, fetch
+  and push. A 453-reference repository — the estate has one — spent 4.6 seconds
+  in process spawns before a single byte of pack.
 

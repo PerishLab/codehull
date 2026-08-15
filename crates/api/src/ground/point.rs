@@ -129,12 +129,19 @@ impl<W: Wire + 'static> Point<'_, W> {
         let id = self.id;
         work(move || {
             let repo = store.repository(id)?;
-            for (name, _) in repo.references()? {
-                if !wanted.iter().any(|(held, _)| *held == name) {
-                    repo.retire(&name)?;
+            let held = repo.references()?;
+            for (name, _) in &held {
+                if !wanted.iter().any(|(seen, _)| seen == name) {
+                    repo.retire(name)?;
                 }
             }
             for (name, object) in &wanted {
+                if held
+                    .iter()
+                    .any(|(seen, held)| seen == name && held == object)
+                {
+                    continue;
+                }
                 repo.project(name, object)?;
             }
             Ok(())
