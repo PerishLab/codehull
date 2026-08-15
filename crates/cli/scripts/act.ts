@@ -292,7 +292,9 @@ try {
         base: "refs/heads/main",
         head: "refs/heads/feat",
         weld: "",
+        repo,
         issue,
+        author: bob.id,
       }, bob.head)).id,
     );
     const review = num(
@@ -334,6 +336,42 @@ try {
     await grab.body?.cancel();
     if (grab.status !== 403 && grab.status !== 404) {
       throw new Error(`stranger edited a proposal ${grab.status}`);
+    }
+
+    const raised = num(
+      (await want("/issue", {
+        title: "PR: from a contributor",
+        body: "",
+        closed: false,
+        repo,
+        author: cy.id,
+      }, cy.head)).id,
+    );
+    const offered = await post("/propose", {
+      issue: raised,
+      base: "refs/heads/main",
+      head: "refs/heads/theirs",
+    }, cy.head);
+    if (offered.status !== 201) {
+      await offered.body?.cancel();
+      throw new Error(`a contributor could not propose ${offered.status}`);
+    }
+    const theirs = num((await offered.json() as Record<string, unknown>).id);
+    const edit = await mend(`/pull/${theirs}`, { head: "refs/heads/theirs2" }, cy.head);
+    if (!edit.ok) {
+      throw new Error(`an author cannot edit an unmerged proposal ${edit.status}`);
+    }
+    const forged = await mend(`/pull/${theirs}`, { weld: "0".repeat(40) }, cy.head);
+    if (forged.status !== 403 && forged.status !== 404) {
+      throw new Error(`an author wrote a merge onto a proposal ${forged.status}`);
+    }
+    const stamped = await mend(`/pull/${theirs}`, { weld: "1".repeat(40) }, bob.head);
+    if (!stamped.ok) {
+      throw new Error(`the repository owner cannot record a merge ${stamped.status}`);
+    }
+    const late = await mend(`/pull/${theirs}`, { head: "refs/heads/late" }, cy.head);
+    if (late.status !== 403 && late.status !== 404) {
+      throw new Error(`an author edited a merged proposal ${late.status}`);
     }
   });
 
@@ -762,6 +800,20 @@ if (failed) {
 }
 
 type Seat = { id: number; head: Record<string, string> };
+
+async function mend(
+  path: string,
+  body: Record<string, unknown>,
+  head: Record<string, string>,
+): Promise<Response> {
+  const res = await fetch(`${base}${path}`, {
+    method: "PATCH",
+    headers: { "content-type": "application/json", ...head },
+    body: JSON.stringify(body),
+  });
+  await res.body?.cancel();
+  return res;
+}
 
 async function other(): Promise<string> {
   const stranger = await issuer(13402);

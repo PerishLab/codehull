@@ -120,4 +120,13 @@
 - `expect` — the head a merge is willing to merge. It is the caller's
   compare and swap: the seat refuses when the head moved under the expectation,
   the same refusal a reference move gives.
+- `propose` — the proposal ceremony: the caller must be the issue's author, and
+  the row is written above the operator so keel mints nobody coverage over it.
+  Authority then comes only from the seeded predicate, which is the point: the
+  row a person creates is a row they own outright, and a proposal must not be.
+- A `Pull` is rooted at its `Repo`, not at its `Issue`. Rooting it at the issue
+  handed the issue's author the whole subtree, so the seeded predicate could
+  never bind — the proof of this is that act 3 caught it. The issue stays as an
+  ordinary one-to-one relation: a proposal is described by an issue and belongs
+  to a repository.
 

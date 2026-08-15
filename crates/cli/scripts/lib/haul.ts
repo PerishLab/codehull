@@ -341,11 +341,10 @@ export async function haul(root: string, mint: Issuer, port: number): Promise<vo
         repo,
         author: seat.id,
       });
-      const pull = await made(base, "/pull", seat, {
+      const pull = await made(base, "/propose", seat, {
+        issue,
         base: "refs/heads/main",
         head: "refs/heads/proposed",
-        weld: "",
-        issue,
       });
 
       const held = await tip(base, repo, seat, "refs/heads/main");

@@ -62,6 +62,63 @@ pub(crate) async fn found<W: Wire + 'static>(
     Ok((StatusCode::CREATED, Json(json!({ "id": org }))))
 }
 
+pub(crate) async fn propose<W: Wire + 'static>(
+    State(core): State<Arc<Core<W>>>,
+    op: Option<Extension<Operator>>,
+    Json(body): Json<Map<String, Value>>,
+) -> Result<(StatusCode, Json<Value>), StatusCode> {
+    let Some(Extension(Operator(actor))) = op else {
+        return Err(StatusCode::UNAUTHORIZED);
+    };
+    let issue = body
+        .get("issue")
+        .and_then(Value::as_i64)
+        .ok_or(StatusCode::BAD_REQUEST)?;
+    let base = text(&body, "base")?;
+    let head = text(&body, "head")?;
+    let pack = core
+        .of(actor)
+        .query(&format!(r#"from Issue where id = "{issue}""#))
+        .await
+        .map_err(|_| StatusCode::FORBIDDEN)?;
+    let row = pack.rows().first().ok_or(StatusCode::NOT_FOUND)?;
+    let author = row
+        .int("author_id")
+        .or_else(|| row.int("author"))
+        .ok_or(StatusCode::FORBIDDEN)?;
+    if author != actor {
+        return Err(StatusCode::FORBIDDEN);
+    }
+    let repo = row
+        .int("repo_id")
+        .or_else(|| row.int("repo"))
+        .ok_or(StatusCode::FORBIDDEN)?;
+    let key = core
+        .sudo()
+        .put(
+            "Pull",
+            &[
+                ("base", &base),
+                ("head", &head),
+                ("weld", ""),
+                ("repo", &repo.to_string()),
+                ("issue", &issue.to_string()),
+                ("author", &actor.to_string()),
+            ],
+        )
+        .await
+        .map_err(|_| StatusCode::CONFLICT)?;
+    Ok((StatusCode::CREATED, Json(json!({ "id": key }))))
+}
+
+fn text(body: &Map<String, Value>, name: &str) -> Result<String, StatusCode> {
+    body.get(name)
+        .and_then(Value::as_str)
+        .filter(|held| !held.is_empty())
+        .map(str::to_owned)
+        .ok_or(StatusCode::BAD_REQUEST)
+}
+
 pub(crate) async fn kids<W: Wire>(
     face: &keel::Face<'_, W>,
     id: i64,
@@ -85,6 +142,9 @@ pub(crate) async fn close<W: Wire + 'static>(
     let issues = kids(&face, id, "Issue")
         .await
         .map_err(|_| StatusCode::FORBIDDEN)?;
+    let pulls = kids(&face, id, "Pull")
+        .await
+        .map_err(|_| StatusCode::FORBIDDEN)?;
     let labels = kids(&face, id, "repo:label")
         .await
         .map_err(|_| StatusCode::FORBIDDEN)?;
@@ -92,6 +152,9 @@ pub(crate) async fn close<W: Wire + 'static>(
         .await
         .map_err(|_| StatusCode::FORBIDDEN)?;
     face.batch(async |tx| {
+        for key in &pulls {
+            tx.end("Pull", *key).await?;
+        }
         for key in &issues {
             tx.end("Issue", *key).await?;
         }

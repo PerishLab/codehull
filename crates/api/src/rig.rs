@@ -58,7 +58,7 @@ pub(crate) async fn hail<W: Wire + 'static>(
     }
 }
 
-const ROWS: [(&str, &str, &str, &str); 15] = [
+const ROWS: [(&str, &str, &str, &str); 17] = [
     ("anon", "see", "Actor", "all"),
     ("all", "put", "Actor", r#"pred iss = "codehull:org""#),
     ("anon", "see", "Repo", r#"pred visibility = "public""#),
@@ -72,6 +72,8 @@ const ROWS: [(&str, &str, &str, &str); 15] = [
     ("all", "see", "Reaction", r#"pred actor = "@me""#),
     ("all", "put", "Asset", r#"pred owner = "@me""#),
     ("all", "see", "Asset", r#"pred owner = "@me""#),
+    ("all", "see", "Pull", r#"pred author = "@me""#),
+    ("all", "set", "Pull", r#"pred author = "@me" and weld = """#),
     ("all", "put", "Review", r#"pred reviewer = "@me""#),
     ("all", "see", "Review", r#"pred reviewer = "@me""#),
 ];

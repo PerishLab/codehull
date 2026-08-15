@@ -74,6 +74,10 @@ owed, not excluded.
   back and counting parents (`Weld`, act 14)
 - ✅ Merging a proposal through its own door: base and head come from the `Pull`
   row, and the row carries the commit the merge produced (act 14)
+- ✅ Opening a proposal without owning the repository: `/propose` creates the
+  row above the operator, so no one is minted coverage over it; the author may
+  edit it while it carries no merge and can never write the merge itself
+  (`Pull.author`, seeded predicate, act 3)
 - ✅ A merge may carry the head it expects, and refuses when the head moved
   under it — the same compare and swap a reference move takes (act 14)
 - ⬜ Draft PRs — `Pull` carries no draft field. This row read ✅ against

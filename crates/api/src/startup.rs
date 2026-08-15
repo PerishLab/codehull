@@ -1,5 +1,5 @@
 use crate::artifact::{self, Artifact};
-use crate::door::{close, found};
+use crate::door::{close, found, propose};
 use crate::halt;
 use crate::model::shape;
 use crate::rig::Berth;
@@ -204,6 +204,7 @@ async fn serve<W: Wire + 'static>(
     };
     let plate = Router::new()
         .route("/org", post(found::<W>))
+        .route("/propose", post(propose::<W>))
         .route("/repo/{id}/close", post(close::<W>))
         .with_state(core.clone());
     let mut base = app(core.clone(), &runtime.listen.prefix).merge(plate);

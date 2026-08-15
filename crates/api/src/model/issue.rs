@@ -54,8 +54,12 @@ pub(crate) struct Pull {
     head: string,
     #[field(string)]
     weld: string,
-    #[relation(Issue, one2one, root)]
+    #[relation(Repo, many2one, root)]
+    repo: Repo,
+    #[relation(Issue, one2one)]
     issue: Issue,
+    #[relation(Actor, many2one)]
+    author: Actor,
     #[relation(Repo, many2one, opt)]
     source: Repo,
 }

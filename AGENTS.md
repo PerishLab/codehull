@@ -89,6 +89,15 @@ cargo fmt/clippy/test, biome/tsc/vitest, helm lint, Plumb, Ectropy, and acts.
   here states what it believed. A proposal records the commit its merge
   produced, never a flag saying it happened — a flag cannot be checked against
   the repository, and a commit can.
+- **A proposal is not owned by whoever wrote it.** `Pull` is rooted at `Repo`,
+  the `/propose` ceremony writes the row above the operator so keel mints no
+  creator coverage, and the author's power arrives as one seeded predicate:
+  edit your own proposal while it carries no merge. Keel checks a `set`
+  predicate before and after, so that one clause is what makes the merge record
+  unwritable by the author — no field-level authority is needed and none exists.
+  Whoever holds the repository can still write it; that is the same principal
+  the merge door already requires, and no model can defend against the holder
+  of a wider token.
 - Reference names are still refused when they carry a character that would
   break the query they are interpolated into. That is a guard against
   injection, not a statement about the model, and the two must not be confused
