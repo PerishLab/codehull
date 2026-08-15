@@ -119,6 +119,7 @@ dependencies = [
  "clap",
  "codehull-repo",
  "codehull-ssh",
+ "flate2",
  "jsonwebtoken",
  "keel",
  "keel-blob",

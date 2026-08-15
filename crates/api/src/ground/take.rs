@@ -1,10 +1,10 @@
 use super::line::{self, Order};
 use super::point::{Held, Point, sane};
-use super::{Dock, Fault, actor, admit, bad, work};
+use super::{Dock, Fault, actor, admit, bad, thaw, work};
 use axum::Extension;
 use axum::body::Bytes;
 use axum::extract::{Path, State};
-use axum::http::{HeaderValue, header};
+use axum::http::{HeaderMap, HeaderValue, header};
 use axum::response::{IntoResponse, Response};
 use codehull_repo::{Object, Pen};
 use keel::{Operator, Wire};
@@ -29,10 +29,12 @@ pub(super) async fn take<W: Wire + 'static>(
     State(dock): State<Dock<W>>,
     Path(id): Path<i64>,
     op: Option<Extension<Operator>>,
+    headers: HeaderMap,
     body: Bytes,
 ) -> Result<Response, Fault> {
     let who = actor(op)?;
     let id = admit(&dock, id, who).await?;
+    let body = thaw(&headers, body)?;
     let point = Point {
         dock: &dock,
         who,

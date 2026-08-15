@@ -559,6 +559,37 @@ export async function haul(root: string, mint: Issuer, port: number): Promise<vo
       }
     });
 
+    await check("a compressed request is served, a lying one is refused", async () => {
+      const head = await tip(base, repo, seat, "refs/heads/main");
+      if (head === null) {
+        throw new Error("main is absent");
+      }
+      const line = `want ${head} side-band-64k thin-pack ofs-delta agent=act\n`;
+      const body = `${(line.length + 4).toString(16).padStart(4, "0")}${line}00000009done\n`;
+      const kind = "application/x-git-upload-pack-request";
+      const asked = await fetch(`${url}/git-upload-pack`, {
+        method: "POST",
+        headers: { "content-type": kind, "content-encoding": "gzip", ...seat.head },
+        body: await squeeze(body),
+      });
+      if (asked.status !== 200) {
+        await asked.body?.cancel();
+        throw new Error(`a compressed request returned ${asked.status}`);
+      }
+      if ((await asked.arrayBuffer()).byteLength < 100) {
+        throw new Error("a compressed request came back without a pack");
+      }
+      const lying = await fetch(`${url}/git-upload-pack`, {
+        method: "POST",
+        headers: { "content-type": kind, "content-encoding": "gzip", ...seat.head },
+        body,
+      });
+      await lying.body?.cancel();
+      if (lying.status !== 400) {
+        throw new Error(`a body that is not gzip returned ${lying.status}`);
+      }
+    });
+
     await check("a stranger pushes nothing", async () => {
       const work = `${dir}/thief`;
       if (await clone(url, work, seat) !== 0) {
@@ -921,6 +952,11 @@ async function make(base: string, seat: Seat): Promise<number> {
     throw new Error(`POST /repo ${res.status}`);
   }
   return (await res.json() as Record<string, number>).id;
+}
+
+async function squeeze(text: string): Promise<ArrayBuffer> {
+  const held = new Blob([text]).stream().pipeThrough(new CompressionStream("gzip"));
+  return await new Response(held).arrayBuffer();
 }
 
 async function made(

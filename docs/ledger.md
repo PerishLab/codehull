@@ -42,7 +42,8 @@ owed, not excluded.
   writes only what differs: it used to re-project every reference on every
   advertisement, which cost three `git` processes per reference per fetch
 - ✅ Reference retirement, releasing the name for reuse (act 13)
-- ✅ Transport: clone and fetch, git smart HTTP over the seat (act 14)
+- ✅ Transport: clone and fetch, git smart HTTP over the seat, including the
+  compressed request a real client sends once its want list grows (act 14)
 - ✅ Transport: push, spoken by the api rather than by `git-receive-pack`;
   deletes arrive as retirements (act 14)
 - ✅ Transport: fetch over SSH, public-key authenticated against `actor:key`

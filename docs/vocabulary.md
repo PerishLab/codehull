@@ -145,4 +145,11 @@
   and unusably slow: three `git` processes per reference, on every clone, fetch
   and push. A 453-reference repository — the estate has one — spent 4.6 seconds
   in process spawns before a single byte of pack.
+- `thaw` — inflate a request body that arrives under `Content-Encoding: gzip`.
+  Git compresses the upload-pack request once the want list is big enough, and
+  a real repository crosses that line long before the acts did: a 453-reference
+  mirror answered 422 to every clone while a hand-built request of the same
+  wants answered 200. What the acts had proven was the small case, and the
+  small case is the one nobody has. A body that inflates past 8 MB is refused
+  rather than held — the largest real one measured is 4 KB.
 

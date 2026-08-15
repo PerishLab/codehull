@@ -1,10 +1,11 @@
 use super::line;
 use super::point::Point;
 use super::take::{CAPS, RECEIVE, sent};
-use super::{Dock, Fault, actor, admit, bad, work};
+use super::{Dock, Fault, actor, admit, bad, thaw, work};
 use axum::Extension;
 use axum::body::Bytes;
 use axum::extract::{Path, Query, State};
+use axum::http::HeaderMap;
 use axum::response::Response;
 use keel::{Operator, Wire};
 use serde::Deserialize;
@@ -52,9 +53,11 @@ pub(super) async fn upload<W: Wire + 'static>(
     State(dock): State<Dock<W>>,
     Path(id): Path<i64>,
     op: Option<Extension<Operator>>,
+    headers: HeaderMap,
     want: Bytes,
 ) -> Result<Response, Fault> {
     let id = admit(&dock, id, actor(op)?).await?;
+    let want = thaw(&headers, want)?;
     let store = dock.store.clone();
     let held = work(move || store.repository(id)?.upload(&want)).await?;
     Ok(sent(REPLY, held))

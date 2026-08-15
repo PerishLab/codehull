@@ -7,16 +7,19 @@ mod take;
 mod verdict;
 mod weld;
 
+use axum::body::Bytes;
 use axum::extract::{Path, State};
-use axum::http::StatusCode;
+use axum::http::{HeaderMap, StatusCode, header};
 use axum::routing::{get, post};
 use axum::{Extension, Json, Router};
 use base64::Engine;
 use base64::engine::general_purpose::STANDARD;
 use codehull_repo::{Error, Object, Store};
+use flate2::read::GzDecoder;
 use keel::{Core, Operator, Wire};
 use serde::Deserialize;
 use serde_json::{Value, json};
+use std::io::Read;
 use std::sync::Arc;
 
 struct Dock<W: Wire> {
@@ -38,6 +41,9 @@ struct Ingest {
     object: String,
     bundle: String,
 }
+
+const GZIP: &str = "gzip";
+const CEILING: u64 = 8 << 20;
 
 type Fault = (StatusCode, Json<Value>);
 
@@ -141,6 +147,25 @@ where
         .await
         .map_err(|error| fault(Error::Io(format!("repository worker failed: {error}"))))?
         .map_err(fault)
+}
+
+fn thaw(headers: &HeaderMap, body: Bytes) -> Result<Vec<u8>, Fault> {
+    let coded = headers
+        .get(header::CONTENT_ENCODING)
+        .and_then(|held| held.to_str().ok())
+        .is_some_and(|held| held.contains(GZIP));
+    if !coded {
+        return Ok(body.to_vec());
+    }
+    let mut held = Vec::new();
+    GzDecoder::new(body.as_ref())
+        .take(CEILING)
+        .read_to_end(&mut held)
+        .map_err(|error| bad(format!("request is not gzip: {error}")))?;
+    if held.len() as u64 == CEILING {
+        return Err(bad("request inflates past the ceiling"));
+    }
+    Ok(held)
 }
 
 fn bad(note: impl Into<String>) -> Fault {

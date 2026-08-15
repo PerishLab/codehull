@@ -11,6 +11,7 @@ repository = "https://git.perish.top/PerishLab/codehull"
 [workspace.dependencies]
 clap = { version = "4", features = ["derive"] }
 axum = "0.8"
+flate2 = "1"
 base64 = "0.22"
 jsonwebtoken = { version = "10", default-features = false, features = ["rust_crypto"] }
 keel = { version = "0.10.3", registry = "perish", features = ["pg"] }
