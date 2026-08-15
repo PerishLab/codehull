@@ -35,6 +35,7 @@ pub(crate) fn shape() -> Graph {
         .plug::<Column>()
         .plug::<Release>()
         .plug::<Shield>()
+        .plug::<Demand>()
         .plug::<Package>()
         .plug::<build::Runner>()
         .plug::<Run>()

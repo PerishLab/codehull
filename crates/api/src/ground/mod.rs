@@ -2,6 +2,7 @@ mod haul;
 mod line;
 mod point;
 pub(crate) mod port;
+mod shield;
 mod take;
 mod verdict;
 mod weld;

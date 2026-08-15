@@ -27,9 +27,10 @@ pub(super) struct Offer {
     expect: Option<String>,
 }
 
-struct Weld<'a, W: Wire> {
-    dock: &'a Dock<W>,
-    who: i64,
+pub(super) struct Weld<'a, W: Wire> {
+    pub(super) dock: &'a Dock<W>,
+    pub(super) who: i64,
+    pub(super) pull: Option<i64>,
 }
 
 pub(super) async fn weld<W: Wire + 'static>(
@@ -40,7 +41,11 @@ pub(super) async fn weld<W: Wire + 'static>(
 ) -> Result<Json<Value>, Fault> {
     let who = actor(op)?;
     let id = admit(&dock, id, who).await?;
-    let held = Weld { dock: &dock, who };
+    let held = Weld {
+        dock: &dock,
+        who,
+        pull: None,
+    };
     Ok(Json(held.fuse(id, body).await?))
 }
 
@@ -51,7 +56,11 @@ pub(super) async fn pull<W: Wire + 'static>(
     Json(body): Json<Offer>,
 ) -> Result<Json<Value>, Fault> {
     let who = actor(op)?;
-    let held = Weld { dock: &dock, who };
+    let held = Weld {
+        dock: &dock,
+        who,
+        pull: Some(id),
+    };
     let (repo, ask) = held.proposal(id, body).await?;
     let seat = admit(&dock, repo, who).await?;
     let mut done = held.fuse(seat, ask).await?;
@@ -89,6 +98,7 @@ impl<W: Wire + 'static> Weld<'_, W> {
         if ask.expect.is_some_and(|want| want != tip) {
             return Err(clash());
         }
+        self.cleared(id, &base, &tip).await?;
         let old = Object::parse(&held).map_err(|_| deny())?;
         let new = Object::parse(&tip).map_err(|_| deny())?;
         let note = ask

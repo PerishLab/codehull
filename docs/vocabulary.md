@@ -129,4 +129,14 @@
   never bind — the proof of this is that act 3 caught it. The issue stays as an
   ordinary one-to-one relation: a proposal is described by an issue and belongs
   to a repository.
+- `demand` — one context a branch requires before a proposal may merge into it.
+  One row per context, hung on the branch's `Shield`; a shield with no demands
+  requires nothing. The empty set means the empty set — the same reading `Weld`
+  takes from the other side, where no rows permit nothing.
+- `cleared` — the gate on the proposal door: every demand of the target branch
+  must read `success` on the head commit, and the branch's approval count must
+  be met. **Absence is not a pass**: a context nobody judged refuses, because a
+  gate that treats silence as consent is not a gate. A refusal is 412 with the
+  context and what it read, which is a different answer from 409, the one a
+  reference that moved under the expectation gives.
 

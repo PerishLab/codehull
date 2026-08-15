@@ -31,6 +31,14 @@ pub(crate) struct Shield {
 }
 
 #[resource]
+pub(crate) struct Demand {
+    #[field(string, unique = shield)]
+    context: string,
+    #[relation(Shield, many2one, root)]
+    shield: Shield,
+}
+
+#[resource]
 pub(crate) struct Package {
     #[field(string, unique = repo)]
     name: string,

@@ -31,8 +31,10 @@ owed, not excluded.
 - ✅ Archive (archived field, act 10)
 - 🟡 Transfer ownership (set owner — subtree follows, keel act)
 - 🟡 Default branch (trunk field)
-- 🟡 Branch protection — `Shield` records a branch's force and approval policy
-  and act 9 proves it stores, but nothing reads it: no path enforces it yet
+- ✅ Branch protection — `Shield` records a branch's approval policy and the
+  proposal door reads it: a merge is refused until the branch's demands are
+  judged green and its approvals are counted (act 14). `force` is still
+  recorded and unread; the push path does not consult it
 - ✅ Mirrors (Mirror one2one Repo, act 10)
 - ✅ Bare seat and bundle ingress (`crates/repo`, act 13)
 - ✅ References as Keel rows: compare-and-swap by liveness, projection to the
@@ -85,6 +87,10 @@ owed, not excluded.
 - ⬜ Merging a proposal whose head lives in another repository — the `source`
   relation exists, the fetch across repositories does not, and the door refuses
   with a reason rather than merging the wrong branch
+- ✅ Required checks — one `Demand` row per context a branch requires, hung on
+  its `Shield`. A branch with no demands requires nothing, an unjudged context
+  is not a pass, and a failing or pending one refuses with which context and
+  what it read (act 14)
 - ⬜ Conflict presentation — a conflicting merge refuses; nothing reports where
 
 ## Actions (CI)

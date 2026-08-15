@@ -98,6 +98,17 @@ cargo fmt/clippy/test, biome/tsc/vitest, helm lint, Plumb, Ectropy, and acts.
   Whoever holds the repository can still write it; that is the same principal
   the merge door already requires, and no model can defend against the holder
   of a wider token.
+- **Which checks a branch requires is data, and absence is not a pass.** One
+  `Demand` row per context, hung on the branch's `Shield`; no rows means nothing
+  is required, and a context nobody judged refuses rather than passes. There is
+  no priority, no override and no bypass list: combining is conjunction, and who
+  may act at all is a grant question, not a column on a policy row.
+- **The gate is on the proposal door only.** Naming two references is a
+  repository-level action and stays ungated; whether that door should answer to
+  the same shield is the exemption question, and it is answered with grants when
+  it is answered. Until a runner exists, verdicts can only be written by whoever
+  holds the repository, so this gate does not defend against them — it must not
+  be described as though it does.
 - Reference names are still refused when they carry a character that would
   break the query they are interpolated into. That is a guard against
   injection, not a statement about the model, and the two must not be confused

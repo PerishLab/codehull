@@ -390,6 +390,92 @@ export async function haul(root: string, mint: Issuer, port: number): Promise<vo
       }
     });
 
+    await check("a shield holds a proposal until its demands are met", async () => {
+      const work = `${dir}/gated`;
+      if (await clone(url, work, seat) !== 0) {
+        throw new Error("clone for the gate check failed");
+      }
+      const at = (args: string[]) => bin("git").text(["-C", work, ...args], { stderr: "null" });
+      await at(["config", "user.name", "Codehull Act"]);
+      await at(["config", "user.email", "codehull@example.invalid"]);
+      await at(["checkout", "-q", "-b", "gated"]);
+      await Deno.writeTextFile(`${work}/gated`, "gated\n");
+      await at(["add", "gated"]);
+      await at(["commit", "-q", "-m", "propose behind a shield"]);
+      const offered = await at(["rev-parse", "HEAD"]);
+      if (await push(work, seat, ["origin", "gated"]) !== 0) {
+        throw new Error("push refused the gated branch");
+      }
+      const shield = await made(base, "/shield", seat, {
+        branch: "main",
+        force: false,
+        approvals: 1,
+        repo,
+      });
+      await made(base, "/demand", seat, { context: "guard", shield });
+      const issue = await made(base, "/issue", seat, {
+        title: "PR: gated",
+        body: "",
+        closed: false,
+        repo,
+        author: seat.id,
+      });
+      const pull = await made(base, "/propose", seat, {
+        issue,
+        base: "refs/heads/main",
+        head: "refs/heads/gated",
+      });
+      const held = await tip(base, repo, seat, "refs/heads/main");
+      const weld = () => send(base, `/pull/${pull}/weld`, seat, "POST", { mode: "join" });
+      const judge = async (state: string) => {
+        const res = await send(base, `/repo/${repo}/git/verdict`, seat, "POST", {
+          commit: offered,
+          context: "guard",
+          state,
+        });
+        await res.body?.cancel();
+        if (res.status !== 200) {
+          throw new Error(`casting ${state} returned ${res.status}`);
+        }
+      };
+
+      const blank = await weld();
+      await blank.body?.cancel();
+      if (blank.status !== 412) {
+        throw new Error(`an unjudged head merged ${blank.status}`);
+      }
+      await judge("failure");
+      const failed = await weld();
+      await failed.body?.cancel();
+      if (failed.status !== 412) {
+        throw new Error(`a failing verdict merged ${failed.status}`);
+      }
+      await judge("success");
+      const thin = await weld();
+      await thin.body?.cancel();
+      if (thin.status !== 412) {
+        throw new Error(`a proposal with no approval merged ${thin.status}`);
+      }
+      if (await tip(base, repo, seat, "refs/heads/main") !== held) {
+        throw new Error("a refused proposal still moved the base");
+      }
+      await made(base, "/review", seat, {
+        state: "approve",
+        body: "lgtm",
+        pull,
+        reviewer: seat.id,
+      });
+      const done = await weld();
+      if (done.status !== 200) {
+        await done.body?.cancel();
+        throw new Error(`a cleared proposal returned ${done.status}`);
+      }
+      const object = (await done.json() as Record<string, string>).object;
+      if (await tip(base, repo, seat, "refs/heads/main") !== object) {
+        throw new Error("a cleared proposal did not move the base");
+      }
+    });
+
     await check("an unpermitted merge is refused", async () => {
       const held = await tip(base, repo, seat, "refs/heads/main");
       const res = await send(base, `/repo/${repo}/git/merge`, seat, "POST", {
