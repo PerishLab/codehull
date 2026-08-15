@@ -1,7 +1,7 @@
 use super::line;
 use super::point::Point;
 use super::take::{CAPS, RECEIVE, sent};
-use super::{Dock, Fault, actor, admit, bad, thaw, work};
+use super::{Dock, Fault, Reach, actor, admit, bad, thaw, work};
 use axum::Extension;
 use axum::body::Bytes;
 use axum::extract::{Path, Query, State};
@@ -27,7 +27,11 @@ pub(super) async fn refs<W: Wire + 'static>(
     Query(query): Query<Service>,
 ) -> Result<Response, Fault> {
     let who = actor(op)?;
-    let id = admit(&dock, id, who).await?;
+    let reach = match query.service.as_str() {
+        RECEIVE => Reach::Edit,
+        _ => Reach::See,
+    };
+    let id = admit(&dock, id, who, reach).await?;
     let point = Point {
         dock: &dock,
         who,
@@ -56,7 +60,7 @@ pub(super) async fn upload<W: Wire + 'static>(
     headers: HeaderMap,
     want: Bytes,
 ) -> Result<Response, Fault> {
-    let id = admit(&dock, id, actor(op)?).await?;
+    let id = admit(&dock, id, actor(op)?, Reach::See).await?;
     let want = thaw(&headers, want)?;
     let store = dock.store.clone();
     let held = work(move || store.repository(id)?.upload(&want)).await?;

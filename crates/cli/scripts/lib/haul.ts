@@ -726,6 +726,91 @@ export async function haul(root: string, mint: Issuer, port: number): Promise<vo
         throw new Error("an unsigned caller cloned the seat");
       }
     });
+
+    await check("an organization owns a repository and git still reaches it", async () => {
+      const org = await made(base, "/org", seat, { name: "guild" });
+      const owned = await made(base, "/repo", seat, {
+        name: "held",
+        visibility: "private",
+        owner: org,
+        trunk: "main",
+        archived: false,
+      });
+      const seam = `http://${host}:${port}/api/repo/${owned}/git`;
+      const opened = await send(base, `/repo/${owned}/git`, seat, "PUT");
+      await opened.body?.cancel();
+      if (opened.status !== 200) {
+        throw new Error(`an organization's seat refused provisioning ${opened.status}`);
+      }
+      const work = `${dir}/owned`;
+      if (await clone(url, work, seat) !== 0) {
+        throw new Error("clone for the organization push failed");
+      }
+      if (await push(work, seat, [seam, "HEAD:refs/heads/main"]) !== 0) {
+        throw new Error("a member could not push to a repository the organization owns");
+      }
+      if (await clone(seam, `${dir}/owned-back`, seat) !== 0) {
+        throw new Error("a member could not clone a repository the organization owns");
+      }
+      const outside = await send(
+        base,
+        `/repo/${owned}/git/ref?name=refs/heads/main`,
+        stranger,
+        "GET",
+      );
+      await outside.body?.cancel();
+      if (outside.status !== 403) {
+        throw new Error(`a stranger reached an organization's repository ${outside.status}`);
+      }
+    });
+
+    await check("an archived repository reads and refuses writes", async () => {
+      const org = await made(base, "/org", seat, { name: "attic" });
+      const shut = await made(base, "/repo", seat, {
+        name: "kept",
+        visibility: "private",
+        owner: org,
+        trunk: "main",
+        archived: false,
+      });
+      const seam = `http://${host}:${port}/api/repo/${shut}/git`;
+      const opened = await send(base, `/repo/${shut}/git`, seat, "PUT");
+      await opened.body?.cancel();
+      const work = `${dir}/attic`;
+      if (await clone(url, work, seat) !== 0) {
+        throw new Error("clone for the archive check failed");
+      }
+      if (await push(work, seat, [seam, "HEAD:refs/heads/main"]) !== 0) {
+        throw new Error("seeding an archived candidate failed");
+      }
+      const sealed = await send(base, `/repo/${shut}`, seat, "PATCH", { archived: true });
+      await sealed.body?.cancel();
+      if (sealed.status !== 200) {
+        throw new Error(`archiving returned ${sealed.status}`);
+      }
+      const read = await send(
+        base,
+        `/repo/${shut}/git/ref?name=refs/heads/main`,
+        seat,
+        "GET",
+      );
+      await read.body?.cancel();
+      if (read.status !== 200) {
+        throw new Error(`an archived repository stopped reading ${read.status}`);
+      }
+      if (await push(work, seat, ["--force", seam, "HEAD:refs/heads/other"]) === 0) {
+        throw new Error("an archived repository accepted a push");
+      }
+      const cast = await send(base, `/repo/${shut}/git/verdict`, seat, "POST", {
+        commit: seed.main,
+        context: "guard",
+        state: "success",
+      });
+      await cast.body?.cancel();
+      if (cast.status !== 409) {
+        throw new Error(`an archived repository took a verdict ${cast.status}`);
+      }
+    });
   } catch (err) {
     io.error(held.log());
     throw err;

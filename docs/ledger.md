@@ -28,7 +28,17 @@ owed, not excluded.
 - ✅ Webhooks (Hook via keel-relay)
 - ✅ Deploy keys (Key, act 8)
 - ✅ Fork (fork ref, act 10)
-- ✅ Archive (archived field, act 10)
+- ✅ Archive (archived field, act 10). The ground plane reads it: a write to an
+  archived repository refuses (act 14)
+- ✅ Reaching a repository over the ground plane is Keel's decision, not a
+  second one taken here. Every entry point declares the reach it needs —
+  reading answers whoever the repository is visible to, writing also refuses an
+  archived one — and coverage decides who that is, so a team membership or a
+  grant carries to git the way it carries everywhere else. It used to ask
+  whether the caller was literally `Repo.owner`, which put every
+  organization-owned repository out of reach over http while ssh already
+  resolved the same repository correctly. This estate owns every repository
+  through an organization, so that check refused all twenty of them (act 14)
 - 🟡 Transfer ownership (set owner — subtree follows, keel act)
 - 🟡 Default branch (trunk field)
 - ✅ Branch protection — `Shield` records a branch's approval policy and the

@@ -22,6 +22,11 @@ use serde_json::{Value, json};
 use std::io::Read;
 use std::sync::Arc;
 
+pub(super) enum Reach {
+    See,
+    Edit,
+}
+
 struct Dock<W: Wire> {
     core: Arc<Core<W>>,
     store: Arc<Store>,
@@ -75,7 +80,7 @@ async fn make<W: Wire + 'static>(
     Path(id): Path<i64>,
     op: Option<Extension<Operator>>,
 ) -> Result<Json<Value>, Fault> {
-    let id = admit(&dock, id, actor(op)?).await?;
+    let id = admit(&dock, id, actor(op)?, Reach::Edit).await?;
     let store = dock.store.clone();
     let repo = work(move || store.provision(id)).await?;
     Ok(Json(json!({ "id": repo.id() })))
@@ -86,7 +91,7 @@ async fn show<W: Wire + 'static>(
     Path(id): Path<i64>,
     op: Option<Extension<Operator>>,
 ) -> Result<Json<Value>, Fault> {
-    let id = admit(&dock, id, actor(op)?).await?;
+    let id = admit(&dock, id, actor(op)?, Reach::See).await?;
     let store = dock.store.clone();
     let repo = work(move || store.repository(id)).await?;
     Ok(Json(json!({ "id": repo.id() })))
@@ -98,7 +103,7 @@ async fn ingest<W: Wire + 'static>(
     op: Option<Extension<Operator>>,
     Json(body): Json<Ingest>,
 ) -> Result<Json<Value>, Fault> {
-    let id = admit(&dock, id, actor(op)?).await?;
+    let id = admit(&dock, id, actor(op)?, Reach::Edit).await?;
     let object = Object::parse(&body.object).map_err(fault)?;
     let bundle = STANDARD
         .decode(body.bundle)
@@ -113,18 +118,29 @@ async fn ingest<W: Wire + 'static>(
     Ok(Json(json!({ "object": object.hex() })))
 }
 
-async fn admit<W: Wire + 'static>(dock: &Dock<W>, id: i64, who: i64) -> Result<u64, Fault> {
+async fn admit<W: Wire + 'static>(
+    dock: &Dock<W>,
+    id: i64,
+    who: i64,
+    reach: Reach,
+) -> Result<u64, Fault> {
     let key = u64::try_from(id).map_err(|_| bad("repository id must be positive"))?;
     let held = dock
         .core
         .of(who)
-        .query(&format!(
-            r#"from Repo where id = "{id}" and owner = "{who}""#
-        ))
+        .query(&format!(r#"from Repo where id = "{id}""#))
         .await
         .map_err(|_| deny())?;
-    if held.rows().len() != 1 {
+    let rows = held.rows();
+    if rows.len() != 1 {
         return Err(deny());
+    }
+    let sealed = rows
+        .first()
+        .and_then(|row| row.flag("archived"))
+        .unwrap_or(false);
+    if matches!(reach, Reach::Edit) && sealed {
+        return Err(shut());
     }
     Ok(key)
 }
@@ -177,6 +193,13 @@ fn bad(note: impl Into<String>) -> Fault {
 
 fn deny() -> Fault {
     (StatusCode::FORBIDDEN, Json(json!({ "error": "forbidden" })))
+}
+
+fn shut() -> Fault {
+    (
+        StatusCode::CONFLICT,
+        Json(json!({ "error": "repository is archived" })),
+    )
 }
 
 fn fault(error: Error) -> Fault {

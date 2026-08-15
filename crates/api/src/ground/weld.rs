@@ -1,5 +1,5 @@
 use super::point::{Held, Point, clash, sane};
-use super::{Dock, Fault, actor, admit, bad, deny, work};
+use super::{Dock, Fault, Reach, actor, admit, bad, deny, work};
 use axum::extract::{Path, State};
 use axum::{Extension, Json};
 use codehull_repo::Object;
@@ -40,7 +40,7 @@ pub(super) async fn weld<W: Wire + 'static>(
     Json(body): Json<Ask>,
 ) -> Result<Json<Value>, Fault> {
     let who = actor(op)?;
-    let id = admit(&dock, id, who).await?;
+    let id = admit(&dock, id, who, Reach::Edit).await?;
     let held = Weld {
         dock: &dock,
         who,
@@ -62,7 +62,7 @@ pub(super) async fn pull<W: Wire + 'static>(
         pull: Some(id),
     };
     let (repo, ask) = held.proposal(id, body).await?;
-    let seat = admit(&dock, repo, who).await?;
+    let seat = admit(&dock, repo, who, Reach::Edit).await?;
     let mut done = held.fuse(seat, ask).await?;
     let hex = done
         .get("object")

@@ -1,4 +1,4 @@
-use super::{Dock, Fault, actor, admit, bad, deny};
+use super::{Dock, Fault, Reach, actor, admit, bad, deny};
 use axum::extract::{Path, Query, State};
 use axum::{Extension, Json};
 use codehull_repo::Object;
@@ -36,7 +36,7 @@ pub(super) async fn cast<W: Wire + 'static>(
     Json(body): Json<Cast>,
 ) -> Result<Json<Value>, Fault> {
     let who = actor(op)?;
-    let id = admit(&dock, id, who).await?;
+    let id = admit(&dock, id, who, Reach::Edit).await?;
     let court = Court {
         dock: &dock,
         who,
@@ -63,7 +63,7 @@ pub(super) async fn read<W: Wire + 'static>(
     Query(query): Query<At>,
 ) -> Result<Json<Value>, Fault> {
     let who = actor(op)?;
-    let id = admit(&dock, id, who).await?;
+    let id = admit(&dock, id, who, Reach::See).await?;
     let commit = Object::parse(&query.commit)
         .map_err(|_| bad("commit must be one full hexadecimal Git ID"))?;
     let court = Court {

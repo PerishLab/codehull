@@ -1,6 +1,6 @@
 use super::line::{self, Order};
 use super::point::{Held, Point, sane};
-use super::{Dock, Fault, actor, admit, bad, thaw, work};
+use super::{Dock, Fault, Reach, actor, admit, bad, thaw, work};
 use axum::Extension;
 use axum::body::Bytes;
 use axum::extract::{Path, State};
@@ -33,7 +33,7 @@ pub(super) async fn take<W: Wire + 'static>(
     body: Bytes,
 ) -> Result<Response, Fault> {
     let who = actor(op)?;
-    let id = admit(&dock, id, who).await?;
+    let id = admit(&dock, id, who, Reach::Edit).await?;
     let body = thaw(&headers, body)?;
     let point = Point {
         dock: &dock,

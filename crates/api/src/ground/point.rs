@@ -1,4 +1,4 @@
-use super::{Dock, Fault, actor, admit, bad, deny, fault, work};
+use super::{Dock, Fault, Reach, actor, admit, bad, deny, fault, work};
 use axum::extract::{Path, Query, State};
 use axum::http::StatusCode;
 use axum::{Extension, Json};
@@ -31,7 +31,7 @@ pub(super) async fn read<W: Wire + 'static>(
     Query(query): Query<Name>,
 ) -> Result<Json<Value>, Fault> {
     let who = actor(op)?;
-    let id = admit(&dock, id, who).await?;
+    let id = admit(&dock, id, who, Reach::See).await?;
     let name = sane(&query.name)?;
     let held = Point {
         dock: &dock,
@@ -53,7 +53,7 @@ pub(super) async fn advance<W: Wire + 'static>(
     Json(body): Json<Move>,
 ) -> Result<Json<Value>, Fault> {
     let who = actor(op)?;
-    let id = admit(&dock, id, who).await?;
+    let id = admit(&dock, id, who, Reach::Edit).await?;
     let name = sane(&body.name)?;
     let after = Object::parse(&body.after).map_err(fault)?;
     let before = body
@@ -87,7 +87,7 @@ pub(super) async fn drop<W: Wire + 'static>(
     Query(query): Query<Name>,
 ) -> Result<StatusCode, Fault> {
     let who = actor(op)?;
-    let id = admit(&dock, id, who).await?;
+    let id = admit(&dock, id, who, Reach::Edit).await?;
     let name = sane(&query.name)?;
     let Some((key, _)) = Point {
         dock: &dock,
