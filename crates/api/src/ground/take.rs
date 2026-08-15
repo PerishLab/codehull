@@ -52,18 +52,30 @@ pub(super) async fn take<W: Wire + 'static>(
 
 impl<W: Wire + 'static> Take<'_, W> {
     pub(super) async fn settle(mut self, orders: &[Order]) -> Vec<u8> {
+        let seats = self.point.seats().await.unwrap_or_default();
         let mut plans = Vec::new();
         for order in orders {
-            plans.push(self.weigh(order).await);
+            plans.push(self.weigh(order, &seats).await);
         }
         let wanted = plans.iter().any(admits);
         let held = match self.pen.take() {
             Some(pen) => kept(pen, wanted).await,
             None => true,
         };
+        let mut done = Vec::new();
+        let mut moves = Vec::new();
+        let mut gone = Vec::new();
+        for plan in plans {
+            done.push(self.run(plan, held, &mut moves, &mut gone).await);
+        }
+        let cast = self.point.write(moves, gone).await;
         let mut report = line::pkt("unpack ok\n");
-        for (order, plan) in orders.iter().zip(plans) {
-            report.extend_from_slice(&line::pkt(&match self.run(plan, held).await {
+        for (order, seen) in orders.iter().zip(done) {
+            let held = match (seen, &cast) {
+                (Ok(true), Err(_)) => Err("projection refused".to_owned()),
+                (seen, _) => seen.map(|_| ()),
+            };
+            report.extend_from_slice(&line::pkt(&match held {
                 Ok(()) => format!("ok {}\n", order.name),
                 Err(note) => format!("ng {} {note}\n", order.name),
             }));
@@ -72,16 +84,15 @@ impl<W: Wire + 'static> Take<'_, W> {
         report
     }
 
-    async fn weigh(&self, order: &Order) -> Result<Plan, String> {
+    async fn weigh(&self, order: &Order, seats: &[(i64, String, String)]) -> Result<Plan, String> {
         let name =
             sane(&order.name).map_err(|_| "reference is reserved or outside refs".to_owned())?;
         let old = Object::parse(&order.old).map_err(|_| "old object is malformed".to_owned())?;
         let new = Object::parse(&order.new).map_err(|_| "new object is malformed".to_owned())?;
-        let seat = self
-            .point
-            .seen(&name)
-            .await
-            .map_err(|_| "reference is unreadable".to_owned())?;
+        let seat = seats
+            .iter()
+            .find(|(_, held, _)| *held == name)
+            .map(|(key, _, object)| (*key, object.clone()));
         if new.absent() {
             if seat.is_none() {
                 return Err("reference is already absent".to_owned());
@@ -119,24 +130,27 @@ impl<W: Wire + 'static> Take<'_, W> {
         .await
     }
 
-    async fn run(&self, plan: Result<Plan, String>, held: bool) -> Result<(), String> {
+    async fn run(
+        &self,
+        plan: Result<Plan, String>,
+        held: bool,
+        moves: &mut Vec<(String, Object)>,
+        gone: &mut Vec<String>,
+    ) -> Result<bool, String> {
         let plan = plan?;
         if plan.after.is_some() && !held {
             return Err("objects were not admitted".to_owned());
         }
-        self.apply(plan).await
-    }
-
-    async fn apply(&self, plan: Plan) -> Result<(), String> {
         let Some(after) = plan.after else {
             let Some((key, _)) = plan.seat else {
                 return Err("reference is already absent".to_owned());
             };
-            return self
-                .point
-                .strip(key, &plan.name)
+            self.point
+                .shed(key)
                 .await
-                .map_err(|_| "retirement refused".to_owned());
+                .map_err(|_| "retirement refused".to_owned())?;
+            gone.push(plan.name);
+            return Ok(true);
         };
         match self
             .point
@@ -145,11 +159,10 @@ impl<W: Wire + 'static> Take<'_, W> {
         {
             Err(_) => Err("reference refused the move".to_owned()),
             Ok(Held::Stale) => Err("reference moved under the expectation".to_owned()),
-            Ok(Held::Moved) => self
-                .point
-                .cast(&plan.name, &after)
-                .await
-                .map_err(|_| "projection refused".to_owned()),
+            Ok(Held::Moved) => {
+                moves.push((plan.name, after));
+                Ok(true)
+            }
         }
     }
 }

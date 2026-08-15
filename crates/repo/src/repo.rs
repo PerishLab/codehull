@@ -126,21 +126,37 @@ impl Repository {
     pub fn project(&self, name: &str, object: &Object) -> Result<(), Error> {
         valid(&self.root, name)?;
         require(&Git::at(&self.root), object)?;
-        Git::at(&self.root).success(
-            ["update-ref", "--create-reflog", name, object.hex()],
-            "cannot project reference",
-        )
+        self.point(&[(name.to_string(), object.clone())], &[])
     }
 
     pub fn retire(&self, name: &str) -> Result<(), Error> {
         valid(&self.root, name)?;
-        let Some(object) = self.reference(name)? else {
+        match self.reference(name)? {
+            None => Ok(()),
+            Some(_) => self.point(&[], &[name.to_string()]),
+        }
+    }
+
+    pub fn point(&self, moves: &[(String, Object)], gone: &[String]) -> Result<(), Error> {
+        let mut held = Vec::new();
+        for name in gone {
+            admit(name)?;
+            held.extend_from_slice(format!("delete {name}\0\0").as_bytes());
+        }
+        for (name, object) in moves {
+            admit(name)?;
+            held.extend_from_slice(format!("update {name}\0{}\0\0", object.hex()).as_bytes());
+        }
+        if held.is_empty() {
             return Ok(());
-        };
-        Git::at(&self.root).success(
-            ["update-ref", "--create-reflog", "-d", name, object.hex()],
-            "cannot retire reference",
-        )
+        }
+        Git::at(&self.root)
+            .feed(
+                ["update-ref", "--create-reflog", "-z", "--stdin"],
+                &held,
+                "cannot write references",
+            )
+            .map(drop)
     }
 
     pub fn pen(&self) -> Result<Pen, Error> {
@@ -263,10 +279,15 @@ pub fn admitted(name: &str) -> bool {
 }
 
 fn valid(root: &Path, name: &str) -> Result<(), Error> {
-    if !admitted(name) {
-        return Err(Error::Invalid(
-            "reference must be below refs and outside the reserved namespaces".into(),
-        ));
-    }
+    admit(name)?;
     Git::at(root).success(["check-ref-format", name], "invalid reference")
+}
+
+fn admit(name: &str) -> Result<(), Error> {
+    if admitted(name) {
+        return Ok(());
+    }
+    Err(Error::Invalid(
+        "reference must be below refs and outside the reserved namespaces".into(),
+    ))
 }

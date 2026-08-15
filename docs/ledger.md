@@ -45,7 +45,14 @@ owed, not excluded.
 - ✅ Transport: clone and fetch, git smart HTTP over the seat, including the
   compressed request a real client sends once its want list grows (act 14)
 - ✅ Transport: push, spoken by the api rather than by `git-receive-pack`;
-  deletes arrive as retirements (act 14)
+  deletes arrive as retirements (act 14). One update request reads the
+  reference rows once and writes the whole projection with one `update-ref`,
+  rather than four `git` processes per reference
+- 🟡 Bulk push cost — a 453-reference mirror takes about ten seconds, and the
+  remainder is Keel's per-write overhead, which grows with how many rows the
+  estate already holds: unrelated writes slow from 15ms to 19ms while 300
+  references are added. That is an engine property and belongs in a Keel issue,
+  not in a workaround here
 - ✅ Transport: fetch over SSH, public-key authenticated against `actor:key`
   rows, `upload-pack` piped onto the channel (act 14)
 - ✅ Transport: push over SSH, spoken by the adaptor; the pack streams straight

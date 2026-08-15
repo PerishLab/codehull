@@ -130,21 +130,20 @@ impl<W: Wire + 'static> Point<'_, W> {
         work(move || {
             let repo = store.repository(id)?;
             let held = repo.references()?;
-            for (name, _) in &held {
-                if !wanted.iter().any(|(seen, _)| seen == name) {
-                    repo.retire(name)?;
-                }
-            }
-            for (name, object) in &wanted {
-                if held
-                    .iter()
-                    .any(|(seen, held)| seen == name && held == object)
-                {
-                    continue;
-                }
-                repo.project(name, object)?;
-            }
-            Ok(())
+            let gone: Vec<String> = held
+                .iter()
+                .filter(|(name, _)| !wanted.iter().any(|(seen, _)| seen == name))
+                .map(|(name, _)| name.clone())
+                .collect();
+            let moves: Vec<(String, Object)> = wanted
+                .into_iter()
+                .filter(|(name, object)| {
+                    !held
+                        .iter()
+                        .any(|(seen, held)| seen == name && held == object)
+                })
+                .collect();
+            repo.point(&moves, &gone)
         })
         .await
     }
@@ -207,17 +206,14 @@ impl<W: Wire + 'static> Point<'_, W> {
         Ok(held)
     }
 
-    pub(super) async fn strip(&self, key: i64, name: &str) -> Result<(), Fault> {
+    pub(super) async fn shed(&self, key: i64) -> Result<(), Fault> {
         self.dock
             .core
             .of(self.who)
             .batch(async |tx| tx.end("Ref", key).await)
             .await
-            .map_err(|_| clash())?;
-        let store = self.dock.store.clone();
-        let id = self.id;
-        let held = name.to_string();
-        work(move || store.repository(id)?.retire(&held)).await
+            .map(|_| ())
+            .map_err(|_| clash())
     }
 
     pub(super) async fn cast(&self, name: &str, object: &Object) -> Result<(), Fault> {
@@ -226,6 +222,27 @@ impl<W: Wire + 'static> Point<'_, W> {
         let held = name.to_string();
         let seen = object.clone();
         work(move || store.repository(id)?.project(&held, &seen)).await
+    }
+
+    pub(super) async fn write(
+        &self,
+        moves: Vec<(String, Object)>,
+        gone: Vec<String>,
+    ) -> Result<(), Fault> {
+        let store = self.dock.store.clone();
+        let id = self.id;
+        work(move || store.repository(id)?.point(&moves, &gone)).await
+    }
+
+    pub(super) async fn seats(&self) -> Result<Vec<(i64, String, String)>, Fault> {
+        let mut held = Vec::new();
+        for row in self.rows(None).await? {
+            let (Some(name), Some(object)) = (row.text("name"), row.text("object")) else {
+                continue;
+            };
+            held.push((row.key(), name.to_string(), object.to_string()));
+        }
+        Ok(held)
     }
 
     pub(super) async fn seen(&self, name: &str) -> Result<Option<(i64, String)>, Fault> {

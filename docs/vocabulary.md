@@ -152,4 +152,13 @@
   wants answered 200. What the acts had proven was the small case, and the
   small case is the one nobody has. A body that inflates past 8 MB is refused
   rather than held — the largest real one measured is 4 KB.
+- `point` (the kernel verb) — write many reference updates in one `update-ref
+  --stdin -z`. `project` and `retire` are the one-element cases of it, so there
+  is a single path onto the reference store rather than two that could drift.
+  An update request now costs one process instead of four per reference; what
+  is left is Keel's per-write cost, which no amount of batching here can touch.
+- `seats` — read this repository's reference rows once per request. The push
+  path used to ask Keel for each name in turn, which made a mirror push pay one
+  query per reference. Staleness is not a risk: the authority is Keel's `end`
+  refusing a row someone else already moved, not the value this snapshot read.
 
