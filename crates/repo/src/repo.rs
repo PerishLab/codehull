@@ -13,7 +13,7 @@ static NEXT: AtomicU64 = AtomicU64::new(1);
 #[derive(Clone, Debug)]
 pub struct Repository {
     id: u64,
-    root: PathBuf,
+    pub(crate) root: PathBuf,
 }
 
 impl Repository {
@@ -95,70 +95,6 @@ impl Repository {
         require(&Git::at(&self.root), object)
     }
 
-    pub fn reference(&self, name: &str) -> Result<Option<Object>, Error> {
-        valid(&self.root, name)?;
-        Ok(self
-            .references()?
-            .into_iter()
-            .find(|(held, _)| held == name)
-            .map(|(_, object)| object))
-    }
-
-    pub fn references(&self) -> Result<Vec<(String, Object)>, Error> {
-        let output = Git::at(&self.root).run(["show-ref"])?;
-        if !matches!(output.status.code(), Some(0) | Some(1)) {
-            return Err(Error::Git(format!(
-                "cannot list references: {}",
-                String::from_utf8_lossy(&output.stderr).trim()
-            )));
-        }
-        let text = String::from_utf8_lossy(&output.stdout);
-        let mut held = Vec::new();
-        for line in text.lines() {
-            let Some((hex, name)) = line.split_once(' ') else {
-                continue;
-            };
-            held.push((name.to_string(), Object::parse(hex)?));
-        }
-        Ok(held)
-    }
-
-    pub fn project(&self, name: &str, object: &Object) -> Result<(), Error> {
-        valid(&self.root, name)?;
-        require(&Git::at(&self.root), object)?;
-        self.point(&[(name.to_string(), object.clone())], &[])
-    }
-
-    pub fn retire(&self, name: &str) -> Result<(), Error> {
-        valid(&self.root, name)?;
-        match self.reference(name)? {
-            None => Ok(()),
-            Some(_) => self.point(&[], &[name.to_string()]),
-        }
-    }
-
-    pub fn point(&self, moves: &[(String, Object)], gone: &[String]) -> Result<(), Error> {
-        let mut held = Vec::new();
-        for name in gone {
-            admit(name)?;
-            held.extend_from_slice(format!("delete {name}\0\0").as_bytes());
-        }
-        for (name, object) in moves {
-            admit(name)?;
-            held.extend_from_slice(format!("update {name}\0{}\0\0", object.hex()).as_bytes());
-        }
-        if held.is_empty() {
-            return Ok(());
-        }
-        Git::at(&self.root)
-            .feed(
-                ["update-ref", "--create-reflog", "-z", "--stdin"],
-                &held,
-                "cannot write references",
-            )
-            .map(drop)
-    }
-
     pub fn pen(&self) -> Result<Pen, Error> {
         Pen::make(&self.root)
     }
@@ -227,6 +163,33 @@ impl Repository {
         require(&Git::pen(&self.root, pen.hold()), object)
     }
 
+    pub fn absent(&self, pen: Option<&Pen>, objects: &[Object]) -> Result<Vec<Object>, Error> {
+        if objects.is_empty() {
+            return Ok(Vec::new());
+        }
+        let mut ask = String::new();
+        for object in objects {
+            ask.push_str(&format!("{}^{{commit}}\n", object.hex()));
+        }
+        let git = match pen {
+            Some(pen) => Git::pen(&self.root, pen.hold()),
+            None => Git::at(&self.root),
+        };
+        let held = git.feed(
+            ["cat-file", "--batch-check"],
+            ask.as_bytes(),
+            "cannot read objects",
+        )?;
+        let text = String::from_utf8_lossy(&held);
+        let mut gone = Vec::new();
+        for (line, object) in text.lines().zip(objects) {
+            if line.ends_with("missing") {
+                gone.push(object.clone());
+            }
+        }
+        Ok(gone)
+    }
+
     pub fn advertise(&self) -> Result<Vec<u8>, Error> {
         Git::at(&self.root).feed(
             ["upload-pack", "--stateless-rpc", "--advertise-refs", "."],
@@ -244,7 +207,7 @@ impl Repository {
     }
 }
 
-fn require(git: &Git, object: &Object) -> Result<(), Error> {
+pub(crate) fn require(git: &Git, object: &Object) -> Result<(), Error> {
     git.success(
         ["cat-file", "-e", &format!("{}^{{commit}}", object.hex())],
         "commit object is absent",
@@ -266,28 +229,4 @@ fn initialize(root: &Path, id: u64) -> Result<(), Error> {
 
 fn marker(id: u64) -> Vec<u8> {
     format!("codehull.repository/v1\nid={id}\n").into_bytes()
-}
-
-pub const REFS: &str = "refs/";
-pub const RESERVED: [&str; 0] = [];
-
-pub fn admitted(name: &str) -> bool {
-    if !name.starts_with(REFS) || name.len() == REFS.len() {
-        return false;
-    }
-    !RESERVED.iter().any(|held| name.starts_with(held))
-}
-
-fn valid(root: &Path, name: &str) -> Result<(), Error> {
-    admit(name)?;
-    Git::at(root).success(["check-ref-format", name], "invalid reference")
-}
-
-fn admit(name: &str) -> Result<(), Error> {
-    if admitted(name) {
-        return Ok(());
-    }
-    Err(Error::Invalid(
-        "reference must be below refs and outside the reserved namespaces".into(),
-    ))
 }

@@ -1,12 +1,14 @@
 mod git;
+mod mark;
 mod object;
 mod pen;
 mod repo;
 mod store;
 
+pub use mark::{REFS, RESERVED, admitted};
 pub use object::Object;
 pub use pen::Pen;
-pub use repo::{REFS, RESERVED, Repository, admitted};
+pub use repo::Repository;
 pub use store::Store;
 
 use std::fmt::{Display, Formatter};

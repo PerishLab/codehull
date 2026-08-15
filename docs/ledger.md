@@ -48,11 +48,14 @@ owed, not excluded.
   deletes arrive as retirements (act 14). One update request reads the
   reference rows once and writes the whole projection with one `update-ref`,
   rather than four `git` processes per reference
-- 🟡 Bulk push cost — a 453-reference mirror takes about ten seconds, and the
-  remainder is Keel's per-write overhead, which grows with how many rows the
-  estate already holds: unrelated writes slow from 15ms to 19ms while 300
-  references are added. That is an engine property and belongs in a Keel issue,
-  not in a workaround here
+- 🟡 Bulk push cost — measured inside the api rather than guessed at. For a
+  452-reference mirror push: reading the reference rows 0.3ms, checking every
+  pushed object in one `cat-file --batch-check` 10ms, migrating the pen 3ms,
+  writing the whole projection 37ms — and the Keel writes 2.7s. Of those 2.7s
+  roughly 0.3s is engine work and the rest is one `fsync` per reference,
+  because a reference moves in its own transaction so that a push can report
+  per-reference success the way git's protocol requires. Batching those
+  transactions would trade that reporting away; group commit would not
 - ✅ Transport: fetch over SSH, public-key authenticated against `actor:key`
   rows, `upload-pack` piped onto the channel (act 14)
 - ✅ Transport: push over SSH, spoken by the adaptor; the pack streams straight

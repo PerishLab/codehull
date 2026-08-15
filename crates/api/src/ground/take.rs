@@ -53,9 +53,10 @@ pub(super) async fn take<W: Wire + 'static>(
 impl<W: Wire + 'static> Take<'_, W> {
     pub(super) async fn settle(mut self, orders: &[Order]) -> Vec<u8> {
         let seats = self.point.seats().await.unwrap_or_default();
+        let gone = self.absent(orders).await;
         let mut plans = Vec::new();
         for order in orders {
-            plans.push(self.weigh(order, &seats).await);
+            plans.push(weigh(order, &seats, &gone));
         }
         let wanted = plans.iter().any(admits);
         let held = match self.pen.take() {
@@ -84,50 +85,18 @@ impl<W: Wire + 'static> Take<'_, W> {
         report
     }
 
-    async fn weigh(&self, order: &Order, seats: &[(i64, String, String)]) -> Result<Plan, String> {
-        let name =
-            sane(&order.name).map_err(|_| "reference is reserved or outside refs".to_owned())?;
-        let old = Object::parse(&order.old).map_err(|_| "old object is malformed".to_owned())?;
-        let new = Object::parse(&order.new).map_err(|_| "new object is malformed".to_owned())?;
-        let seat = seats
+    async fn absent(&self, orders: &[Order]) -> Vec<Object> {
+        let wanted: Vec<Object> = orders
             .iter()
-            .find(|(_, held, _)| *held == name)
-            .map(|(key, _, object)| (*key, object.clone()));
-        if new.absent() {
-            if seat.is_none() {
-                return Err("reference is already absent".to_owned());
-            }
-            return Ok(Plan {
-                name,
-                seat,
-                before: None,
-                after: None,
-            });
-        }
-        self.stored(&new)
-            .await
-            .map_err(|_| "objects are absent".to_owned())?;
-        Ok(Plan {
-            name,
-            seat,
-            before: (!old.absent()).then_some(old),
-            after: Some(new),
-        })
-    }
-
-    async fn stored(&self, object: &Object) -> Result<(), Fault> {
+            .filter_map(|order| Object::parse(&order.new).ok())
+            .filter(|object| !object.absent())
+            .collect();
         let store = self.point.dock.store.clone();
         let id = self.point.id;
-        let held = object.clone();
         let seat = self.pen.clone();
-        work(move || {
-            let repo = store.repository(id)?;
-            match &seat {
-                Some(pen) => repo.sees(pen, &held),
-                None => repo.holds(&held),
-            }
-        })
-        .await
+        work(move || store.repository(id)?.absent(seat.as_ref(), &wanted))
+            .await
+            .unwrap_or_default()
     }
 
     async fn run(
@@ -165,6 +134,36 @@ impl<W: Wire + 'static> Take<'_, W> {
             }
         }
     }
+}
+
+fn weigh(order: &Order, seats: &[(i64, String, String)], gone: &[Object]) -> Result<Plan, String> {
+    let name = sane(&order.name).map_err(|_| "reference is reserved or outside refs".to_owned())?;
+    let old = Object::parse(&order.old).map_err(|_| "old object is malformed".to_owned())?;
+    let new = Object::parse(&order.new).map_err(|_| "new object is malformed".to_owned())?;
+    let seat = seats
+        .iter()
+        .find(|(_, held, _)| *held == name)
+        .map(|(key, _, object)| (*key, object.clone()));
+    if new.absent() {
+        if seat.is_none() {
+            return Err("reference is already absent".to_owned());
+        }
+        return Ok(Plan {
+            name,
+            seat,
+            before: None,
+            after: None,
+        });
+    }
+    if gone.contains(&new) {
+        return Err("objects are absent".to_owned());
+    }
+    Ok(Plan {
+        name,
+        seat,
+        before: (!old.absent()).then_some(old),
+        after: Some(new),
+    })
 }
 
 async fn stow<W: Wire + 'static>(dock: &Dock<W>, id: u64, pack: &[u8]) -> Result<Pen, Fault> {

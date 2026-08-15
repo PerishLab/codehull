@@ -161,4 +161,12 @@
   path used to ask Keel for each name in turn, which made a mirror push pay one
   query per reference. Staleness is not a risk: the authority is Keel's `end`
   refusing a row someone else already moved, not the value this snapshot read.
+- `absent` — ask git once which of a push's objects are missing, with
+  `cat-file --batch-check`, instead of once per reference. The check reads the
+  same `^{commit}` peel the projection will demand later, so a reference is
+  refused before Keel is written rather than after.
+- `mark` — the on-disk reference plane of the kernel: the namespace law and the
+  reads and writes that land on it. It left `repo.rs` when that file crossed its
+  limit, and the split is by subject rather than by size — objects and packs on
+  one side, references on the other.
 
