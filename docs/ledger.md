@@ -142,13 +142,25 @@ was complete.
 **It is no longer the whole of the ledger.** `docs/host.md` moved the boundary,
 and what used to sit behind ⛔ is now owed:
 
-- ⬜ **H1 change plane**: transport, tags, real merge, commit status.
+- ✅ **H1 change plane**: transport over http and ssh, every namespace below
+  `refs`, objects quarantined until a reference accepts them, real merge in
+  three shapes, verdicts on a commit, a proposal that merges through its own
+  door behind the checks its branch demands.
 - ⬜ **H2 registry plane**: cargo sparse index and OCI distribution.
 - ⬜ **H3 execution plane**: runner registration, queue, dispatch, logs,
   workflow and action resolution, artifacts.
 
-What Codehull records about these planes it already records well; what it does
-about them is close to nothing. The gap is doing, not recording.
+H1 closed against the scale its stage was given: everything this estate needs
+except a registry and a runner. It did not close against every row above —
+conflict presentation, cross-repository proposals and draft proposals are
+still ⬜, and the debts are named where they live: http push buffers its whole
+body, `upload-pack`, `index-pack`, `merge-tree` and the ssh listener all run
+unbounded, and objects a reference accepted and later abandoned still have no
+collector. None of those are capabilities H1 owed; all of them are owed to
+somebody.
+
+What Codehull records about H2 and H3 it already records well; what it does
+about them is close to nothing. That gap is doing, not recording.
 
 Still not owed here:
 
