@@ -121,14 +121,35 @@ fn text(body: &Map<String, Value>, name: &str) -> Result<String, StatusCode> {
 
 pub(crate) async fn kids<W: Wire>(
     face: &keel::Face<'_, W>,
-    id: i64,
     unit: &str,
+    bond: &str,
+    roots: &[i64],
 ) -> Result<Vec<i64>, keel::adapt::Error> {
-    let pack = face
-        .query(&format!(r#"from {unit} where repo = "{id}""#))
-        .await?;
-    Ok(pack.rows().iter().map(keel::Row::key).collect())
+    let mut found = Vec::new();
+    for root in roots {
+        let pack = face
+            .query(&format!(r#"from {unit} where {bond} = "{root}""#))
+            .await?;
+        found.extend(pack.rows().iter().map(keel::Row::key));
+    }
+    Ok(found)
 }
+
+const LEAVES: [&str; 13] = [
+    "Verdict",
+    "Weld",
+    "Ref",
+    "Release",
+    "Package",
+    "Run",
+    "Variable",
+    "repo:runner",
+    "repo:secret",
+    "repo:key",
+    "repo:label",
+    "Mirror",
+    "Milestone",
+];
 
 pub(crate) async fn close<W: Wire + 'static>(
     State(core): State<Arc<Core<W>>>,
@@ -139,35 +160,66 @@ pub(crate) async fn close<W: Wire + 'static>(
         .map(|Extension(Operator(id))| id)
         .ok_or(StatusCode::UNAUTHORIZED)?;
     let face = core.of(who);
-    let issues = kids(&face, id, "Issue")
-        .await
-        .map_err(|_| StatusCode::FORBIDDEN)?;
-    let pulls = kids(&face, id, "Pull")
-        .await
-        .map_err(|_| StatusCode::FORBIDDEN)?;
-    let labels = kids(&face, id, "repo:label")
-        .await
-        .map_err(|_| StatusCode::FORBIDDEN)?;
-    let milestones = kids(&face, id, "Milestone")
-        .await
-        .map_err(|_| StatusCode::FORBIDDEN)?;
+    let orders = sweep(&face, id).await.map_err(|_| StatusCode::FORBIDDEN)?;
     face.batch(async |tx| {
-        for key in &pulls {
-            tx.end("Pull", *key).await?;
+        for (unit, key) in &orders {
+            tx.end(unit, *key).await?;
         }
-        for key in &issues {
-            tx.end("Issue", *key).await?;
-        }
-        for key in &labels {
-            tx.end("repo:label", *key).await?;
-        }
-        for key in &milestones {
-            tx.end("Milestone", *key).await?;
-        }
-        tx.end("Repo", id).await?;
         Ok(())
     })
     .await
     .map_err(|_| StatusCode::CONFLICT)?;
     Ok(StatusCode::NO_CONTENT)
+}
+
+async fn sweep<W: Wire>(
+    face: &keel::Face<'_, W>,
+    id: i64,
+) -> Result<Vec<(&'static str, i64)>, keel::adapt::Error> {
+    let held = [id];
+    let issues = kids(face, "Issue", "repo", &held).await?;
+    let pulls = kids(face, "Pull", "repo", &held).await?;
+    let shields = kids(face, "Shield", "repo", &held).await?;
+    let projects = kids(face, "Project", "repo", &held).await?;
+    let reviews = kids(face, "Review", "pull", &pulls).await?;
+    let mut orders = Vec::new();
+    stack(
+        &mut orders,
+        "Note",
+        &kids(face, "Note", "review", &reviews).await?,
+    );
+    stack(&mut orders, "Review", &reviews);
+    stack(
+        &mut orders,
+        "Comment",
+        &kids(face, "Comment", "issue", &issues).await?,
+    );
+    stack(
+        &mut orders,
+        "Reaction",
+        &kids(face, "Reaction", "issue", &issues).await?,
+    );
+    stack(
+        &mut orders,
+        "Demand",
+        &kids(face, "Demand", "shield", &shields).await?,
+    );
+    stack(
+        &mut orders,
+        "Column",
+        &kids(face, "Column", "project", &projects).await?,
+    );
+    stack(&mut orders, "Pull", &pulls);
+    stack(&mut orders, "Issue", &issues);
+    stack(&mut orders, "Shield", &shields);
+    stack(&mut orders, "Project", &projects);
+    for leaf in LEAVES {
+        stack(&mut orders, leaf, &kids(face, leaf, "repo", &held).await?);
+    }
+    orders.push(("Repo", id));
+    Ok(orders)
+}
+
+fn stack(orders: &mut Vec<(&'static str, i64)>, unit: &'static str, keys: &[i64]) {
+    orders.extend(keys.iter().map(|key| (unit, *key)));
 }

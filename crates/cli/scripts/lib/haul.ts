@@ -811,6 +811,19 @@ export async function haul(root: string, mint: Issuer, port: number): Promise<vo
         throw new Error(`an archived repository took a verdict ${cast.status}`);
       }
     });
+
+    await check("a repository holding git truth closes and deletes", async () => {
+      const shut = await send(base, `/repo/${repo}/close`, seat, "POST");
+      await shut.body?.cancel();
+      if (shut.status !== 204) {
+        throw new Error(`closing a repository with references returned ${shut.status}`);
+      }
+      const gone = await send(base, `/repo/${repo}`, seat, "DELETE");
+      await gone.body?.cancel();
+      if (gone.status !== 404) {
+        throw new Error(`a closed repository lingered ${gone.status}`);
+      }
+    });
   } catch (err) {
     io.error(held.log());
     throw err;

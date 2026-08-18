@@ -376,7 +376,7 @@ try {
   });
 
   io.print("==> act 6: closure delete");
-  await check("repo deletion closes the subtree atomically", async () => {
+  await check("repo deletion closes the whole subtree atomically", async () => {
     const made = await want("/repo", {
       name: "doomed",
       visibility: "private",
@@ -385,12 +385,65 @@ try {
       archived: false,
     }, bob.head);
     const repo = num(made.id);
-    await want("/issue", {
+    const issue = await deed("Issue", {
       title: "orphan-to-be",
       body: "",
       closed: false,
       repo,
       author: bob.id,
+    }, bob.head);
+    await deed("Comment", { body: "a word", issue, author: bob.id }, bob.head);
+    await deed("Reaction", { emoji: "up", issue, actor: bob.id }, bob.head);
+    const pull = await deed("Pull", {
+      base: "refs/heads/main",
+      head: "refs/heads/feat",
+      weld: "",
+      repo,
+      issue,
+      author: bob.id,
+    }, bob.head);
+    const review = await deed("Review", {
+      state: "approve",
+      body: "lgtm",
+      pull,
+      reviewer: bob.id,
+    }, bob.head);
+    await deed("Note", { path: "src/main.rs", line: 1, body: "nit", review }, bob.head);
+    const shield = await deed("Shield", {
+      branch: "refs/heads/main",
+      force: false,
+      approvals: 1,
+      repo,
+    }, bob.head);
+    await deed("Demand", { context: "guard", shield }, bob.head);
+    const project = await deed("Project", { title: "board", closed: false, repo }, bob.head);
+    await deed("Column", { title: "todo", sort: 1, project }, bob.head);
+    await deed("Milestone", { title: "v1", due: 0, closed: false, repo }, bob.head);
+    await deed("repo:label", { name: "bug", color: "ff0000", repo }, bob.head);
+    await deed("Release", {
+      tag: "v1",
+      title: "one",
+      body: "",
+      draft: false,
+      repo,
+      author: bob.id,
+    }, bob.head);
+    await deed("Package", { name: "thing", kind: "cargo", version: "0.1.0", repo }, bob.head);
+    await deed("repo:runner", {
+      name: "linux",
+      token: "rt9",
+      labels: "docker",
+      status: "idle",
+      repo,
+    }, bob.head);
+    await deed("Run", { event: "push", status: "success", commit: "abc123", repo }, bob.head);
+    await deed("repo:secret", { name: "TOKEN", data: "ciphertext", repo }, bob.head);
+    await deed("Variable", { name: "REGION", value: "eu", repo }, bob.head);
+    await deed("repo:key", { title: "deploy", print: "ssh-ed25519 AAAA", repo }, bob.head);
+    await deed("Mirror", {
+      remote: "https://example.test/doomed.git",
+      interval: 60,
+      repo,
     }, bob.head);
     const direct = await fetch(`${base}/repo/${repo}`, {
       method: "DELETE",
@@ -414,6 +467,11 @@ try {
     await gone.body?.cancel();
     if (gone.status !== 404) {
       throw new Error(`repo lingered ${gone.status}`);
+    }
+    const kept = await query(`from Comment where issue = "${issue}"`, bob.head);
+    const rows = roots(kept);
+    if (Array.isArray(rows) && rows.length !== 0) {
+      throw new Error("a comment outlived its repository");
     }
   });
 
