@@ -37,7 +37,6 @@ roots = [
     "apps/*/tests",
     "crates/*/src",
     "crates/*/tests",
-    "docs",
 ]
 
 [scan]
@@ -52,7 +51,6 @@ include = [
     "apps/**/*.ts",
     "apps/**/*.tsx",
     "crates/**/*.rs",
-    "docs/**/*.md",
 ]
 
 [[vocabulary.term]]

@@ -1,0 +1,14 @@
+[[document]]
+strategy = "agent"
+source = [{ path = ".", seal = "090500aae9b2d127ce2b46ebc6f39c4a78f0f5f6b8e13d644c02bd6b484d440a" }]
+target-seal = "43e400385ee27a0f5773e36a2548f2bfdb5993af1315b234a66d1d6862316e35"
+
+[[document]]
+strategy = "architecture"
+source = [{ path = ".", seal = "090500aae9b2d127ce2b46ebc6f39c4a78f0f5f6b8e13d644c02bd6b484d440a" }]
+target-seal = "cd9ef4ade35319847e1d5eccbbb6c375a5799fea72c6f0b3d0bc3bddda4076d7"
+
+[[document]]
+strategy = "design"
+source = [{ path = ".", seal = "090500aae9b2d127ce2b46ebc6f39c4a78f0f5f6b8e13d644c02bd6b484d440a" }]
+target-seal = "33401ddaa362b2d0997b40e3d9f753ae19f35ee20a83a9bf2a7533f2a3c110d0"
