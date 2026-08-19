@@ -196,10 +196,11 @@ impl Repository {
         )
     }
 
-    pub fn upload(&self, want: &[u8]) -> Result<Vec<u8>, Error> {
-        Git::at(&self.root).feed(
+    pub fn upload(&self, want: &[u8], sink: &mut dyn std::io::Write) -> Result<(), Error> {
+        Git::at(&self.root).draw(
             ["upload-pack", "--stateless-rpc", "."],
             want,
+            sink,
             "cannot upload objects",
         )
     }

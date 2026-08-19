@@ -120,10 +120,12 @@ compresses the upload-pack request once the want list is big enough, and a real
 repository crosses that line long before the acts did. A body inflating past
 8 MB is refused rather than held.
 
-Both transports stream. `sift` reads the command section off the request until
-its flush, hands the rest to `index-pack` as it arrives, and never holds the
-pack: the memory a push costs is the depth of one channel, not the size of the
-push. The http half used to take a buffered body, which capped every push at
+Both transports stream, in both directions. `sift` reads the command section off
+the request until its flush, hands the rest to `index-pack` as it arrives, and
+never holds the pack; `draw` runs `upload-pack` and pours its output into the
+response as it is written. The memory a transfer costs is the depth of one
+channel, not the size of the repository — which also means the status line goes
+out before the outcome is known, the same bargain git's own protocol makes. The http half used to take a buffered body, which capped every push at
 the framework's two megabytes — small enough that no repository this estate
 keeps could have been pushed over http at all. `hall` is what the ssh crate
 asks of its host — admit a public key to an actor, resolve a path to a

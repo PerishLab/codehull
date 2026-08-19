@@ -1,14 +1,14 @@
 [[document]]
 strategy = "agent"
-source = [{ path = ".", seal = "25cf45c4c2f998e638fa8f87ec338ad51197c659e72ae119fe1290572c4e5cfb" }]
+source = [{ path = ".", seal = "9b800fd00c9e2d08d3f5aa000a8f6f5055382e40410447a73fcd10a64bf69485" }]
 target-seal = "43e400385ee27a0f5773e36a2548f2bfdb5993af1315b234a66d1d6862316e35"
 
 [[document]]
 strategy = "architecture"
-source = [{ path = ".", seal = "25cf45c4c2f998e638fa8f87ec338ad51197c659e72ae119fe1290572c4e5cfb" }]
-target-seal = "2dd38425d63bdcb4407242e3d14b9ed4ab04fd74427f6c7a370db944ff686a1b"
+source = [{ path = ".", seal = "9b800fd00c9e2d08d3f5aa000a8f6f5055382e40410447a73fcd10a64bf69485" }]
+target-seal = "ffd06370c50806989eb8b697c66741174ed4bea990bea920ab631038692a93b3"
 
 [[document]]
 strategy = "design"
-source = [{ path = ".", seal = "25cf45c4c2f998e638fa8f87ec338ad51197c659e72ae119fe1290572c4e5cfb" }]
+source = [{ path = ".", seal = "9b800fd00c9e2d08d3f5aa000a8f6f5055382e40410447a73fcd10a64bf69485" }]
 target-seal = "33401ddaa362b2d0997b40e3d9f753ae19f35ee20a83a9bf2a7533f2a3c110d0"

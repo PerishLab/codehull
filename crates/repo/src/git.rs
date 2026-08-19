@@ -87,6 +87,46 @@ impl<'a> Git<'a> {
         Ok(())
     }
 
+    pub fn draw<I, S>(
+        &self,
+        args: I,
+        input: &[u8],
+        sink: &mut dyn Write,
+        action: &str,
+    ) -> Result<(), Error>
+    where
+        I: IntoIterator<Item = S>,
+        S: AsRef<OsStr>,
+    {
+        let mut child = self
+            .command(args)
+            .stdin(Stdio::piped())
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .spawn()
+            .map_err(|error| io("cannot run git", error))?;
+        let mut hold = child
+            .stdin
+            .take()
+            .ok_or_else(|| Error::Io("git input is absent".into()))?;
+        hold.write_all(input)
+            .map_err(|error| io("cannot write git input", error))?;
+        drop(hold);
+        let mut held = child
+            .stdout
+            .take()
+            .ok_or_else(|| Error::Io("git output is absent".into()))?;
+        let moved = std::io::copy(&mut held, sink);
+        let output = child
+            .wait_with_output()
+            .map_err(|error| io("cannot wait for git", error))?;
+        moved.map_err(|error| io("cannot read git output", error))?;
+        if !output.status.success() {
+            return Err(refused(action, &output.stderr));
+        }
+        Ok(())
+    }
+
     pub fn feed<I, S>(&self, args: I, input: &[u8], action: &str) -> Result<Vec<u8>, Error>
     where
         I: IntoIterator<Item = S>,

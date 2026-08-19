@@ -73,5 +73,9 @@ name = "exec_request"
 description = "Foreign russh server trait method; the ssh adaptor implements it and cannot choose its name."
 name = "new_client"
 
+[[vocabulary.term]]
+description = "Foreign futures Stream trait method; the fetch body implements it and cannot choose its name."
+name = "poll_next"
+
 [word]
 single = true

@@ -120,6 +120,7 @@ dependencies = [
  "codehull-repo",
  "codehull-ssh",
  "flate2",
+ "futures-core",
  "http-body-util",
  "jsonwebtoken",
  "keel",

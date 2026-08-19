@@ -286,13 +286,13 @@ fn admits(plan: &Result<Plan, String>) -> bool {
     plan.as_ref().is_ok_and(|plan| plan.after.is_some())
 }
 
-pub(super) fn sent(kind: &'static str, body: Vec<u8>) -> Response {
+pub(super) fn sent(kind: &'static str, body: impl Into<Body>) -> Response {
     (
         [
             (header::CONTENT_TYPE, HeaderValue::from_static(kind)),
             (header::CACHE_CONTROL, HeaderValue::from_static("no-cache")),
         ],
-        body,
+        body.into(),
     )
         .into_response()
 }
