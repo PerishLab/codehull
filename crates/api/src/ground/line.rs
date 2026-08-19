@@ -43,21 +43,26 @@ pub(super) fn triple(text: &str) -> Option<Order> {
     order(text.as_bytes()).ok()
 }
 
-pub(super) fn orders(body: &[u8]) -> Result<(Vec<Order>, &[u8]), String> {
+pub(super) fn orders(body: &[u8]) -> Result<Option<(Vec<Order>, usize)>, String> {
     let mut held = Vec::new();
     let mut rest = body;
+    let mut at = 0;
     while rest.len() >= 4 {
         let size = span(&rest[..4])?;
         if size == 0 {
-            return Ok((held, &rest[4..]));
+            return Ok(Some((held, at + 4)));
         }
-        if size < 4 || size > rest.len() {
+        if size < 4 {
             return Err("packet length is out of range".into());
+        }
+        if size > rest.len() {
+            return Ok(None);
         }
         held.push(order(&rest[4..size])?);
         rest = &rest[size..];
+        at += size;
     }
-    Err("update request has no flush".into())
+    Ok(None)
 }
 
 fn span(head: &[u8]) -> Result<usize, String> {

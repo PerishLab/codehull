@@ -103,14 +103,12 @@ impl Repository {
         Pen::open(&self.root, hold)
     }
 
-    pub fn index(&self, pen: &Pen, pack: &[u8]) -> Result<(), Error> {
-        Git::pen(&self.root, pen.hold())
-            .feed(
-                ["index-pack", "--stdin", "--fix-thin"],
-                pack,
-                "cannot index objects",
-            )
-            .map(drop)
+    pub fn index(&self, pen: &Pen, src: &mut dyn std::io::Read) -> Result<(), Error> {
+        Git::pen(&self.root, pen.hold()).pour(
+            ["index-pack", "--stdin", "--fix-thin"],
+            src,
+            "cannot index objects",
+        )
     }
 
     pub fn ancestor(&self, old: &Object, new: &Object) -> Result<bool, Error> {

@@ -15,6 +15,7 @@ path = "src/main.rs"
 clap = { workspace = true }
 axum = { workspace = true }
 flate2 = { workspace = true }
+http-body-util = { workspace = true }
 base64 = { workspace = true }
 jsonwebtoken = { workspace = true }
 codehull-repo = { path = "../repo" }

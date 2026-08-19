@@ -1,5 +1,6 @@
 use crate::{Error, io};
 use std::ffi::OsStr;
+use std::io::Read;
 use std::io::Write;
 use std::path::Path;
 use std::process::{Command, Output, Stdio};
@@ -53,6 +54,37 @@ impl<'a> Git<'a> {
         S: AsRef<OsStr>,
     {
         self.text(args, action).map(drop)
+    }
+
+    pub fn pour<I, S>(&self, args: I, src: &mut dyn Read, action: &str) -> Result<(), Error>
+    where
+        I: IntoIterator<Item = S>,
+        S: AsRef<OsStr>,
+    {
+        let mut child = self
+            .command(args)
+            .stdin(Stdio::piped())
+            .stdout(Stdio::null())
+            .stderr(Stdio::piped())
+            .spawn()
+            .map_err(|error| io("cannot run git", error))?;
+        let mut sink = child
+            .stdin
+            .take()
+            .ok_or_else(|| Error::Io("git input is absent".into()))?;
+        let moved = std::io::copy(src, &mut sink);
+        drop(sink);
+        let output = child
+            .wait_with_output()
+            .map_err(|error| io("cannot wait for git", error))?;
+        moved.map_err(|error| io("cannot write git input", error))?;
+        if !output.status.success() {
+            return Err(Error::Git(format!(
+                "{action}: {}",
+                String::from_utf8_lossy(&output.stderr).trim()
+            )));
+        }
+        Ok(())
     }
 
     pub fn feed<I, S>(&self, args: I, input: &[u8], action: &str) -> Result<Vec<u8>, Error>

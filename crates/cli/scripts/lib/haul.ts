@@ -76,6 +76,31 @@ export async function haul(root: string, mint: Issuer, port: number): Promise<vo
       }
     });
 
+    await check("a push larger than a buffered body carries", async () => {
+      const work = `${dir}/bulk`;
+      if (await clone(url, work, seat) !== 0) {
+        throw new Error("clone for the bulk push failed");
+      }
+      await bin("git").text(["-C", work, "config", "user.name", "Codehull Act"]);
+      await bin("git").text(["-C", work, "config", "user.email", "codehull@example.invalid"]);
+      const bulk = new Uint8Array(3 << 20);
+      for (let at = 0; at < bulk.length; at += 65536) {
+        crypto.getRandomValues(bulk.subarray(at, Math.min(at + 65536, bulk.length)));
+      }
+      await Deno.writeFile(`${work}/bulk`, bulk);
+      await bin("git").text(["-C", work, "add", "bulk"]);
+      await bin("git").text(["-C", work, "commit", "-q", "-m", "carry three megabytes"], {
+        stderr: "null",
+      });
+      const head = await bin("git").text(["-C", work, "rev-parse", "HEAD"]);
+      if (await push(work, seat, ["origin", "main"]) !== 0) {
+        throw new Error("a three megabyte push was refused");
+      }
+      if (await tip(base, repo, seat, "refs/heads/main") !== head) {
+        throw new Error("the bulk push did not land");
+      }
+    });
+
     await check("a stale lease is refused before it reaches the seat", async () => {
       const work = `${dir}/stale`;
       if (await clone(url, work, seat) !== 0) {

@@ -120,9 +120,13 @@ compresses the upload-pack request once the want list is big enough, and a real
 repository crosses that line long before the acts did. A body inflating past
 8 MB is refused rather than held.
 
-Over ssh the pack streams straight into `index-pack` rather than being
-buffered, which is what the http half should grow to. `hall` is what the ssh
-crate asks of its host — admit a public key to an actor, resolve a path to a
+Both transports stream. `sift` reads the command section off the request until
+its flush, hands the rest to `index-pack` as it arrives, and never holds the
+pack: the memory a push costs is the depth of one channel, not the size of the
+push. The http half used to take a buffered body, which capped every push at
+the framework's two megabytes — small enough that no repository this estate
+keeps could have been pushed over http at all. `hall` is what the ssh crate
+asks of its host — admit a public key to an actor, resolve a path to a
 repository seat — and `port` is the api side of it. A public key identifies by
 its material, never by its comment. That lookup is the one read running above
 the operator, because it runs before an operator exists, the same shape as

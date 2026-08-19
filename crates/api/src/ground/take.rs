@@ -1,13 +1,20 @@
 use super::line::{self, Order};
 use super::point::{Held, Point, sane};
-use super::{Dock, Fault, Reach, actor, admit, bad, thaw, work};
+use super::{CEILING, Dock, Fault, GZIP, Reach, actor, admit, bad, work};
 use axum::Extension;
-use axum::body::Bytes;
+use axum::body::{Body, Bytes};
 use axum::extract::{Path, State};
 use axum::http::{HeaderMap, HeaderValue, header};
 use axum::response::{IntoResponse, Response};
-use codehull_repo::{Object, Pen};
+use codehull_repo::{Object, Pen, Store};
+use flate2::read::GzDecoder;
+use http_body_util::BodyExt;
 use keel::{Operator, Wire};
+use std::io::{Cursor, Read};
+use std::sync::Arc;
+use tokio::sync::mpsc::{Receiver, channel};
+
+const FLOW: usize = 8;
 
 pub(super) const RECEIVE: &str = "git-receive-pack";
 pub(super) const CAPS: &str = "report-status delete-refs";
@@ -30,22 +37,17 @@ pub(super) async fn take<W: Wire + 'static>(
     Path(id): Path<i64>,
     op: Option<Extension<Operator>>,
     headers: HeaderMap,
-    body: Bytes,
+    body: Body,
 ) -> Result<Response, Fault> {
     let who = actor(op)?;
     let id = admit(&dock, id, who, Reach::Edit).await?;
-    let body = thaw(&headers, body)?;
     let point = Point {
         dock: &dock,
         who,
         id,
     };
     point.align().await?;
-    let (orders, pack) = line::orders(&body).map_err(bad)?;
-    let pen = match pack.is_empty() {
-        true => None,
-        false => Some(stow(&dock, id, pack).await?),
-    };
+    let (orders, pen) = intake(&dock, id, &headers, body).await?;
     let held = Take { point: &point, pen };
     Ok(sent(REPLY, held.settle(&orders).await))
 }
@@ -166,18 +168,107 @@ fn weigh(order: &Order, seats: &[(i64, String, String)], gone: &[Object]) -> Res
     })
 }
 
-async fn stow<W: Wire + 'static>(dock: &Dock<W>, id: u64, pack: &[u8]) -> Result<Pen, Fault> {
-    let store = dock.store.clone();
-    let pen = work(move || store.repository(id)?.pen()).await?;
-    let store = dock.store.clone();
-    let held = pack.to_vec();
-    let seat = pen.clone();
-    match work(move || store.repository(id)?.index(&seat, &held)).await {
-        Ok(()) => Ok(pen),
-        Err(fault) => {
-            let _ = work(move || pen.wipe()).await;
-            Err(fault)
+struct Bridge {
+    rx: Receiver<Bytes>,
+    held: Bytes,
+}
+
+impl Read for Bridge {
+    fn read(&mut self, out: &mut [u8]) -> std::io::Result<usize> {
+        while self.held.is_empty() {
+            match self.rx.blocking_recv() {
+                Some(next) => self.held = next,
+                None => return Ok(0),
+            }
         }
+        let size = out.len().min(self.held.len());
+        out[..size].copy_from_slice(&self.held[..size]);
+        self.held = self.held.slice(size..);
+        Ok(size)
+    }
+}
+
+async fn intake<W: Wire + 'static>(
+    dock: &Dock<W>,
+    id: u64,
+    headers: &HeaderMap,
+    body: Body,
+) -> Result<(Vec<Order>, Option<Pen>), Fault> {
+    let coded = headers
+        .get(header::CONTENT_ENCODING)
+        .and_then(|held| held.to_str().ok())
+        .is_some_and(|held| held.contains(GZIP));
+    let (tx, rx) = channel(FLOW);
+    let store = dock.store.clone();
+    let task = tokio::task::spawn_blocking(move || sift(store, id, coded, rx));
+    let mut body = body;
+    while let Some(frame) = body.frame().await {
+        let frame = frame.map_err(|error| bad(format!("cannot read the request: {error}")))?;
+        let Ok(data) = frame.into_data() else {
+            continue;
+        };
+        if tx.send(data).await.is_err() {
+            break;
+        }
+    }
+    drop(tx);
+    task.await.map_err(|_| bad("the request was dropped"))?
+}
+
+fn sift(
+    store: Arc<Store>,
+    id: u64,
+    coded: bool,
+    rx: Receiver<Bytes>,
+) -> Result<(Vec<Order>, Option<Pen>), Fault> {
+    let bridge = Bridge {
+        rx,
+        held: Bytes::new(),
+    };
+    let mut src: Box<dyn Read> = match coded {
+        true => Box::new(GzDecoder::new(bridge)),
+        false => Box::new(bridge),
+    };
+    let (orders, rest) = heads(&mut src)?;
+    let repo = store.repository(id).map_err(super::fault)?;
+    let mut src = Cursor::new(rest).chain(src);
+    let mut peek = [0u8; 1];
+    if src
+        .read(&mut peek)
+        .map_err(|error| bad(error.to_string()))?
+        == 0
+    {
+        return Ok((orders, None));
+    }
+    let pen = repo.pen().map_err(super::fault)?;
+    let mut src = Cursor::new(peek).chain(src);
+    match repo.index(&pen, &mut src) {
+        Ok(()) => Ok((orders, Some(pen))),
+        Err(error) => {
+            let _ = pen.wipe();
+            Err(super::fault(error))
+        }
+    }
+}
+
+fn heads(src: &mut dyn Read) -> Result<(Vec<Order>, Vec<u8>), Fault> {
+    let mut held = Vec::new();
+    let mut chunk = [0u8; 8192];
+    loop {
+        if let Some((orders, at)) = line::orders(&held).map_err(bad)? {
+            let rest = held.split_off(at);
+            return Ok((orders, rest));
+        }
+        if held.len() as u64 > CEILING {
+            return Err(bad("update request has no flush"));
+        }
+        let size = src
+            .read(&mut chunk)
+            .map_err(|error| bad(format!("cannot read the request: {error}")))?;
+        if size == 0 {
+            return Err(bad("update request has no flush"));
+        }
+        held.extend_from_slice(&chunk[..size]);
     }
 }
 
