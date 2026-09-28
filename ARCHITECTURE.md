@@ -7,7 +7,7 @@ speaking a protocol Codehull did not design onto rows Codehull does.
 
 ## Workspace
 
-- `crates/api` — the server and the keel caller (bin `api`). Routes, seam,
+- `crates/api` — the server and the keel caller (bin `codehull-api`). Routes, seam,
   warden, the ground plane, and the model declarations.
 - `crates/cli` — the client and the operator (bin `codehull`). Owns `act`.
 - `crates/repo` — the repository truth kernel: ordinary git plumbing behind a
