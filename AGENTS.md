@@ -49,10 +49,10 @@ running process, on a workstation. No plane turning green moves this.
   `ectropy.toml`.
 - **The whole prose surface of this repository is `AGENTS.md`,
   `ARCHITECTURE.md` and `DESIGN.md`.** Anything else belongs in the code, or in
-  the Concord task that owns the work. A fourth file is not a small exception;
+  the Issue that owns the work. A fourth file is not a small exception;
   it is the shape this surface was closed to prevent.
-- **Model changes are law-shaped: record the change in the Concord task that
-  owns it, then write the code.** This law once named a row in a hand-kept
+- **Model changes are law-shaped: record the change in the Issue that owns it,
+  then write the code.** This law once named a row in a hand-kept
   capability ledger. The ledger is gone because a matrix of what is done drifts
   against a repository that already answers that question, while what is *not*
   done is exactly what no file in here can hold.
