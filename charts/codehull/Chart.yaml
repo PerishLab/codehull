@@ -1,6 +1,6 @@
 apiVersion: v2
 name: codehull
-description: codehull delivery — api and web on kubernetes
+description: codehull delivery — the api on kubernetes
 type: application
-version: 0.3.0
-appVersion: "0.3.0"
+version: 0.0.0
+appVersion: "0.0.0"

@@ -12,7 +12,7 @@ note = "The deferred web plane; the seat is held so the delivery paradigm can re
 
 [[layout.seat]]
 path = "deploy"
-note = "The api image recipe and its baked configuration."
+note = "The local compose surface and its configuration."
 
 [[layout.seat]]
 path = ".cargo"
@@ -35,5 +35,34 @@ name = ["ARCHITECTURE.md", "DESIGN.md"]
 note = "Mechanism map and boundary doctrine."
 
 [[layout.file]]
+name = ["Containerfile"]
+note = "The codehull-api image wharf builds; it bakes in no configuration."
+
+[[layout.file]]
 name = ["codehull.toml", "docker-compose.yml", ".dockerignore"]
 note = "Local runtime configuration and the compose entry."
+
+[release]
+product = "codehull"
+authority = "https://releases.codehull.perish.uk"
+binaries = ["codehull", "codehull-api"]
+targets = [
+  "x86_64-unknown-linux-gnu",
+  "aarch64-apple-darwin",
+  "x86_64-pc-windows-msvc",
+]
+
+[release.binary.codehull-api]
+targets = ["x86_64-unknown-linux-gnu"]
+install = false
+
+[release.oci]
+registry = "ghcr.io"
+image = "perishlab/codehull"
+account = "PerishLab"
+binary = "codehull-api"
+
+[release.chart]
+registry = "ghcr.io"
+chart = "perishlab/codehull"
+account = "PerishLab"

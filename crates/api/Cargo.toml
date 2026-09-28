@@ -8,7 +8,7 @@ description = "the codehull server"
 publish = false
 
 [[bin]]
-name = "api"
+name = "codehull-api"
 path = "src/main.rs"
 
 [dependencies]

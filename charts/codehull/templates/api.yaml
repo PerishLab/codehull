@@ -39,6 +39,10 @@ spec:
             - sudo=kubernetes:{{ .Release.Name }}-sudo
           env:
             {{- include "codehull.store" . | nindent 12 }}
+          volumeMounts:
+            - name: config
+              mountPath: /codehull/codehull.toml
+              subPath: codehull.toml
       containers:
         - name: api
           image: "{{ .Values.api.image }}:{{ .Values.api.tag | default .Chart.AppVersion }}"
@@ -52,11 +56,14 @@ spec:
             {{- include "codehull.store" . | nindent 12 }}
             {{- include "codehull.seam" . | nindent 12 }}
             {{- include "codehull.seat" . | nindent 12 }}
-          {{- if .Values.api.repo.enabled }}
           volumeMounts:
+            - name: config
+              mountPath: /codehull/codehull.toml
+              subPath: codehull.toml
+            {{- if .Values.api.repo.enabled }}
             - name: seat
               mountPath: {{ .Values.api.repo.mount }}
-          {{- end }}
+            {{- end }}
           ports:
             - containerPort: {{ .Values.api.port }}
           readinessProbe:
@@ -65,12 +72,15 @@ spec:
               port: {{ .Values.api.port }}
             initialDelaySeconds: 3
             periodSeconds: 5
-      {{- if .Values.api.repo.enabled }}
       volumes:
+        - name: config
+          configMap:
+            name: {{ .Release.Name }}-config
+        {{- if .Values.api.repo.enabled }}
         - name: seat
           persistentVolumeClaim:
             claimName: {{ .Release.Name }}-seat
-      {{- end }}
+        {{- end }}
 ---
 apiVersion: v1
 kind: Service
