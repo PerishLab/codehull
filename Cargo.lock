@@ -969,7 +969,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "39cab71617ae0d63f51a36d69f866391735b51691dbda63cf6f96d042b63efeb"
 dependencies = [
  "libc",
- "windows-sys 0.61.2",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -1650,9 +1650,9 @@ dependencies = [
 
 [[package]]
 name = "keel"
-version = "0.11.1"
+version = "0.12.0"
 source = "sparse+https://cargo.perish.uk/"
-checksum = "e6aae441b747bc4e2919ad8889aad198a5076971c9d6b399b4be49dc20536b47"
+checksum = "8bdcf804ee4348131d25e0d0b4f1a538ca4ddcfb3b61a067f1ba5ad3fc7eb598"
 dependencies = [
  "axum",
  "getrandom 0.3.4",
@@ -1666,9 +1666,9 @@ dependencies = [
 
 [[package]]
 name = "keel-blob"
-version = "0.11.1"
+version = "0.12.0"
 source = "sparse+https://cargo.perish.uk/"
-checksum = "5dd297505ef6c5a2bcb38d62a343db771c6b0026756d6b4747cac137b7c6f1f4"
+checksum = "216c5851f3cb388d2f9fe96360ce94f3770072d22bdb7edb962d38ec1bcabec4"
 dependencies = [
  "axum",
  "keel",
@@ -1679,9 +1679,9 @@ dependencies = [
 
 [[package]]
 name = "keel-gate"
-version = "0.11.1"
+version = "0.12.0"
 source = "sparse+https://cargo.perish.uk/"
-checksum = "b1052d76d5ea108a972eb96b03a048c20234dfda679d9ef2b7b5ac69ea17a9aa"
+checksum = "15f0eee5b1c12a89290aa464bc649e911f7743a5043455e766a1b7aebecf0682"
 dependencies = [
  "axum",
  "getrandom 0.3.4",
@@ -1692,9 +1692,9 @@ dependencies = [
 
 [[package]]
 name = "keel-macro"
-version = "0.11.1"
+version = "0.12.0"
 source = "sparse+https://cargo.perish.uk/"
-checksum = "94e8175271149677b16f5571d4f555518c829be8fa25c9e988b62552b99a9845"
+checksum = "dc7b175480540b2fadf1c20c71b882b77a235a21d14840f53f8e14a3ff83d670"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -1703,9 +1703,9 @@ dependencies = [
 
 [[package]]
 name = "keel-relay"
-version = "0.11.1"
+version = "0.12.0"
 source = "sparse+https://cargo.perish.uk/"
-checksum = "2edf1af755af4665807517b2d55d0e405ae6636750d973305df0b817acbc9139"
+checksum = "9987c748afc6fb57e2bcab15c6285b23a50b8ce84dd798c1b39125bacedff623"
 dependencies = [
  "keel",
  "serde_json",
@@ -2608,7 +2608,7 @@ dependencies = [
  "errno",
  "libc",
  "linux-raw-sys",
- "windows-sys 0.61.2",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -3259,7 +3259,7 @@ dependencies = [
  "getrandom 0.4.3",
  "once_cell",
  "rustix",
- "windows-sys 0.61.2",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]

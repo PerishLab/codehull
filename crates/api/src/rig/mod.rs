@@ -1,10 +1,8 @@
 use keel::adapt::Error;
 use keel::{Core, Wire};
-use keel_gate::Gate;
+use keel_gate::{Gate, Seed};
 use keel_relay::Relay;
 use std::sync::Arc;
-
-mod grant;
 
 pub(crate) const SVC: &str = "codehull:svc";
 pub(crate) const ORG: &str = "codehull:org";
@@ -15,7 +13,7 @@ impl<W: Wire + 'static> Berth<'_, W> {
     pub(crate) async fn seed(&self) -> Result<Gate<W>, Error> {
         let gate = self.gate().await?;
         gate.seed().await?;
-        gate.sow(&grant::rows(&SEEDS)).await?;
+        gate.sow(&SEEDS).await?;
         self.relay().await?;
         Ok(gate)
     }
@@ -25,7 +23,7 @@ impl<W: Wire + 'static> Berth<'_, W> {
         if !gate.ready().await? {
             return Err(Error::Adapt("missing keel-gate bootstrap grants".into()));
         }
-        if !gate.sown(&grant::rows(&SEEDS)).await? {
+        if !gate.sown(&SEEDS).await? {
             return Err(Error::Adapt("missing codehull bootstrap grants".into()));
         }
         self.relay().await?;
@@ -60,14 +58,7 @@ pub(crate) async fn hail<W: Wire + 'static>(
     }
 }
 
-struct Seed {
-    who: &'static str,
-    verb: &'static str,
-    unit: &'static str,
-    scope: &'static str,
-}
-
-const SEEDS: [Seed; 17] = [
+const SEEDS: [Seed<'static>; 17] = [
     Seed {
         who: "anon",
         verb: "see",
