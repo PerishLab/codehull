@@ -118,8 +118,9 @@ mounts `codehull.toml` into both the bootstrap initContainer and the api
 container. Locally, `cargo build --release --locked --bin codehull-api`, copy
 `target/release/codehull-api` to the repository root (ignored), then
 `docker compose -f deploy/compose.yml up --build`. The image is Debian
-bookworm, so the binary must be linked against its glibc: build on a bookworm
-host or container. A `bootstrap` service runs before `api` and keeps sudo in a
+trixie (glibc 2.41), at least the glibc of wharf's ubuntu-24.04 build runner
+(2.39), so a released binary starts in it; a local binary must be built
+against a glibc no newer than the image's. A `bootstrap` service runs before `api` and keeps sudo in a
 volume `api` never mounts; `api` refuses to serve until `API_OIDC_ISSUER`
 names an issuer reachable from its container. The root `docker-compose.yml`
 holds only the postgres and MinIO the acts use.
