@@ -125,11 +125,10 @@ defend, and a wider token's holder cannot be stopped by asking who they are.
 
 ## Where the debts live
 
-The debts this repository still carries are recorded in the Concord task that
-owns each of them, not here. A file that lists what is done drifts against a
+The debts this repository still carries are recorded in the Issue that owns
+each of them, not here. A file that lists what is done drifts against a
 repository that already answers that question; a file that lists what is not
-done competes with the task record that has to hold it anyway. The unclosed
-parts of H1 — conflict presentation, cross-repository proposals, draft
-proposals, the unbounded git processes, the http body still buffered whole, and
-the objects a reference accepted and later abandoned — are named there, with
-the measurements that make them decisions rather than opinions.
+done competes with the Issue that has to hold it anyway. The unclosed parts of
+H1 — conflict presentation, cross-repository proposals, draft proposals, the
+unbounded git processes, the http body still buffered whole, and the objects a
+reference accepted and later abandoned — are named in PerishLab/codehull#11.
