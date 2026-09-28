@@ -23,7 +23,7 @@ only be advanced.
 |-------|----------|---------|
 | H1 | change plane: transport, real merge, verdicts, the gate | codehull |
 | H2 | registry plane: cargo sparse index and OCI distribution | codehull |
-| H3 | execution plane: runner registration, queue, dispatch, logs, workflow and action resolution, artifacts | hardrig, ironbed, plumb, actions, codehull |
+| H3 | execution plane: runner registration, queue, dispatch, logs, workflow and action resolution, artifacts | hardrig, ironbed, plumb, codehull |
 
 npm sits outside these stages: Codehull publishes no npm package, so that
 channel belongs to whoever needs it.
