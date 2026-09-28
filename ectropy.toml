@@ -2,6 +2,11 @@
 paths = ["apps/web/src/lib/components/**"]
 syntax = "style"
 
+[[boundary]]
+allow = ["tuple"]
+note = "keel-gate 0.11 Gate::sow and Gate::sown take grant seeds as positional (who, verb, unit, scope) tuples; this adapter is the one conversion from the named Seed"
+paths = ["crates/api/src/rig/grant.rs"]
+
 [comment]
 allow = false
 

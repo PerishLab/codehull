@@ -23,6 +23,13 @@ pub(super) struct At {
     commit: String,
 }
 
+struct Ruling {
+    key: i64,
+    context: String,
+    state: String,
+    note: String,
+}
+
 struct Court<'a, W: Wire> {
     dock: &'a Dock<W>,
     who: i64,
@@ -90,7 +97,7 @@ impl<W: Wire + 'static> Court<'_, W> {
             .at(commit)
             .await?
             .into_iter()
-            .find(|(_, name, _, _)| name == context);
+            .find(|ruling| ruling.context == context);
         let id = self.id.to_string();
         let hex = commit.hex().to_string();
         let context = context.to_owned();
@@ -99,7 +106,7 @@ impl<W: Wire + 'static> Court<'_, W> {
             .core
             .of(self.who)
             .batch(async |tx| {
-                if let Some((key, _, _, _)) = seen {
+                if let Some(Ruling { key, .. }) = seen {
                     tx.end("Verdict", key).await?;
                 }
                 tx.put(
@@ -119,7 +126,7 @@ impl<W: Wire + 'static> Court<'_, W> {
             .map_err(|_| deny())
     }
 
-    async fn at(&self, commit: &Object) -> Result<Vec<(i64, String, String, String)>, Fault> {
+    async fn at(&self, commit: &Object) -> Result<Vec<Ruling>, Fault> {
         let (id, hex) = (self.id, commit.hex());
         let pack = self
             .dock
@@ -134,29 +141,29 @@ impl<W: Wire + 'static> Court<'_, W> {
             .rows()
             .iter()
             .filter_map(|row| {
-                Some((
-                    row.key(),
-                    row.text("context")?.to_owned(),
-                    row.text("state")?.to_owned(),
-                    row.text("note")?.to_owned(),
-                ))
+                Some(Ruling {
+                    key: row.key(),
+                    context: row.text("context")?.to_owned(),
+                    state: row.text("state")?.to_owned(),
+                    note: row.text("note")?.to_owned(),
+                })
             })
             .collect())
     }
 }
 
-fn entry(held: &(i64, String, String, String)) -> Value {
-    json!({ "context": held.1, "state": held.2, "note": held.3 })
+fn entry(held: &Ruling) -> Value {
+    json!({ "context": held.context, "state": held.state, "note": held.note })
 }
 
-fn rollup(held: &[(i64, String, String, String)]) -> Value {
+fn rollup(held: &[Ruling]) -> Value {
     if held.is_empty() {
         return Value::Null;
     }
-    if held.iter().any(|seen| seen.2 == FAILURE) {
+    if held.iter().any(|seen| seen.state == FAILURE) {
         return json!(FAILURE);
     }
-    if held.iter().any(|seen| seen.2 == PENDING) {
+    if held.iter().any(|seen| seen.state == PENDING) {
         return json!(PENDING);
     }
     json!(SUCCESS)
