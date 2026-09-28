@@ -1,0 +1,45 @@
+name: codehull-deploy
+services:
+  pg:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: codehull
+      POSTGRES_PASSWORD: codehull
+      POSTGRES_DB: codehull
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U codehull"]
+      interval: 2s
+      timeout: 3s
+      retries: 20
+  bootstrap:
+    image: codehull-api:dev
+    build:
+      context: ..
+      dockerfile: Containerfile
+    environment:
+      API_STORE_KIND: "pg"
+      API_STORE_URL: "host=pg port=5432 user=codehull password=codehull dbname=codehull"
+    command: ["bootstrap", "/codehull"]
+    volumes:
+      - ./codehull.toml:/codehull/codehull.toml:ro
+      - custody:/codehull/.local
+    depends_on:
+      pg:
+        condition: service_healthy
+  api:
+    image: codehull-api:dev
+    environment:
+      API_STORE_KIND: "pg"
+      API_STORE_URL: "host=pg port=5432 user=codehull password=codehull dbname=codehull"
+      API_OIDC_ISSUER: "${API_OIDC_ISSUER:-}"
+      API_OIDC_AUDIENCE: "codehull"
+    command: ["serve", "/codehull"]
+    ports:
+      - "8840:3400"
+    volumes:
+      - ./codehull.toml:/codehull/codehull.toml:ro
+    depends_on:
+      bootstrap:
+        condition: service_completed_successfully
+volumes:
+  custody:

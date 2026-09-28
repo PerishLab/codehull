@@ -10,8 +10,10 @@ mod warden;
 
 use clap::{Parser, Subcommand};
 use startup::Seat;
+use std::process::exit;
 
 #[derive(Parser)]
+#[command(name = "codehull-api", version = plumb::version!("CODEHULL"))]
 struct Cli {
     #[command(subcommand)]
     command: Option<Command>,
@@ -37,7 +39,15 @@ enum Command {
 
 #[tokio::main]
 async fn main() {
+    if let Err(error) = plumb::identity!("CODEHULL") {
+        eprintln!("codehull-api: {error}");
+        exit(1);
+    }
     let cli = Cli::parse();
+    if let Err(error) = plumb::identity::ready() {
+        eprintln!("codehull-api: {error}");
+        exit(1);
+    }
     let _stamp = cli.stamp;
     match cli.command {
         Some(Command::Bootstrap { root, artifacts }) => Seat(&root).bootstrap(&artifacts).await,
@@ -48,5 +58,5 @@ async fn main() {
 
 pub(crate) fn halt(seat: &str, note: &str) -> ! {
     eprintln!("codehull: {seat}: {note}");
-    std::process::exit(1)
+    exit(1)
 }

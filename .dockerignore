@@ -1,10 +1,3 @@
-.git
-.local
-.task
-target
-node_modules
-dist
-apps
-crates
-docs
-charts
+*
+!Containerfile
+!codehull-api

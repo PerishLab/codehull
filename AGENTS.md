@@ -78,17 +78,51 @@ running process, on a workstation. No plane turning green moves this.
 
 ## Territory
 
-`crates/api` serves, `crates/cli` operates, `crates/repo` holds repository
-truth, `crates/ssh` is the second transport adaptor, `apps/web` is the web face,
-`deploy` holds the api image recipe and `charts/codehull` is the delivery. What each owns, and the mechanisms they
-land on, is `ARCHITECTURE.md`; why the boundary sits where it does is
-`DESIGN.md`.
+`crates/api` serves (package `api`, bin `codehull-api`), `crates/cli` operates
+(bin `codehull`), `crates/repo` holds repository truth, `crates/ssh` is the
+second transport adaptor, `apps/web` is the web face, the root `Containerfile`
+is the server image, `deploy` is the local compose surface and
+`charts/codehull` is the delivery. What each owns, and the mechanisms they land
+on, is `ARCHITECTURE.md`; why the boundary sits where it does is `DESIGN.md`.
 
 `apps/web` is a placeholder `index.html` only: the web plane is deferred, not
 deleted, and the pnpm workspace files hold its seat. When it returns, its
 components live under `apps/web/src/lib/components`, stay style-free, and take
 reusable visual behavior from the Design runtime; every version is pinned in
 the `pnpm-workspace.yaml` catalog and dependencies reference `catalog:` only.
+
+## Release
+
+Releases run through Plumb and wharf, never by hand. `plumb.toml` declares the
+product, its authority and two executables: the `codehull` CLI, archived and
+installed on every target, and the `codehull-api` server, linux only and never
+installed. No skill is declared, so each stable owes only its changelog. Under
+one marker wharf publishes the CLI archives, the image
+`ghcr.io/perishlab/codehull:<version>` carrying `codehull-api`, and the chart
+`oci://ghcr.io/perishlab/charts/codehull`. `plumb release open` cuts
+`release/<version>` from a guarded `main`, `plumb release stamp` marks it,
+`plumb ship dispatch` hands the marker to wharf, and the changelog is consigned
+with `plumb depot consign --kind changelog --dir`; `plumb release owed` lists
+what is still owed.
+
+Both executables call `plumb::identity!("CODEHULL")` and print
+`<binary> <marker>` from `--version`. An unbound build answers `--version` with
+`<binary> unbound` and refuses every other operation. The server keeps package
+`api`, so its configuration cascade stays under the `API_` prefix over
+`codehull.toml`.
+
+The root `Containerfile` takes a build context of only itself and a
+`codehull-api` binary beside it, and bakes in no configuration: the chart
+declares version `0.0.0`, wharf stamps the marker onto it, and its ConfigMap
+mounts `codehull.toml` into both the bootstrap initContainer and the api
+container. Locally, `cargo build --release --locked --bin codehull-api`, copy
+`target/release/codehull-api` to the repository root (ignored), then
+`docker compose -f deploy/compose.yml up --build`. The image is Debian
+bookworm, so the binary must be linked against its glibc: build on a bookworm
+host or container. A `bootstrap` service runs before `api` and keeps sudo in a
+volume `api` never mounts; `api` refuses to serve until `API_OIDC_ISSUER`
+names an issuer reachable from its container. The root `docker-compose.yml`
+holds only the postgres and MinIO the acts use.
 
 Plumb's pre-commit guard proves every commit against its exact staged tree, and
 `plumb guard .` shows what it runs. The deno act scripts under

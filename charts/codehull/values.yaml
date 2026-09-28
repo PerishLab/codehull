@@ -1,5 +1,5 @@
 api:
-  image: git.perish.top/perishlab/codehull-api
+  image: ghcr.io/perishlab/codehull
   # tag defaults to Chart.appVersion; override only to pin a different image
   tag: ""
   # A released tag is immutable, so IfNotPresent is right for delivery. Set
@@ -25,14 +25,9 @@ api:
     mount: /codehull/ground
     # A provisioned volume arrives owned by root, and the api runs as 10001, so
     # without this the store cannot even reserve its draft directory inside the
-    # mount. The number is the group pinned in deploy/api.Dockerfile; change one
+    # mount. The number is the group pinned in the root Containerfile; change one
     # and you must change the other.
     group: 10001
-web:
-  image: git.perish.top/perishlab/codehull-web
-  tag: ""
-  pullPolicy: IfNotPresent
-  replicas: 1
 ingress:
   enabled: true
   className: ""
