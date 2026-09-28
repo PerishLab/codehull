@@ -1,23 +1,23 @@
 # Agents
 
-Codehull is a keel **caller** and, since the hosting law moved its boundary,
-the estate's own forge. It declares models, relations and seed grants, and it
-hosts git itself; it never reaches into engine territory, where reign,
-lifecycle, authority, events and cache are keel's. The engine's laws live in
+Codehull is a keel **caller** and, in the long run, the estate's replacement
+for GitHub. It declares models, relations and seed grants, and it hosts git
+itself; it never reaches into engine territory, where reign, lifecycle,
+authority, events and cache are keel's. The engine's laws live in
 `keel:AGENTS.md` and are obeyed from the outside.
 
-## Order
+## Position
 
-Codehull first hosts every capability this estate needs, and only then is it
-evaluated how Plumb should integrate that estate. The order is law, not
-preference: a consumer's current API is not modelling pressure on the thing it
-consumes. Deriving this surface from what Plumb happens to say today would be
-the same act as deriving it from Forgejo's payload shapes, with the vendor
-swapped. **Where the reading is unclear, treat the work as hosting.**
+Codehull is not required to be usable on day 0. It joins the wharf system first
+— built, guarded and delivered through Plumb and wharf on GitHub like every
+other product — and strengthens from there, one hosting plane at a time. A
+consumer's current API, Plumb's included, is not modelling pressure on a
+plane: each plane is derived from the protocol it speaks and from what this
+estate actually does.
 
-Three stages, ordered by how many parties each needs rather than by dependency.
-A stage needing one party can be finished; a stage needing five can only be
-advanced.
+The planes are ordered by how many parties each needs rather than by
+dependency. A plane needing one party can be finished; a plane needing five can
+only be advanced.
 
 | Stage | Delivers | Parties |
 |-------|----------|---------|
@@ -25,11 +25,8 @@ advanced.
 | H2 | registry plane: cargo sparse index and OCI distribution | codehull |
 | H3 | execution plane: runner registration, queue, dispatch, logs, workflow and action resolution, artifacts | hardrig, ironbed, plumb, actions, codehull |
 
-H2 precedes H3 because Codehull's own build pulls crates from the estate
-registry and its own `ship` pushes images to it. With H2 after H3, hosting
-cannot be true of Codehull itself for the whole of H3. npm sits outside these
-stages: Codehull publishes no npm package, so that channel belongs to whoever
-needs it.
+npm sits outside these stages: Codehull publishes no npm package, so that
+channel belongs to whoever needs it.
 
 ## Acceptance
 
@@ -47,9 +44,9 @@ running process, on a workstation. No plane turning green moves this.
 
 ## Laws
 
-- Ectropy owns syntax law: single word, block and path at most four, no
-  comments. Plumb owns repository shape, the canonical `ectropy.toml`, and the
-  closed document surface.
+- Ectropy owns syntax law: single word, block at most four, path at most
+  three, no comments. Plumb owns repository shape and the canonical
+  `ectropy.toml`.
 - **The whole prose surface of this repository is `AGENTS.md`,
   `ARCHITECTURE.md` and `DESIGN.md`.** Anything else belongs in the code, or in
   the Concord task that owns the work. A fourth file is not a small exception;
@@ -63,8 +60,8 @@ running process, on a workstation. No plane turning green moves this.
   workspace sibling of keel; distribution follows keel's channel.
 - Engine gaps become keel issues and registry releases, never local
   workarounds.
-- Never commit on `main`. Branch, let the repository guard pass, then
-  `plumb land`.
+- Never commit on `main`. Branch, let the guard prove the commit, then land
+  it through Concord or `plumb land`.
 - One Concord member, one branch, one cut. A second cut on a member branch
   reuses a projection and stalls.
 
@@ -82,15 +79,18 @@ running process, on a workstation. No plane turning green moves this.
 ## Territory
 
 `crates/api` serves, `crates/cli` operates, `crates/repo` holds repository
-truth, `crates/ssh` is the second transport adaptor, `apps/web` is the web face
-and `charts/codehull` is the delivery. What each owns, and the mechanisms they
+truth, `crates/ssh` is the second transport adaptor, `apps/web` is the web face,
+`deploy` holds the api image recipe and `charts/codehull` is the delivery. What each owns, and the mechanisms they
 land on, is `ARCHITECTURE.md`; why the boundary sits where it does is
 `DESIGN.md`.
 
-Web components live under `apps/web/src/lib/components`, stay style-free, and
-take reusable visual behavior from the Design runtime. Every version is pinned
-in the `pnpm-workspace.yaml` catalog and dependencies reference `catalog:`
-only.
+`apps/web` is a placeholder `index.html` only: the web plane is deferred, not
+deleted, and the pnpm workspace files hold its seat. When it returns, its
+components live under `apps/web/src/lib/components`, stay style-free, and take
+reusable visual behavior from the Design runtime; every version is pinned in
+the `pnpm-workspace.yaml` catalog and dependencies reference `catalog:` only.
 
-The guard spans every plane: cargo fmt, clippy, test and release check; deno
-fmt and check; helm lint; `plumb doctor`; `ectropy`; and the acts.
+Plumb's pre-commit guard proves every commit against its exact staged tree, and
+`plumb guard .` shows what it runs. The deno act scripts under
+`crates/cli/scripts` sit outside biome; `deno fmt` and `deno check`, `helm
+lint` and the acts are run by hand when a change touches them.

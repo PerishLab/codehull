@@ -9,14 +9,13 @@ speaking a protocol Codehull did not design onto rows Codehull does.
 
 - `crates/api` — the server and the keel caller (bin `api`). Routes, seam,
   warden, the ground plane, and the model declarations.
-- `crates/cli` — the client and the operator (bin `codehull`). Owns `act` and
-  `ship`.
+- `crates/cli` — the client and the operator (bin `codehull`). Owns `act`.
 - `crates/repo` — the repository truth kernel: ordinary git plumbing behind a
   private crate, reached only through the api's ground routes.
 - `crates/ssh` — the second transport adaptor, with its own framing, credential
   translation and naming.
-- `apps/web` — the pnpm web application: node, vite, react, typescript, vitest,
-  biome.
+- `apps/web` — a placeholder `index.html` holding the deferred web plane's
+  seat.
 - `charts/codehull` — the helm delivery.
 
 ## Boot
@@ -38,11 +37,9 @@ keel itself reads no files and no environment.
 cargo run -p api -- bootstrap .
 cargo run -p api -- serve .
 cargo run --locked -p codehull -- act
-cargo run --locked -p codehull -- ship
 ```
 
-`act` runs the staged scenarios against a real process; `ship` publishes the
-api image and the chart from a clean `main` at one exact version.
+`act` runs the staged scenarios against a real process.
 
 ## The seam
 

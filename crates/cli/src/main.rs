@@ -1,6 +1,5 @@
 mod act;
 mod process;
-mod ship;
 
 use clap::{Parser, Subcommand};
 
@@ -18,13 +17,11 @@ struct Cli {
 #[derive(Subcommand)]
 enum Command {
     Act,
-    Ship,
 }
 
 fn main() {
     let result = match Cli::parse().command {
         Command::Act => act::run(),
-        Command::Ship => ship::run(),
     };
     if let Err(error) = result {
         eprintln!("{error}");

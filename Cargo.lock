@@ -112,7 +112,7 @@ dependencies = [
 
 [[package]]
 name = "api"
-version = "0.3.0"
+version = "0.0.0"
 dependencies = [
  "axum",
  "base64",
@@ -442,7 +442,7 @@ checksum = "0c9ea0ac24bc397ab3c98583a3c9ba74fa56b09a4449bbe172b9b1ddb016027a"
 
 [[package]]
 name = "codehull"
-version = "0.3.0"
+version = "0.0.0"
 dependencies = [
  "clap",
  "plumb",
@@ -450,11 +450,11 @@ dependencies = [
 
 [[package]]
 name = "codehull-repo"
-version = "0.3.0"
+version = "0.0.0"
 
 [[package]]
 name = "codehull-ssh"
-version = "0.3.0"
+version = "0.0.0"
 dependencies = [
  "rand 0.10.2",
  "russh",
@@ -992,6 +992,12 @@ dependencies = [
  "parking",
  "pin-project-lite",
 ]
+
+[[package]]
+name = "fastrand"
+version = "2.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "da7c62ceae207dd37ea5b845da6a0696c799f85e97da1ab5b7910be3c1c80223"
 
 [[package]]
 name = "ff"
@@ -1644,9 +1650,9 @@ dependencies = [
 
 [[package]]
 name = "keel"
-version = "0.10.4"
-source = "sparse+https://git.perish.top/api/packages/PerishLab/cargo/"
-checksum = "3708dda80f1db17bfe7bc19e61eba6013661bbc2f4706e4e834e3a59c226bf2b"
+version = "0.11.1"
+source = "sparse+https://cargo.perish.uk/"
+checksum = "e6aae441b747bc4e2919ad8889aad198a5076971c9d6b399b4be49dc20536b47"
 dependencies = [
  "axum",
  "getrandom 0.3.4",
@@ -1660,9 +1666,9 @@ dependencies = [
 
 [[package]]
 name = "keel-blob"
-version = "0.10.4"
-source = "sparse+https://git.perish.top/api/packages/PerishLab/cargo/"
-checksum = "91cc5027bb21b4081224b44cd514bde975a181acfe68522d603faca194696731"
+version = "0.11.1"
+source = "sparse+https://cargo.perish.uk/"
+checksum = "5dd297505ef6c5a2bcb38d62a343db771c6b0026756d6b4747cac137b7c6f1f4"
 dependencies = [
  "axum",
  "keel",
@@ -1673,9 +1679,9 @@ dependencies = [
 
 [[package]]
 name = "keel-gate"
-version = "0.10.4"
-source = "sparse+https://git.perish.top/api/packages/PerishLab/cargo/"
-checksum = "daa14a935542865cc42c49e12d9f4e820437a7741707f6a630ca3a3c6b52750d"
+version = "0.11.1"
+source = "sparse+https://cargo.perish.uk/"
+checksum = "b1052d76d5ea108a972eb96b03a048c20234dfda679d9ef2b7b5ac69ea17a9aa"
 dependencies = [
  "axum",
  "getrandom 0.3.4",
@@ -1686,9 +1692,9 @@ dependencies = [
 
 [[package]]
 name = "keel-macro"
-version = "0.10.4"
-source = "sparse+https://git.perish.top/api/packages/PerishLab/cargo/"
-checksum = "d33ee8207404c19d8c2aed528cda15f3cde65020cabead9be3f28a18707a7c9c"
+version = "0.11.1"
+source = "sparse+https://cargo.perish.uk/"
+checksum = "94e8175271149677b16f5571d4f555518c829be8fa25c9e988b62552b99a9845"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -1697,9 +1703,9 @@ dependencies = [
 
 [[package]]
 name = "keel-relay"
-version = "0.10.4"
-source = "sparse+https://git.perish.top/api/packages/PerishLab/cargo/"
-checksum = "84962609c656679b42178c4d86518a5377564c99daf01cbabc96f901f5e6be6a"
+version = "0.11.1"
+source = "sparse+https://cargo.perish.uk/"
+checksum = "2edf1af755af4665807517b2d55d0e405ae6636750d973305df0b817acbc9139"
 dependencies = [
  "keel",
  "serde_json",
@@ -1747,6 +1753,12 @@ dependencies = [
  "pkg-config",
  "vcpkg",
 ]
+
+[[package]]
+name = "linux-raw-sys"
+version = "0.12.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "32a66949e030da00e8c7d4434b251670a91556f4144941d37452769c25d58a53"
 
 [[package]]
 name = "litemap"
@@ -1936,6 +1948,15 @@ checksum = "071dfc062690e90b734c0b2273ce72ad0ffa95f0c74596bc250dcfd960262841"
 dependencies = [
  "autocfg",
  "libm",
+]
+
+[[package]]
+name = "object"
+version = "0.39.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2e5a6c098c7a3b6547378093f5cc30bc54fd361ce711e05293a5cc589562739b"
+dependencies = [
+ "memchr",
 ]
 
 [[package]]
@@ -2191,28 +2212,34 @@ checksum = "19f132c84eca552bf34cab8ec81f1c1dcc229b811638f9d283dceabe58c5569e"
 
 [[package]]
 name = "plumb"
-version = "0.26.0"
-source = "sparse+https://git.perish.top/api/packages/PerishLab/cargo/"
-checksum = "83f1bea214fd7bdcca2c8b400895a0a1a8b5d82ba7c0a10b03830481a234dd0b"
+version = "0.55.0"
+source = "sparse+https://cargo.perish.uk/"
+checksum = "42865437a687632e61d60245f7d4f158bd243e7888d435f8e499533ad9ee0307"
 dependencies = [
  "base64",
  "clap",
+ "object",
  "pin-project-lite",
  "plumb-macro",
+ "semver",
  "serde",
+ "serde_json",
  "sha2 0.10.9",
+ "tempfile",
  "toml",
+ "which",
 ]
 
 [[package]]
 name = "plumb-macro"
-version = "0.26.0"
-source = "sparse+https://git.perish.top/api/packages/PerishLab/cargo/"
-checksum = "e71b1946be1b0bfa48685f55d0bc82aab1270fd2e41904a7ff4da27a6502c057"
+version = "0.55.0"
+source = "sparse+https://cargo.perish.uk/"
+checksum = "d94ed33e35c386dab007ba6cac6b85fed740138bf6ceb3b034962e7bb351c50e"
 dependencies = [
  "proc-macro2",
  "quote",
  "syn 2.0.119",
+ "toml",
 ]
 
 [[package]]
@@ -2569,6 +2596,19 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cfcb3a22ef46e85b45de6ee7e79d063319ebb6594faafcf1c225ea92ab6e9b92"
 dependencies = [
  "semver",
+]
+
+[[package]]
+name = "rustix"
+version = "1.1.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "891efababe418670775f199f0d233d84843c227a0949a883ce15b37c78d6629d"
+dependencies = [
+ "bitflags",
+ "errno",
+ "libc",
+ "linux-raw-sys",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -3210,6 +3250,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "tempfile"
+version = "3.27.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "32497e9a4c7b38532efcdebeef879707aa9f794296a4f0244f6f69e9bc8574bd"
+dependencies = [
+ "fastrand",
+ "getrandom 0.3.4",
+ "once_cell",
+ "rustix",
+ "windows-sys 0.52.0",
+]
+
+[[package]]
 name = "thiserror"
 version = "2.0.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3621,6 +3674,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7dcd9d09a39985f5344844e66b0c530a33843579125f23e21e9f0f220850f22a"
 dependencies = [
  "rustls-pki-types",
+]
+
+[[package]]
+name = "which"
+version = "8.0.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bae2f2b2b816647a1cab1acc91f5bd20812d53cb344382635ec2181940c8034f"
+dependencies = [
+ "libc",
 ]
 
 [[package]]

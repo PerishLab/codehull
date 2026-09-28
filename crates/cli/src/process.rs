@@ -56,22 +56,6 @@ impl<'a> Process<'a> {
         }
     }
 
-    pub fn quiet<I, S>(&self, args: I, cwd: Option<&Path>) -> Result<bool, String>
-    where
-        I: IntoIterator<Item = S>,
-        S: AsRef<OsStr>,
-    {
-        let result = self
-            .build(cwd)
-            .args(args)
-            .stdin(Stdio::null())
-            .stdout(Stdio::null())
-            .stderr(Stdio::null())
-            .status()
-            .map_err(|error| format!("{}: {error}", self.name))?;
-        Ok(result.success())
-    }
-
     fn build(&self, cwd: Option<&Path>) -> Command {
         let mut command = Command::new(self.name);
         command.current_dir(cwd.unwrap_or_else(|| Path::new(".")));
