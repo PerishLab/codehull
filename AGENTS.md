@@ -99,11 +99,9 @@ installed on every target, and the `codehull-api` server, linux only and never
 installed. No skill is declared, so each stable owes only its changelog. Under
 one marker wharf publishes the CLI archives, the image
 `ghcr.io/perishlab/codehull:<version>` carrying `codehull-api`, and the chart
-`oci://ghcr.io/perishlab/charts/codehull`. `plumb release open` cuts
-`release/<version>` from a guarded `main`, `plumb release stamp` marks it,
-`plumb ship dispatch` hands the marker to wharf, and the changelog is consigned
-with `plumb depot consign --kind changelog --dir`; `plumb release owed` lists
-what is still owed.
+`oci://ghcr.io/perishlab/charts/codehull`. Releases follow Plumb's lifecycle;
+its verbs are `plumb release --help`, `plumb ship --help` and
+`plumb depot --help`.
 
 Both executables call `plumb::identity!("CODEHULL")` and print
 `<binary> <marker>` from `--version`. An unbound build answers `--version` with
