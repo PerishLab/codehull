@@ -1,14 +1,39 @@
-[[document]]
-strategy = "agent"
-source = [{ path = ".", seal = "9b800fd00c9e2d08d3f5aa000a8f6f5055382e40410447a73fcd10a64bf69485" }]
-target-seal = "43e400385ee27a0f5773e36a2548f2bfdb5993af1315b234a66d1d6862316e35"
+[layout]
 
-[[document]]
-strategy = "architecture"
-source = [{ path = ".", seal = "9b800fd00c9e2d08d3f5aa000a8f6f5055382e40410447a73fcd10a64bf69485" }]
-target-seal = "ffd06370c50806989eb8b697c66741174ed4bea990bea920ab631038692a93b3"
+[[layout.seat]]
+path = "crates/*"
+anchor = ["Cargo.toml"]
+note = "The codehull api server, a keel caller; the codehull CLI; the repository kernel; and the ssh adaptor."
 
-[[document]]
-strategy = "design"
-source = [{ path = ".", seal = "9b800fd00c9e2d08d3f5aa000a8f6f5055382e40410447a73fcd10a64bf69485" }]
-target-seal = "33401ddaa362b2d0997b40e3d9f753ae19f35ee20a83a9bf2a7533f2a3c110d0"
+[[layout.seat]]
+path = "apps/*"
+anchor = []
+note = "The deferred web plane; the seat is held so the delivery paradigm can return."
+
+[[layout.seat]]
+path = "deploy"
+note = "The api image recipe and its baked configuration."
+
+[[layout.seat]]
+path = ".cargo"
+note = "Cargo registry configuration."
+
+[[layout.seat]]
+path = ".runseal"
+note = "Committed Runseal resources."
+
+[[layout.file]]
+name = ["Cargo.toml", "Cargo.lock", "rust-toolchain.toml"]
+note = "Rust workspace anchors and the pinned toolchain."
+
+[[layout.file]]
+name = ["package.json", "pnpm-lock.yaml", "pnpm-workspace.yaml", "biome.json"]
+note = "The pnpm workspace anchors held for the web plane."
+
+[[layout.file]]
+name = ["ARCHITECTURE.md", "DESIGN.md"]
+note = "Mechanism map and boundary doctrine."
+
+[[layout.file]]
+name = ["codehull.toml", "docker-compose.yml", ".dockerignore"]
+note = "Local runtime configuration and the compose entry."
