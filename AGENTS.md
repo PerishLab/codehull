@@ -1,5 +1,10 @@
 # Agents
 
+Read the canonical [PerishLab delivery governance](https://github.com/PerishLab/.github/blob/main/GOVERNANCE.md)
+at work start and again before delivery or Issue closure. That document owns
+organization-wide Issue, pull-request and acceptance policy; this file keeps
+repository-specific constraints without copying that policy.
+
 Codehull is a keel **caller** and, in the long run, the estate's replacement
 for GitHub. It declares models, relations and seed grants, and it hosts git
 itself; it never reaches into engine territory, where reign, lifecycle,
