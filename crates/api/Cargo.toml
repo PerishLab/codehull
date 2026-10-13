@@ -12,6 +12,7 @@ name = "codehull-api"
 path = "src/main.rs"
 
 [dependencies]
+locus.workspace = true
 clap = { workspace = true }
 axum = { workspace = true }
 flate2 = { workspace = true }
@@ -30,3 +31,6 @@ serde = { workspace = true }
 serde_json = { workspace = true }
 tokio = { workspace = true }
 ureq = { workspace = true }
+
+[dev-dependencies]
+tempfile.workspace = true

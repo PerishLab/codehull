@@ -8,9 +8,15 @@ description = "the codehull client: gh for codehull"
 publish = false
 
 [dependencies]
+locus.workspace = true
+serde.workspace = true
+serde_json.workspace = true
 clap.workspace = true
 plumb.workspace = true
 
 [[bin]]
 name = "codehull"
 path = "src/main.rs"
+
+[dev-dependencies]
+tempfile.workspace = true

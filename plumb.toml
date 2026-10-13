@@ -42,8 +42,10 @@ note = "The codehull-api image wharf builds; it bakes in no configuration."
 name = ["codehull.toml", "docker-compose.yml", ".dockerignore"]
 note = "Local runtime configuration and the compose entry."
 
+[identity]
+ns = "codehull"
+
 [release]
-product = "codehull"
 authority = "https://releases.codehull.perish.uk"
 binaries = ["codehull", "codehull-api"]
 targets = [
