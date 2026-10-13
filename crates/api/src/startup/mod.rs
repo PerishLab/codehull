@@ -1,3 +1,7 @@
+pub(crate) mod observation;
+mod store;
+use store::memory;
+
 use crate::artifact::{self, Artifact};
 use crate::door::{close, found, propose};
 use crate::halt;
@@ -21,7 +25,12 @@ const PREFIX: &str = "/api";
 pub(crate) struct Seat<'a>(pub(crate) &'a str);
 
 impl Seat<'_> {
-    pub(crate) async fn bootstrap(&self, specs: &[String]) {
+    #[locus::trace(with = observer.map(crate::observation::Run::view))]
+    pub(crate) async fn bootstrap(
+        &self,
+        specs: &[String],
+        observer: Option<&crate::observation::Run>,
+    ) {
         let runtime = self.read();
         let sudo = match artifact::bootstrap(Path::new(self.0), specs) {
             Ok(sudo) => sudo,
@@ -110,13 +119,6 @@ async fn open(runtime: &Runtime) -> Postgres {
         halt("fresh", &err.to_string());
     }
     store
-}
-
-async fn memory() -> Sqlite {
-    match Sqlite::memory().await {
-        Ok(store) => store,
-        Err(err) => halt("store", &err.to_string()),
-    }
 }
 
 async fn start<W: Wire + 'static>(store: W, born: bool) -> Result<Core<W>, keel::adapt::Error> {

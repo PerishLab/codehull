@@ -9,11 +9,11 @@ mod startup;
 mod warden;
 
 use clap::{Parser, Subcommand};
-use startup::Seat;
+use startup::{Seat, observation};
 use std::process::exit;
 
 #[derive(Parser)]
-#[command(name = "codehull-api", version = plumb::version!("CODEHULL"))]
+#[command(name = "codehull-api", version = plumb::version!("CODEHULL"), after_help = "Only finite bootstrap CLI observation can be enabled in the platform codehull home config.toml [locus] enabled = true. It defaults off. Buffer is state/locus; endpoint overrides LOCUS_API, then http://127.0.0.1:43308. Serve initializes no observer. Process exit and abort leave incomplete Source records; no return is invented.")]
 struct Cli {
     #[command(subcommand)]
     command: Option<Command>,
@@ -50,7 +50,13 @@ async fn main() {
     }
     let _stamp = cli.stamp;
     match cli.command {
-        Some(Command::Bootstrap { root, artifacts }) => Seat(&root).bootstrap(&artifacts).await,
+        Some(Command::Bootstrap { root, artifacts }) => {
+            let observer = observation::Run::start("api.bootstrap");
+            Seat(&root).bootstrap(&artifacts, observer.as_ref()).await;
+            if let Some(observer) = observer {
+                observer.finish(0);
+            }
+        }
         Some(Command::Serve { root }) => Seat(&root).serve().await,
         None => Seat(&cli.root).serve().await,
     }

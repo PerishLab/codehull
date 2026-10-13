@@ -127,9 +127,11 @@ dependencies = [
  "keel-blob",
  "keel-gate",
  "keel-relay",
+ "locus",
  "plumb",
  "serde",
  "serde_json",
+ "tempfile",
  "tokio",
  "ureq",
 ]
@@ -445,7 +447,11 @@ name = "codehull"
 version = "0.0.0"
 dependencies = [
  "clap",
+ "locus",
  "plumb",
+ "serde",
+ "serde_json",
+ "tempfile",
 ]
 
 [[package]]
@@ -969,7 +975,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "39cab71617ae0d63f51a36d69f866391735b51691dbda63cf6f96d042b63efeb"
 dependencies = [
  "libc",
- "windows-sys 0.52.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -1650,9 +1656,9 @@ dependencies = [
 
 [[package]]
 name = "keel"
-version = "0.13.0"
+version = "0.17.0"
 source = "sparse+https://cargo.perish.uk/"
-checksum = "e61cb2ee6f8765eba67f0aa74c78773980334e836e101440f70a7aa7542ae49e"
+checksum = "31d5e629e04787027ec9fc8acb146070c1378eb155615def9d663f934bc790ad"
 dependencies = [
  "axum",
  "getrandom 0.3.4",
@@ -1661,14 +1667,15 @@ dependencies = [
  "serde_json",
  "sha2 0.10.9",
  "sqlx",
+ "sqlx-core",
  "tokio",
 ]
 
 [[package]]
 name = "keel-blob"
-version = "0.13.0"
+version = "0.17.0"
 source = "sparse+https://cargo.perish.uk/"
-checksum = "de2568c563f0e66d254d26fcf241027853248f4ea25d9f04bc44ea8d5f8050e2"
+checksum = "4e926d09b08cd97553d0a81adf52942bf6944070f572ff4b399d99d1f52f8406"
 dependencies = [
  "axum",
  "keel",
@@ -1679,9 +1686,9 @@ dependencies = [
 
 [[package]]
 name = "keel-gate"
-version = "0.13.0"
+version = "0.17.0"
 source = "sparse+https://cargo.perish.uk/"
-checksum = "94f00b7a381030f08d0d5b97176b69a0e27e3c6d3e02e8ac5ec1beb23f56c0b8"
+checksum = "ea3cbefb420e217671344d3fd6ceec768f346dd08e9d86f0ed84e2c0530d97cc"
 dependencies = [
  "axum",
  "getrandom 0.3.4",
@@ -1692,9 +1699,9 @@ dependencies = [
 
 [[package]]
 name = "keel-macro"
-version = "0.13.0"
+version = "0.17.0"
 source = "sparse+https://cargo.perish.uk/"
-checksum = "071c991b980d9b6e0f07f10c799f2a6d7370bfea70efa59e82780d7e38e86709"
+checksum = "e57a2c5daaed9e355a0afd6bc6b692640aa61a46817017fb0b92a225822c4c0a"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -1703,9 +1710,9 @@ dependencies = [
 
 [[package]]
 name = "keel-relay"
-version = "0.13.0"
+version = "0.17.0"
 source = "sparse+https://cargo.perish.uk/"
-checksum = "ef4f93ecca8449354e80e68ff957c5661be9e06dc17eec49f7d459d1c3341b63"
+checksum = "3e01f2116684e8e7bb92b7419b8b72f8254e1e6b84b3dacb74e61b0a83146192"
 dependencies = [
  "keel",
  "serde_json",
@@ -1779,6 +1786,29 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "224399e74b87b5f3557511d98dff8b14089b3dadafcab6bb93eab67d3aace965"
 dependencies = [
  "scopeguard",
+]
+
+[[package]]
+name = "locus"
+version = "0.8.0"
+source = "sparse+https://cargo.perish.uk/"
+checksum = "78e1d2abd8dd7aedb88a81af37be2007d1f2f3db5db9fcc45a9e0472a2e9938a"
+dependencies = [
+ "getrandom 0.3.4",
+ "locus-macro",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
+name = "locus-macro"
+version = "0.8.0"
+source = "sparse+https://cargo.perish.uk/"
+checksum = "0855db4132cf3a0ad39ae14c5a608ef3ac6f951c5a5765e1e2c0fd448f29ab47"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.119",
 ]
 
 [[package]]
@@ -2212,9 +2242,9 @@ checksum = "19f132c84eca552bf34cab8ec81f1c1dcc229b811638f9d283dceabe58c5569e"
 
 [[package]]
 name = "plumb"
-version = "0.82.0"
+version = "0.95.0"
 source = "sparse+https://cargo.perish.uk/"
-checksum = "15a61620e9a7c27de64222fe49cec23768db0cfe3ed865732518bc0ab5637c33"
+checksum = "e2e79b22e1fe8fd143aa069b16f1380fad719cc6d20a6621e01e19832a8d1245"
 dependencies = [
  "base64",
  "clap",
@@ -2234,9 +2264,9 @@ dependencies = [
 
 [[package]]
 name = "plumb-macro"
-version = "0.82.0"
+version = "0.95.0"
 source = "sparse+https://cargo.perish.uk/"
-checksum = "5d885aeb263ff82d86619f7a9989647fa52b2212888443b1b52b48b383e7044c"
+checksum = "6fc75f388d9bb1b826c986c5f1d0dd973347cc33d069356a8b123893d1461505"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -2610,7 +2640,7 @@ dependencies = [
  "errno",
  "libc",
  "linux-raw-sys",
- "windows-sys 0.52.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -3274,7 +3304,7 @@ dependencies = [
  "getrandom 0.4.3",
  "once_cell",
  "rustix",
- "windows-sys 0.52.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
