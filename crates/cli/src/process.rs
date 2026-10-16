@@ -19,13 +19,8 @@ impl<'a> Process<'a> {
         Self { name }
     }
 
-    #[locus::trace(with = observer.map(crate::observation::Run::view))]
-    pub fn output<I, S>(
-        &self,
-        args: I,
-        cwd: Option<&Path>,
-        observer: Option<&crate::observation::Run>,
-    ) -> Result<String, String>
+    #[locus::trace(with = plumb::observation::view())]
+    pub fn output<I, S>(&self, args: I, cwd: Option<&Path>) -> Result<String, String>
     where
         I: IntoIterator<Item = S>,
         S: AsRef<OsStr>,
@@ -45,13 +40,8 @@ impl<'a> Process<'a> {
             .to_owned())
     }
 
-    #[locus::trace(with = observer.map(crate::observation::Run::view))]
-    pub fn run<I, S>(
-        &self,
-        args: I,
-        cwd: Option<&Path>,
-        observer: Option<&crate::observation::Run>,
-    ) -> Result<(), String>
+    #[locus::trace(with = plumb::observation::view())]
+    pub fn run<I, S>(&self, args: I, cwd: Option<&Path>) -> Result<(), String>
     where
         I: IntoIterator<Item = S>,
         S: AsRef<OsStr>,
@@ -78,8 +68,8 @@ impl<'a> Process<'a> {
     }
 }
 
-#[locus::trace(with = observer.map(crate::observation::Run::view))]
-pub fn root(observer: Option<&crate::observation::Run>) -> Result<PathBuf, String> {
-    let value = Process::new("git").output(["rev-parse", "--show-toplevel"], None, observer)?;
+#[locus::trace(with = plumb::observation::view())]
+pub fn root() -> Result<PathBuf, String> {
+    let value = Process::new("git").output(["rev-parse", "--show-toplevel"], None)?;
     Ok(PathBuf::from(value))
 }

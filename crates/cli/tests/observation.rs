@@ -41,6 +41,11 @@ fn buffered() {
             10
         );
     }
+    assert!(
+        atoms
+            .iter()
+            .all(|atom| atom["context"].get("codehull.fault").is_none())
+    );
     let text = serde_json::to_string(&atoms).unwrap();
     for private in [
         "private-environment",

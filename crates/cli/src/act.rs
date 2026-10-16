@@ -2,9 +2,9 @@ use std::ffi::OsString;
 
 use crate::process;
 
-#[locus::trace(with = observer.map(crate::observation::Run::view))]
-pub fn run(observer: Option<&crate::observation::Run>) -> Result<(), String> {
-    let root = process::root(observer)?;
+#[locus::trace(with = plumb::observation::view())]
+pub fn run() -> Result<(), String> {
+    let root = process::root()?;
     let base = root.join("crates/cli/scripts");
     let args: Vec<OsString> = [
         "run",
@@ -22,5 +22,5 @@ pub fn run(observer: Option<&crate::observation::Run>) -> Result<(), String> {
         base.join("act.ts").into_os_string(),
     ])
     .collect();
-    process::Process::new("deno").run(args, Some(&root), observer)
+    process::Process::new("deno").run(args, Some(&root))
 }
