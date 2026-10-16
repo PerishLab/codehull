@@ -51,8 +51,8 @@ async fn main() {
     let _stamp = cli.stamp;
     match cli.command {
         Some(Command::Bootstrap { root, artifacts }) => {
-            let observer = observation::Run::start("api.bootstrap");
-            Seat(&root).bootstrap(&artifacts, observer.as_ref()).await;
+            let observer = observation::start("api.bootstrap");
+            Seat(&root).bootstrap(&artifacts).await;
             if let Some(observer) = observer {
                 observer.finish(0);
             }

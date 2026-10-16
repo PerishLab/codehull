@@ -109,6 +109,11 @@ fn replay() {
             .count(),
         2
     );
+    assert!(
+        atoms
+            .iter()
+            .all(|atom| atom["context"].get("codehull.fault").is_none())
+    );
     let text = serde_json::to_string(&atoms).unwrap();
     assert!(!text.contains("private-artifact"));
     assert!(!text.contains("private-destination"));

@@ -33,8 +33,8 @@ fn main() {
         eprintln!("codehull: {error}");
         exit(1);
     }
-    let observer = observation::Run::start("act");
-    let result = execute(cli.command, observer.as_ref());
+    let observer = observation::start("act");
+    let result = execute(cli.command);
     if let Some(observer) = observer {
         observer.finish(if result.is_ok() { 0 } else { 1 });
     }
@@ -44,9 +44,9 @@ fn main() {
     }
 }
 
-#[locus::trace(with = observer.map(observation::Run::view))]
-fn execute(command: Command, observer: Option<&observation::Run>) -> Result<(), String> {
+#[locus::trace(with = plumb::observation::view())]
+fn execute(command: Command) -> Result<(), String> {
     match command {
-        Command::Act => act::run(observer),
+        Command::Act => act::run(),
     }
 }

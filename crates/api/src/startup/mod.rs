@@ -25,12 +25,8 @@ const PREFIX: &str = "/api";
 pub(crate) struct Seat<'a>(pub(crate) &'a str);
 
 impl Seat<'_> {
-    #[locus::trace(with = observer.map(crate::observation::Run::view))]
-    pub(crate) async fn bootstrap(
-        &self,
-        specs: &[String],
-        observer: Option<&crate::observation::Run>,
-    ) {
+    #[locus::trace(with = plumb::observation::view())]
+    pub(crate) async fn bootstrap(&self, specs: &[String]) {
         let runtime = self.read();
         let sudo = match artifact::bootstrap(Path::new(self.0), specs) {
             Ok(sudo) => sudo,
