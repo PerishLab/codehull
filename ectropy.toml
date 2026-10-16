@@ -1,3 +1,16 @@
+[[boundary]]
+allow = [
+    "file",
+    "block",
+    "comment",
+    "param",
+    "burr",
+    "receiver",
+    "path",
+]
+note = "Deno act under crates/cli/scripts is intentional tooling; keep Deno, absorb crates-ts, defer structural split"
+paths = ["crates/cli/scripts/**"]
+
 [[ban]]
 paths = ["apps/web/src/lib/components/**"]
 syntax = "style"
@@ -21,6 +34,7 @@ paths = [
     "apps/web/vite.config.ts",
     "crates/*/tests/**/*.rs",
     "crates/api/src/runtime.rs",
+    "crates/cli/scripts/**",
 ]
 syntax = "environment"
 
@@ -39,6 +53,7 @@ roots = [
     "apps/*/tests",
     "crates/*/src",
     "crates/*/tests",
+    "crates/cli/scripts",
 ]
 
 [scan]
@@ -53,6 +68,8 @@ include = [
     "apps/**/*.ts",
     "apps/**/*.tsx",
     "crates/**/*.rs",
+    "crates/**/*.ts",
+    "crates/**/*.tsx",
 ]
 
 [[vocabulary.term]]
