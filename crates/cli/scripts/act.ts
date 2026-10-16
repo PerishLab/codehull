@@ -25,16 +25,20 @@ await bin("cargo").run(["build", "--locked", "-p", "api"], { cwd: root });
 io.print(`==> boot api on ${base}`);
 const pg = Deno.env.get("API_STORE_URL");
 const s3 = Deno.env.get("API_BLOB_ENDPOINT");
-const env: Record<string, string> = pg
-  ? { API_STORE_KIND: "pg", API_STORE_URL: pg, API_FRESH: "true" }
-  : {};
-env.API_OIDC_ISSUER = mint.url;
-env.API_OIDC_AUDIENCE = "codehull";
-if (s3) {
-  env.API_BLOB_ENDPOINT = s3;
-  env.API_BLOB_KEY = Deno.env.get("API_BLOB_KEY") ?? "codehull";
-  env.API_BLOB_SECRET = Deno.env.get("API_BLOB_SECRET") ?? "codehull123";
-}
+const env: Record<string, string> = {
+  ...(pg
+    ? { API_STORE_KIND: "pg", API_STORE_URL: pg, API_FRESH: "true" }
+    : {}),
+  API_OIDC_ISSUER: mint.url,
+  API_OIDC_AUDIENCE: "codehull",
+  ...(s3
+    ? {
+      API_BLOB_ENDPOINT: s3,
+      API_BLOB_KEY: Deno.env.get("API_BLOB_KEY") ?? "codehull",
+      API_BLOB_SECRET: Deno.env.get("API_BLOB_SECRET") ?? "codehull123",
+    }
+    : {}),
+};
 if (pg) {
   io.print("==> store: postgres");
 }
