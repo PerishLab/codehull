@@ -29,15 +29,14 @@ export async function issuer(port: number): Promise<Issuer> {
   };
   const disco = { issuer: url, jwks_uri: `${url}/.well-known/jwks.json` };
 
+  const routes = new Map<string, unknown>([
+    ["/.well-known/openid-configuration", disco],
+    ["/.well-known/jwks.json", keys],
+  ]);
+
   const server = Deno.serve({ port, hostname: "127.0.0.1", onListen: () => {} }, (req) => {
-    const seat = new URL(req.url).pathname;
-    if (seat === "/.well-known/openid-configuration") {
-      return Response.json(disco);
-    }
-    if (seat === "/.well-known/jwks.json") {
-      return Response.json(keys);
-    }
-    return new Response("not found", { status: 404 });
+    const found = routes.get(new URL(req.url).pathname);
+    return found === undefined ? new Response("not found", { status: 404 }) : Response.json(found);
   });
 
   const mint = async (sub: string, teams: string[] = []): Promise<string> => {
