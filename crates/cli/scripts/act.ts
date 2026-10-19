@@ -26,9 +26,7 @@ io.print(`==> boot api on ${base}`);
 const pg = Deno.env.get("API_STORE_URL");
 const s3 = Deno.env.get("API_BLOB_ENDPOINT");
 const env: Record<string, string> = {
-  ...(pg
-    ? { API_STORE_KIND: "pg", API_STORE_URL: pg, API_FRESH: "true" }
-    : {}),
+  ...(pg ? { API_STORE_KIND: "pg", API_STORE_URL: pg, API_FRESH: "true" } : {}),
   API_OIDC_ISSUER: mint.url,
   API_OIDC_AUDIENCE: "codehull",
   ...(s3

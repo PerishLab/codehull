@@ -93,6 +93,10 @@ description = "Foreign russh server trait method; the ssh adaptor implements it 
 name = "new_client"
 
 [[vocabulary.term]]
+description = "Foreign Deno.serve option callback; the act issuer passes it and cannot choose its name."
+name = "onListen"
+
+[[vocabulary.term]]
 description = "Foreign futures Stream trait method; the fetch body implements it and cannot choose its name."
 name = "poll_next"
 
