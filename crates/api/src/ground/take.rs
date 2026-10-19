@@ -3,7 +3,6 @@ use super::point::{Held, Point, sane};
 use super::{CEILING, Dock, Fault, GZIP, Reach, actor, admit, bad, work};
 use axum::Extension;
 use axum::body::{Body, Bytes};
-use axum::extract::{Path, State};
 use axum::http::{HeaderMap, HeaderValue, header};
 use axum::response::{IntoResponse, Response};
 use codehull_repo::{Object, Pen, Store};
@@ -32,24 +31,26 @@ pub(super) struct Take<'a, W: Wire> {
     pub(super) pen: Option<Pen>,
 }
 
-pub(super) async fn take<W: Wire + 'static>(
-    State(dock): State<Dock<W>>,
-    Path(id): Path<i64>,
-    op: Option<Extension<Operator>>,
-    headers: HeaderMap,
-    body: Body,
-) -> Result<Response, Fault> {
-    let who = actor(op)?;
-    let id = admit(&dock, id, who, Reach::Edit).await?;
-    let point = Point {
-        dock: &dock,
-        who,
-        id,
-    };
-    point.align().await?;
-    let (orders, pen) = intake(&dock, id, &headers, body).await?;
-    let held = Take { point: &point, pen };
-    Ok(sent(REPLY, held.settle(&orders).await))
+impl<W: Wire + 'static> Dock<W> {
+    pub(super) async fn take(
+        &self,
+        id: i64,
+        op: Option<Extension<Operator>>,
+        headers: HeaderMap,
+        body: Body,
+    ) -> Result<Response, Fault> {
+        let who = actor(op)?;
+        let id = admit(self, id, who, Reach::Edit).await?;
+        let point = Point {
+            dock: self,
+            who,
+            id,
+        };
+        point.align().await?;
+        let (orders, pen) = intake(self, id, &headers, body).await?;
+        let held = Take { point: &point, pen };
+        Ok(sent(REPLY, held.settle(&orders).await))
+    }
 }
 
 impl<W: Wire + 'static> Take<'_, W> {
