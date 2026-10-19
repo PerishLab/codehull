@@ -60,28 +60,30 @@ pub(super) async fn refs<W: Wire + 'static>(
     Ok(sent(OFFER, body))
 }
 
-pub(super) async fn upload<W: Wire + 'static>(
-    State(dock): State<Dock<W>>,
-    Path(id): Path<i64>,
-    op: Option<Extension<Operator>>,
-    headers: HeaderMap,
-    want: Bytes,
-) -> Result<Response, Fault> {
-    let id = admit(&dock, id, actor(op)?, Reach::See).await?;
-    let want = thaw(&headers, want)?;
-    let store = dock.store.clone();
-    let (tx, rx) = channel(FLOW);
-    let seat = tx.clone();
-    tokio::task::spawn_blocking(move || {
-        let mut sink = Spout(seat);
-        let held = store
-            .repository(id)
-            .and_then(|repo| repo.upload(&want, &mut sink));
-        if let Err(error) = held {
-            let _ = tx.blocking_send(Err(std::io::Error::other(error.to_string())));
-        }
-    });
-    Ok(sent(REPLY, Body::from_stream(Flow(rx))))
+impl<W: Wire + 'static> Dock<W> {
+    pub(super) async fn upload(
+        &self,
+        id: i64,
+        op: Option<Extension<Operator>>,
+        headers: HeaderMap,
+        want: Bytes,
+    ) -> Result<Response, Fault> {
+        let id = admit(self, id, actor(op)?, Reach::See).await?;
+        let want = thaw(&headers, want)?;
+        let store = self.store.clone();
+        let (tx, rx) = channel(FLOW);
+        let seat = tx.clone();
+        tokio::task::spawn_blocking(move || {
+            let mut sink = Spout(seat);
+            let held = store
+                .repository(id)
+                .and_then(|repo| repo.upload(&want, &mut sink));
+            if let Err(error) = held {
+                let _ = tx.blocking_send(Err(std::io::Error::other(error.to_string())));
+            }
+        });
+        Ok(sent(REPLY, Body::from_stream(Flow(rx))))
+    }
 }
 
 struct Spout(Sender<Result<Bytes, std::io::Error>>);

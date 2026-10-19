@@ -7,7 +7,7 @@ mod take;
 mod verdict;
 mod weld;
 
-use axum::body::Bytes;
+use axum::body::{Body, Bytes};
 use axum::extract::{Path, State};
 use axum::http::{HeaderMap, StatusCode, header};
 use axum::routing::{get, post};
@@ -64,8 +64,26 @@ pub(crate) fn routes<W: Wire + 'static>(core: Arc<Core<W>>, store: Arc<Store>) -
                 .delete(point::drop::<W>),
         )
         .route("/repo/{id}/git/info/refs", get(haul::refs::<W>))
-        .route("/repo/{id}/git/git-upload-pack", post(haul::upload::<W>))
-        .route("/repo/{id}/git/git-receive-pack", post(take::take::<W>))
+        .route(
+            "/repo/{id}/git/git-upload-pack",
+            post(
+                |State(dock): State<Dock<W>>,
+                 Path(id): Path<i64>,
+                 op: Option<Extension<Operator>>,
+                 headers: HeaderMap,
+                 want: Bytes| async move { dock.upload(id, op, headers, want).await },
+            ),
+        )
+        .route(
+            "/repo/{id}/git/git-receive-pack",
+            post(
+                |State(dock): State<Dock<W>>,
+                 Path(id): Path<i64>,
+                 op: Option<Extension<Operator>>,
+                 headers: HeaderMap,
+                 body: Body| async move { dock.take(id, op, headers, body).await },
+            ),
+        )
         .route("/repo/{id}/git/merge", post(weld::weld::<W>))
         .route("/pull/{id}/weld", post(weld::pull::<W>))
         .route(
