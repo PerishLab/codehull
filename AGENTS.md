@@ -138,10 +138,14 @@ to the same lane's ensign, `http://api.ensign.internal:8080/api`: bring
 ensign's stack up first, since `api` refuses to serve until it answers.
 Silo, the maintained fork of MinIO's community server, is the lane's object
 store, and a one-shot `bucket` service creates `codehull` on it. The acts are
-Rust integration tests; the `tools` profile's `runner` runs them on the
-`codehull_acts` database and Silo: `docker compose -f deploy/compose.yml
---profile tools run --rm runner cargo test --locked -p api`. It mounts the
-checkout read-only and keeps cargo's registry and target on lane volumes.
+Rust integration tests. `--test acceptance` drives the production router
+(`api::router`) in-process; only the git and ssh transport reaches it over
+sockets the test holds. `--test smoke` keeps the real `codehull-api` for one
+served health check and the restart that reconstructs both authorities. The
+`tools` profile's `runner` runs them on the `codehull_acts` database and Silo:
+`docker compose -f deploy/compose.yml --profile tools run --rm runner cargo
+test --locked -p api`. It mounts the checkout read-only and keeps cargo's
+registry and target on lane volumes.
 
 Plumb's pre-commit guard proves every commit against its exact staged tree, and
 `plumb guard .` shows what it runs. `helm lint` is run by hand when a change

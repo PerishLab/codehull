@@ -1,6 +1,6 @@
 #![allow(dead_code)]
 
-use super::stage::Issuer;
+use super::issuer::Issuer;
 use serde_json::{Value, json};
 use ureq::http::Response;
 use ureq::{Agent, Body, RequestBuilder};
@@ -42,9 +42,18 @@ impl Seat {
     }
 }
 
+pub enum Load<'a> {
+    Bare,
+    Json(&'a str),
+    Raw(&'a [u8]),
+}
+
+pub type Inside = Box<dyn Fn(&str, &str, &Head, Load<'_>) -> Reply>;
+
 pub struct Wire {
     pub base: String,
     agent: Agent,
+    inside: Option<Inside>,
 }
 
 impl Wire {
@@ -57,7 +66,24 @@ impl Wire {
         Self {
             base: base.to_string(),
             agent,
+            inside: None,
         }
+    }
+
+    pub fn within(base: &str, inside: Inside) -> Self {
+        Self {
+            inside: Some(inside),
+            ..Self::new(base)
+        }
+    }
+
+    fn local(&self, verb: &str, url: &str, head: &Head, load: Load<'_>) -> Option<Reply> {
+        if !url.starts_with('/') {
+            return None;
+        }
+        self.inside
+            .as_ref()
+            .map(|inside| inside(verb, url, head, load))
     }
 
     pub fn url(&self, path: &str) -> String {
@@ -65,21 +91,27 @@ impl Wire {
     }
 
     pub fn post(&self, path: &str, body: Value, head: &Head) -> Reply {
-        let ask = dress(self.agent.post(self.url(path)), head);
-        reply(ask.send(body.to_string()))
+        let (url, text) = (self.url(path), body.to_string());
+        self.local("POST", &url, head, Load::Json(&text))
+            .unwrap_or_else(|| reply(dress(self.agent.post(url), head).send(text)))
     }
 
     pub fn patch(&self, path: &str, body: Value, head: &Head) -> Reply {
-        let ask = dress(self.agent.patch(self.url(path)), head);
-        reply(ask.send(body.to_string()))
+        let (url, text) = (self.url(path), body.to_string());
+        self.local("PATCH", &url, head, Load::Json(&text))
+            .unwrap_or_else(|| reply(dress(self.agent.patch(url), head).send(text)))
     }
 
     pub fn put(&self, path: &str, head: &Head) -> Reply {
-        reply(dress(self.agent.put(self.url(path)), head).send_empty())
+        let url = self.url(path);
+        self.local("PUT", &url, head, Load::Bare)
+            .unwrap_or_else(|| reply(dress(self.agent.put(url), head).send_empty()))
     }
 
     pub fn knock(&self, path: &str, head: &Head) -> Reply {
-        reply(dress(self.agent.post(self.url(path)), head).send_empty())
+        let url = self.url(path);
+        self.local("POST", &url, head, Load::Bare)
+            .unwrap_or_else(|| reply(dress(self.agent.post(url), head).send_empty()))
     }
 
     pub fn get(&self, path: &str, head: &Head) -> Reply {
@@ -87,11 +119,14 @@ impl Wire {
     }
 
     pub fn fetch(&self, url: &str, head: &Head) -> Reply {
-        reply(dress(self.agent.get(url), head).call())
+        self.local("GET", url, head, Load::Bare)
+            .unwrap_or_else(|| reply(dress(self.agent.get(url), head).call()))
     }
 
     pub fn cut(&self, path: &str, head: &Head) -> Reply {
-        reply(dress(self.agent.delete(self.url(path)), head).call())
+        let url = self.url(path);
+        self.local("DELETE", &url, head, Load::Bare)
+            .unwrap_or_else(|| reply(dress(self.agent.delete(url), head).call()))
     }
 
     pub fn upload(&self, url: &str, bytes: &[u8]) -> Reply {
@@ -99,6 +134,9 @@ impl Wire {
     }
 
     pub fn carry(&self, url: &str, head: &Head, bytes: &[u8]) -> Reply {
+        if let Some(held) = self.local("POST", url, head, Load::Raw(bytes)) {
+            return held;
+        }
         let mut ask = self.agent.post(url);
         for (key, value) in head {
             ask = ask.header(key, value);
@@ -221,7 +259,7 @@ fn dress<B>(ask: RequestBuilder<B>, head: &Head) -> RequestBuilder<B> {
 fn reply(result: Result<Response<Body>, ureq::Error>) -> Reply {
     let mut res = result.expect("request");
     let status = res.status().as_u16();
-    let head = res
+    let head: Head = res
         .headers()
         .iter()
         .map(|(key, value)| {
@@ -237,6 +275,10 @@ fn reply(result: Result<Response<Body>, ureq::Error>) -> Reply {
         .limit(64 << 20)
         .read_to_vec()
         .unwrap_or_default();
+    shape(status, head, bytes)
+}
+
+pub fn shape(status: u16, head: Head, bytes: Vec<u8>) -> Reply {
     let body = serde_json::from_slice(&bytes)
         .unwrap_or_else(|_| Value::String(String::from_utf8_lossy(&bytes).into_owned()));
     Reply {

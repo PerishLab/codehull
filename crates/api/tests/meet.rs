@@ -1,7 +1,7 @@
 #[path = "acceptance/issuer.rs"]
 #[allow(dead_code)]
 mod issuer;
-#[path = "acceptance/stage.rs"]
+#[path = "smoke/stage.rs"]
 mod stage;
 #[path = "acceptance/wire.rs"]
 mod wire;

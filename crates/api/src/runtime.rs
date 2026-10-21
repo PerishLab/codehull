@@ -1,43 +1,43 @@
 use plumb::config::{Cascade, Env};
 use std::path::Path;
 
-pub(crate) const NAME: &str = "codehull.toml";
+pub const NAME: &str = "codehull.toml";
 
 #[derive(Debug, Default, PartialEq, Cascade)]
-pub(crate) struct Runtime {
+pub struct Runtime {
     #[cascade(section)]
-    pub(crate) repo: Repo,
-    pub(crate) fresh: bool,
+    pub repo: Repo,
+    pub fresh: bool,
     #[cascade(section)]
-    pub(crate) listen: Listen,
+    pub listen: Listen,
     #[cascade(section)]
-    pub(crate) store: Store,
+    pub store: Store,
     #[cascade(section)]
-    pub(crate) cache: Cache,
+    pub cache: Cache,
     #[cascade(section)]
-    pub(crate) blob: Blob,
+    pub blob: Blob,
     #[cascade(section)]
-    pub(crate) oidc: Oidc,
+    pub oidc: Oidc,
     #[cascade(section)]
-    pub(crate) ssh: Ssh,
+    pub ssh: Ssh,
 }
 
 #[derive(Debug, Default, serde::Deserialize, PartialEq, Cascade)]
 #[cascade(section)]
 #[serde(default)]
-pub(crate) struct Ssh {
-    pub(crate) key: String,
-    pub(crate) host: String,
-    pub(crate) port: u16,
+pub struct Ssh {
+    pub key: String,
+    pub host: String,
+    pub port: u16,
 }
 
 #[derive(Debug, serde::Deserialize, PartialEq, Cascade)]
 #[cascade(section)]
 #[serde(default)]
-pub(crate) struct Listen {
-    pub(crate) host: String,
-    pub(crate) port: u16,
-    pub(crate) prefix: String,
+pub struct Listen {
+    pub host: String,
+    pub port: u16,
+    pub prefix: String,
 }
 
 impl Default for Listen {
@@ -52,7 +52,7 @@ impl Default for Listen {
 
 #[derive(Clone, Copy, Debug, Default, serde::Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "lowercase")]
-pub(crate) enum Kind {
+pub enum Kind {
     #[default]
     Memory,
     File,
@@ -73,15 +73,15 @@ impl Env for Kind {
 #[derive(Debug, Default, serde::Deserialize, PartialEq, Cascade)]
 #[cascade(section)]
 #[serde(default)]
-pub(crate) struct Store {
-    pub(crate) kind: Kind,
-    pub(crate) path: String,
-    pub(crate) url: String,
+pub struct Store {
+    pub kind: Kind,
+    pub path: String,
+    pub url: String,
 }
 
 #[derive(Clone, Copy, Debug, Default, serde::Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "lowercase")]
-pub(crate) enum Hold {
+pub enum Hold {
     #[default]
     Memory,
     None,
@@ -100,28 +100,28 @@ impl Env for Hold {
 #[derive(Debug, Default, serde::Deserialize, PartialEq, Cascade)]
 #[cascade(section)]
 #[serde(default)]
-pub(crate) struct Cache {
-    pub(crate) kind: Hold,
+pub struct Cache {
+    pub kind: Hold,
 }
 
 #[derive(Debug, Default, serde::Deserialize, PartialEq, Cascade)]
 #[cascade(section)]
 #[serde(default)]
-pub(crate) struct Blob {
-    pub(crate) endpoint: String,
-    pub(crate) key: String,
-    pub(crate) secret: String,
+pub struct Blob {
+    pub endpoint: String,
+    pub key: String,
+    pub secret: String,
 }
 
 #[derive(Debug, Default, serde::Deserialize, PartialEq, Cascade)]
 #[cascade(section)]
 #[serde(default)]
-pub(crate) struct Oidc {
-    pub(crate) issuer: String,
-    pub(crate) audience: String,
+pub struct Oidc {
+    pub issuer: String,
+    pub audience: String,
 }
 
-pub(crate) fn load(start: &Path) -> Result<Runtime, plumb::config::Error> {
+pub fn load(start: &Path) -> Result<Runtime, plumb::config::Error> {
     match plumb::config::discover(start, NAME) {
         Ok(found) => Runtime::resolve(Some(&found)),
         Err(_) => Runtime::resolve(None),
@@ -131,6 +131,6 @@ pub(crate) fn load(start: &Path) -> Result<Runtime, plumb::config::Error> {
 #[derive(Debug, Default, serde::Deserialize, PartialEq, Cascade)]
 #[cascade(section)]
 #[serde(default)]
-pub(crate) struct Repo {
-    pub(crate) path: String,
+pub struct Repo {
+    pub path: String,
 }

@@ -1,6 +1,5 @@
-use super::exe;
+use super::bench::Bench;
 use super::git::{Client, Source};
-use super::stage::Stage;
 use super::wire::{Seat, Wire};
 use serde_json::{Value, json};
 
@@ -39,11 +38,11 @@ impl Truth {
 
 #[test]
 fn ground() {
-    let mut stage = Stage::seat(exe(), false);
+    let stage = Bench::seat(false);
     let client = Client::new(&stage.nest);
     let seed = Source::new(&client, &stage.nest, true);
     let (main, topic) = (seed.main.as_str(), seed.topic.as_deref().expect("topic"));
-    let wire = Wire::new(&stage.base);
+    let wire = stage.wire();
     let seat = wire.join(&stage.issuer, "ground", &[]);
     let stranger = wire.join(&stage.issuer, "drifter", &[]);
     let repo = wire.private(&seat.head, "truth", seat.id);
@@ -102,18 +101,4 @@ fn ground() {
         topic,
         "a released name did not accept a new reference"
     );
-
-    stage.restart();
-    let truth = Truth {
-        wire: Wire::new(&stage.base),
-        ..truth
-    };
-    let head = &truth.seat.head;
-    assert_eq!(
-        truth.wire.get(&truth.path(""), head).status,
-        200,
-        "seat lost across restart"
-    );
-    assert_eq!(truth.tip(MAIN), topic, "main did not survive restart");
-    assert_eq!(truth.tip(TOPIC), topic, "topic did not survive restart");
 }

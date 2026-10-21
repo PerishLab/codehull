@@ -3,6 +3,7 @@ use crate::runtime::Runtime;
 use keel::{Core, Wire};
 use std::path::Path;
 use std::sync::Arc;
+use tokio::net::TcpListener;
 
 pub(super) fn mount<W: Wire + 'static>(
     core: Arc<Core<W>>,
@@ -16,21 +17,21 @@ pub(super) fn mount<W: Wire + 'static>(
         Ok(held) => held,
         Err(err) => halt("ssh", &err),
     };
-    let hall = Arc::new(crate::ground::port::Port::new(core, store));
     let (host, port) = (runtime.ssh.host.clone(), runtime.ssh.port);
     tokio::spawn(async move {
-        if let Err(err) = shell(hall, held, (&host, port)).await {
+        if let Err(err) = listen(core, store, held, (&host, port)).await {
             eprintln!("{}", serde_json::json!({ "role": "ssh", "halt": err }));
         }
     });
 }
 
-async fn shell(
-    hall: Arc<dyn codehull_ssh::Hall>,
+async fn listen<W: Wire + 'static>(
+    core: Arc<Core<W>>,
+    store: Arc<codehull_repo::Store>,
     held: codehull_ssh::PrivateKey,
     at: (&str, u16),
 ) -> Result<(), String> {
-    let socket = tokio::net::TcpListener::bind(at)
+    let socket = TcpListener::bind(at)
         .await
         .map_err(|error| format!("ssh listen: {error}"))?;
     let live = socket
@@ -40,5 +41,15 @@ async fn shell(
         "{}",
         serde_json::json!({ "role": "ssh", "endpoint": format!("ssh://{live}") })
     );
+    shell(core, store, held, socket).await
+}
+
+pub async fn shell<W: Wire + 'static>(
+    core: Arc<Core<W>>,
+    store: Arc<codehull_repo::Store>,
+    held: codehull_ssh::PrivateKey,
+    socket: TcpListener,
+) -> Result<(), String> {
+    let hall = Arc::new(crate::ground::port::Port::new(core, store));
     codehull_ssh::serve(hall, held, socket).await
 }
