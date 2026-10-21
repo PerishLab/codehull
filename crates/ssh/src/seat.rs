@@ -38,6 +38,7 @@ pub async fn serve(
     let config = Arc::new(Config {
         inactivity_timeout: Some(Duration::from_secs(600)),
         auth_rejection_time: Duration::from_secs(1),
+        auth_rejection_time_initial: Some(Duration::ZERO),
         keys: vec![held],
         preferred: Preferred::default(),
         ..Default::default()
