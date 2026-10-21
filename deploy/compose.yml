@@ -78,7 +78,7 @@ services:
     environment:
       API_STORE_KIND: "pg"
       API_STORE_URL: "host=pg port=5432 user=codehull password=codehull dbname=codehull"
-      API_OIDC_ISSUER: "${API_OIDC_ISSUER:-http://api.ensign.internal:3500/api}"
+      API_OIDC_ISSUER: "${API_OIDC_ISSUER:-http://api.ensign.internal:8080/api}"
       API_OIDC_AUDIENCE: "codehull"
     command: ["serve", "/codehull"]
     networks:
@@ -92,7 +92,7 @@ services:
         - CMD
         - bash
         - -c
-        - exec 3<>/dev/tcp/127.0.0.1/3400 && printf 'GET /api/health HTTP/1.0\r\n\r\n' >&3 && head -n1 <&3 | grep -q ' 200 '
+        - exec 3<>/dev/tcp/127.0.0.1/8080 && printf 'GET /api/health HTTP/1.0\r\n\r\n' >&3 && head -n1 <&3 | grep -q ' 200 '
       interval: 2s
       timeout: 3s
       retries: 20
@@ -136,7 +136,7 @@ services:
     command: ["cargo", "test", "--locked", "-p", "api", "--test", "meet"]
     environment:
       CARGO_TARGET_DIR: /target
-      ENSIGN_ISSUER: "http://api.ensign.internal:3500/api"
+      ENSIGN_ISSUER: "http://api.ensign.internal:8080/api"
       ENSIGN_KEY: "/perish/ensign/codehull.key"
     networks:
       default: {}
