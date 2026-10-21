@@ -6,7 +6,7 @@
 		"useIgnoreFile": true
 	},
 	"files": {
-		"includes": ["**", "!.runseal", "!charts", "!crates/cli/scripts"]
+		"includes": ["**", "!.runseal", "!charts"]
 	},
 	"formatter": {
 		"enabled": true

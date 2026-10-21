@@ -11,7 +11,7 @@ fn unbound() {
         return;
     }
     assert_eq!(line.trim(), "codehull unbound");
-    let refused = Command::new(binary).arg("act").output().unwrap();
+    let refused = Command::new(binary).output().unwrap();
     assert!(!refused.status.success());
     assert!(String::from_utf8_lossy(&refused.stderr).contains("unbound build"));
 }

@@ -118,17 +118,35 @@ The root `Containerfile` takes a build context of only itself and a
 `codehull-api` binary beside it, and bakes in no configuration: the chart
 declares version `0.0.0`, wharf stamps the marker onto it, and its ConfigMap
 mounts `codehull.toml` into both the bootstrap initContainer and the api
-container. Locally, `cargo build --release --locked --bin codehull-api`, copy
-`target/release/codehull-api` to the repository root (ignored), then
-`docker compose -f deploy/compose.yml up --build`. The image is Debian
+container. For a local stack, `cargo build --release --locked --bin
+codehull-api`, copy `target/release/codehull-api` to the repository root
+(ignored), then `docker compose -f deploy/compose.yml --profile stack up
+--build`. The image is Debian
 trixie (glibc 2.41), at least the glibc of wharf's ubuntu-24.04 build runner
 (2.39), so a released binary starts in it; a local binary must be built
 against a glibc no newer than the image's. A `bootstrap` service runs before `api` and keeps sudo in a
 volume `api` never mounts; `api` refuses to serve until `API_OIDC_ISSUER`
-names an issuer reachable from its container. The root `docker-compose.yml`
-holds only the postgres and MinIO the acts use.
+names an issuer reachable from its container.
+
+`deploy/compose.yml` is the only compose entry. The project is
+`codehull-<lane>` from `PERISH_LANE` (default `main`), every service, volume
+and network carries `perish.owner` and `perish.lane`, and nothing publishes a
+host port; services answer by name inside the lane (`pg`, `silo`, `api`).
+Silo, the maintained fork of MinIO's community server, is the lane's object
+store, and a one-shot `bucket` service creates `codehull` on it. The acts are
+Rust integration tests; the `tools` profile's `runner` runs them on the
+`codehull_acts` database and Silo: `docker compose -f deploy/compose.yml
+--profile tools run --rm runner cargo test --locked -p api`. It mounts the
+checkout read-only and keeps cargo's registry and target on lane volumes.
 
 Plumb's pre-commit guard proves every commit against its exact staged tree, and
-`plumb guard .` shows what it runs. The deno act scripts under
-`crates/cli/scripts` sit outside biome; `deno fmt` and `deno check`, `helm
-lint` and the acts are run by hand when a change touches them.
+`plumb guard .` shows what it runs. `helm lint` is run by hand when a change
+touches the chart.
+
+## Lanes
+
+A lane is yours when its resources carry `perish.owner=codehull` and your
+`perish.lane`: inspect it with `ps`, `logs` and `exec`, and `down -v` and
+rebuild it without asking. Host configuration, global toolchains,
+credentials, Integration checkouts and other lanes are outside it; stop and
+report instead of repairing them from inside a lane.
