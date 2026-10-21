@@ -1,10 +1,10 @@
 #![allow(dead_code)]
 
 pub use super::issuer::Issuer;
-use std::io::Read;
-use std::net::TcpListener;
+use serde_json::Value;
+use std::io::{BufRead, BufReader, Lines};
 use std::path::{Path, PathBuf};
-use std::process::{Child, Command, Stdio};
+use std::process::{Child, ChildStderr, Command, Stdio};
 use std::sync::{Arc, Mutex, MutexGuard};
 use std::time::Duration;
 
@@ -12,12 +12,7 @@ struct Unit;
 
 static SERIAL: Mutex<Unit> = Mutex::new(Unit);
 
-pub fn port() -> u16 {
-    TcpListener::bind("127.0.0.1:0")
-        .and_then(|probe| probe.local_addr())
-        .expect("free port")
-        .port()
-}
+const MEMORY: &str = "[listen]\nhost = \"127.0.0.1\"\nport = 0\nprefix = \"\"\n\n[store]\nkind = \"memory\"\n\n[cache]\nkind = \"memory\"\n";
 
 pub struct Stage {
     pub origin: String,
@@ -25,10 +20,12 @@ pub struct Stage {
     pub nest: PathBuf,
     pub issuer: Issuer,
     pub blob: bool,
+    pub ssh: Option<u16>,
     exe: PathBuf,
     env: Vec<(String, String)>,
     log: Arc<Mutex<String>>,
     child: Option<Child>,
+    shell: bool,
     room: tempfile::TempDir,
     hold: Option<MutexGuard<'static, Unit>>,
 }
@@ -61,54 +58,43 @@ impl Stage {
                 lookup("API_BLOB_SECRET", "codehull123"),
             ));
         }
-        let port = port();
-        let config = format!(
-            "[listen]\nhost = \"127.0.0.1\"\nport = {port}\nprefix = \"\"\n\n[store]\nkind = \"memory\"\n\n[cache]\nkind = \"memory\"\n"
-        );
-        let mut stage = Self::raise(exe, &config, port, env);
+        let mut stage = Self::raise(exe, MEMORY, env);
         stage.hold = hold;
         stage.blob = shed.is_some();
         stage
     }
 
     pub fn external(exe: &Path, issuer: &str) -> Self {
-        let port = port();
-        let config = format!(
-            "[listen]\nhost = \"127.0.0.1\"\nport = {port}\nprefix = \"\"\n\n[store]\nkind = \"memory\"\n\n[cache]\nkind = \"memory\"\n"
-        );
         let env = vec![("API_OIDC_ISSUER".to_string(), issuer.to_string())];
-        Self::raise(exe, &config, port, env)
+        Self::raise(exe, MEMORY, env)
     }
 
-    pub fn seat(exe: &Path, port: u16, ssh: Option<u16>) -> Self {
-        let mut config = format!(
-            "[listen]\nhost = \"127.0.0.1\"\nport = {port}\nprefix = \"\"\n\n[store]\nkind = \"file\"\npath = \"codehull.sqlite\"\n\n[cache]\nkind = \"memory\"\n\n[repo]\npath = \"seats\"\n"
-        );
-        if let Some(ssh) = ssh {
-            config.push_str(&format!(
-                "\n[ssh]\nkey = \"host.key\"\nhost = \"127.0.0.1\"\nport = {ssh}\n"
-            ));
+    pub fn seat(exe: &Path, ssh: bool) -> Self {
+        let mut config = "[listen]\nhost = \"127.0.0.1\"\nport = 0\nprefix = \"\"\n\n[store]\nkind = \"file\"\npath = \"codehull.sqlite\"\n\n[cache]\nkind = \"memory\"\n\n[repo]\npath = \"seats\"\n".to_string();
+        if ssh {
+            config.push_str("\n[ssh]\nkey = \"host.key\"\nhost = \"127.0.0.1\"\nport = 0\n");
         }
-        Self::raise(exe, &config, port, Vec::new())
+        Self::raise(exe, &config, Vec::new())
     }
 
-    fn raise(exe: &Path, config: &str, port: u16, env: Vec<(String, String)>) -> Self {
+    fn raise(exe: &Path, config: &str, env: Vec<(String, String)>) -> Self {
         let room = tempfile::tempdir().expect("stage room");
         let nest = room.path().to_path_buf();
         std::fs::write(nest.join("codehull.toml"), config).expect("stage config");
         let issuer = Issuer::new();
-        let origin = format!("http://127.0.0.1:{port}");
         let log = Arc::new(Mutex::new(String::new()));
         let mut stage = Self {
-            base: format!("{origin}/api"),
-            origin,
+            base: String::new(),
+            origin: String::new(),
             nest,
             issuer,
             blob: false,
+            ssh: None,
             exe: exe.to_path_buf(),
             env,
             log,
             child: None,
+            shell: config.contains("[ssh]"),
             room,
             hold: None,
         };
@@ -141,21 +127,44 @@ impl Stage {
             .stderr(Stdio::piped())
             .spawn()
             .expect("serve process");
-        let mut pipe = child.stderr.take().expect("serve stderr");
-        let log = self.log.clone();
-        std::thread::spawn(move || {
-            let mut chunk = [0u8; 4096];
-            while let Ok(read) = pipe.read(&mut chunk)
-                && read > 0
-            {
-                let text = String::from_utf8_lossy(&chunk[..read]);
-                log.lock()
-                    .unwrap_or_else(|poison| poison.into_inner())
-                    .push_str(&text);
-            }
-        });
+        let pipe = child.stderr.take().expect("serve stderr");
         self.child = Some(child);
+        self.listen(pipe);
         self.ready();
+    }
+
+    fn listen(&mut self, pipe: ChildStderr) {
+        let mut lines = BufReader::new(pipe).lines();
+        let (mut api, mut ssh) = (None, None);
+        while let Some(Ok(line)) = lines.next() {
+            self.note(&line);
+            let seen: Value = serde_json::from_str(&line).unwrap_or(Value::Null);
+            let at = seen["endpoint"].as_str().map(str::to_string);
+            let role = seen["role"].as_str();
+            if role == Some("ssh") && at.is_none() {
+                panic!("ssh exited before listening: {line}");
+            }
+            match role {
+                Some("api") => api = at,
+                Some("ssh") => ssh = at,
+                _ => {}
+            }
+            if let Some(at) = api.as_deref()
+                && (ssh.is_some() || !self.shell)
+            {
+                self.origin = at.to_string();
+                self.base = format!("{at}/api");
+                self.ssh = ssh.as_deref().map(tail);
+                drain(self.log.clone(), lines);
+                return;
+            }
+        }
+        self.stop();
+        panic!("serve exited before listening: {}", self.text());
+    }
+
+    fn note(&self, line: &str) {
+        note(&self.log, line);
     }
 
     pub fn crown(&self) -> Vec<(String, String)> {
@@ -227,6 +236,27 @@ impl Drop for Stage {
             eprintln!("api log:\n{}", self.text());
         }
     }
+}
+
+fn note(log: &Mutex<String>, line: &str) {
+    let mut held = log.lock().unwrap_or_else(|poison| poison.into_inner());
+    held.push_str(line);
+    held.push('\n');
+}
+
+fn drain(log: Arc<Mutex<String>>, lines: Lines<BufReader<ChildStderr>>) {
+    std::thread::spawn(move || {
+        for line in lines.map_while(Result::ok) {
+            note(&log, &line);
+        }
+    });
+}
+
+fn tail(at: &str) -> u16 {
+    at.rsplit(':')
+        .next()
+        .and_then(|port| port.parse().ok())
+        .unwrap_or_else(|| panic!("unreadable endpoint {at}"))
 }
 
 fn lookup(key: &str, fallback: &str) -> String {

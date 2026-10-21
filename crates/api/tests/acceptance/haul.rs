@@ -7,7 +7,7 @@ mod weld;
 
 use super::exe;
 use super::git::{Client, Source};
-use super::stage::{Stage, port};
+use super::stage::Stage;
 use super::wire::{Seat, Wire};
 use serde_json::json;
 use std::path::{Path, PathBuf};
@@ -24,18 +24,11 @@ pub struct Haul {
     pub url: String,
     pub bare: PathBuf,
     pub main: String,
-    pub ssh: u16,
 }
 
 impl Haul {
     fn new() -> Self {
-        let (http, ssh) = loop {
-            let pair = (port(), port());
-            if pair.0 != pair.1 {
-                break pair;
-            }
-        };
-        let stage = Stage::seat(exe(), http, Some(ssh));
+        let stage = Stage::seat(exe(), true);
         let client = Client::new(&stage.nest);
         let seed = Source::new(&client, &stage.nest, false);
         let wire = Wire::new(&stage.base);
@@ -60,7 +53,6 @@ impl Haul {
             seat,
             stranger,
             repo,
-            ssh,
         }
     }
 

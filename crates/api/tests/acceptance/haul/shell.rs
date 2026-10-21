@@ -61,7 +61,8 @@ impl Haul {
         );
         assert_eq!(made.status, 200, "registering a public key");
         let config = over(&key);
-        let remote = format!("ssh://git@127.0.0.1:{}/hauler/haul", self.ssh);
+        let port = self.stage.ssh.expect("ssh endpoint");
+        let remote = format!("ssh://git@127.0.0.1:{port}/hauler/haul");
         let into = self.dir("over-ssh");
         let target = into.to_string_lossy();
         assert!(

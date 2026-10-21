@@ -30,7 +30,11 @@ pub fn key(hold: &Path) -> Result<PrivateKey, String> {
     Ok(born)
 }
 
-pub async fn serve(hall: Arc<dyn Hall>, held: PrivateKey, at: (&str, u16)) -> Result<(), String> {
+pub async fn serve(
+    hall: Arc<dyn Hall>,
+    held: PrivateKey,
+    socket: TcpListener,
+) -> Result<(), String> {
     let config = Arc::new(Config {
         inactivity_timeout: Some(Duration::from_secs(600)),
         auth_rejection_time: Duration::from_secs(1),
@@ -38,9 +42,6 @@ pub async fn serve(hall: Arc<dyn Hall>, held: PrivateKey, at: (&str, u16)) -> Re
         preferred: Preferred::default(),
         ..Default::default()
     });
-    let socket = TcpListener::bind(at)
-        .await
-        .map_err(|error| format!("ssh listen: {error}"))?;
     let mut hold = Post { hall };
     hold.run_on_socket(config, &socket)
         .await
