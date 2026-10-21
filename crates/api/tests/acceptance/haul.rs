@@ -103,30 +103,3 @@ impl Haul {
             .count()
     }
 }
-
-#[test]
-fn haul() {
-    let haul = Haul::new();
-    haul.fetch();
-    haul.advance();
-    haul.bulk();
-    haul.stale();
-    haul.pen();
-    haul.retire();
-    haul.tags();
-    haul.namespace();
-    haul.quoted();
-    haul.merges();
-    haul.proposal();
-    haul.shield();
-    haul.unpermitted();
-    haul.verdicts();
-    haul.compressed();
-    haul.thief();
-    haul.shell();
-    haul.denied();
-    haul.anonymous();
-    haul.organization();
-    haul.archive();
-    haul.close();
-}

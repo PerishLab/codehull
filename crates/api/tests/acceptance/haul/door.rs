@@ -83,6 +83,33 @@ impl Haul {
         assert_eq!(cast.status, 409, "an archived repository took a verdict");
     }
 
+    fn furnish(&self) {
+        let head = &self.seat.head;
+        self.permit();
+        self.plant("refs/heads/flat");
+        let pull = self.propose("flat");
+        let shield = self.wire.made(
+            "/shield",
+            json!({ "branch": "main", "force": false, "approvals": 1, "repo": self.repo }),
+            head,
+        );
+        self.wire.made(
+            "/demand",
+            json!({ "context": "guard", "shield": shield }),
+            head,
+        );
+        assert_eq!(
+            self.judge(&self.main, "guard", "success"),
+            200,
+            "furnishing a verdict"
+        );
+        self.wire.made(
+            "/review",
+            json!({ "state": "approve", "body": "lgtm", "pull": pull, "reviewer": self.seat.id }),
+            head,
+        );
+    }
+
     pub fn close(&self) {
         let head = &self.seat.head;
         let shut = self.wire.knock(&format!("/repo/{}/close", self.repo), head);
@@ -90,4 +117,31 @@ impl Haul {
         let gone = self.wire.cut(&format!("/repo/{}", self.repo), head);
         assert_eq!(gone.status, 404, "a closed repository lingered");
     }
+}
+
+#[test]
+fn denied() {
+    Haul::new().denied();
+}
+
+#[test]
+fn anonymous() {
+    Haul::new().anonymous();
+}
+
+#[test]
+fn organization() {
+    Haul::new().organization();
+}
+
+#[test]
+fn archive() {
+    Haul::new().archive();
+}
+
+#[test]
+fn close() {
+    let haul = Haul::new();
+    haul.furnish();
+    haul.close();
 }

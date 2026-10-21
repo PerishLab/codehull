@@ -55,7 +55,7 @@ impl Haul {
         self.wire.made("/propose", body, &self.seat.head)
     }
 
-    pub fn merges(&self) {
+    pub fn permit(&self) {
         for mode in ["forward", "join", "squash"] {
             let made = self.wire.one(
                 "Weld",
@@ -64,6 +64,10 @@ impl Haul {
             );
             assert_eq!(made.status, 200, "permitting {mode}");
         }
+    }
+
+    pub fn merges(&self) {
+        self.permit();
         let work = self.work("weld");
         let trunk = self.at(&work, &["rev-parse", "HEAD"]);
         let ahead = self.branch(&work, "ahead", &[]);
@@ -159,4 +163,21 @@ impl Haul {
         assert_eq!(res.status, 400, "an unknown mode");
         assert_eq!(self.tip(MAIN), held, "a refused merge still moved main");
     }
+}
+
+#[test]
+fn merges() {
+    Haul::new().merges();
+}
+
+#[test]
+fn proposal() {
+    let haul = Haul::new();
+    haul.permit();
+    haul.proposal();
+}
+
+#[test]
+fn unpermitted() {
+    Haul::new().unpermitted();
 }
