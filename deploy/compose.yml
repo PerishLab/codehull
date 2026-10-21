@@ -1,18 +1,58 @@
-name: codehull-deploy
+# The owner is plumb.toml's [identity] ns; the lane comes from PERISH_LANE,
+# which a Runseal lane profile supplies. A lane holds nothing precious:
+# `down -v` then `up` rebuilds it, sudo included. Nothing publishes a host
+# port: reach a lane with `exec` or the `tools` profile.
+name: codehull-${PERISH_LANE:-main}
+
+x-lane: &lane
+  perish.owner: codehull
+  perish.lane: ${PERISH_LANE:-main}
+
 services:
   pg:
     image: postgres:17-alpine
+    labels: *lane
     environment:
       POSTGRES_USER: codehull
       POSTGRES_PASSWORD: codehull
       POSTGRES_DB: codehull
+    volumes:
+      - pg:/var/lib/postgresql/data
+      - ./acts.sql:/docker-entrypoint-initdb.d/acts.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U codehull"]
       interval: 2s
       timeout: 3s
       retries: 20
+  # Silo carries on MinIO's community server and keeps its MINIO_* names.
+  silo:
+    image: pgsty/silo:RELEASE.2026-10-18T00-00-00Z
+    labels: *lane
+    command: ["silo", "server", "/data"]
+    environment:
+      MINIO_ROOT_USER: codehull
+      MINIO_ROOT_PASSWORD: codehull123
+    volumes:
+      - blob:/data
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://127.0.0.1:9000/minio/health/live"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+  # Bucket `codehull` exists before anything that writes blobs starts.
+  bucket:
+    image: pgsty/silo:RELEASE.2026-10-18T00-00-00Z
+    labels: *lane
+    entrypoint: ["sh", "-c"]
+    command:
+      - mc alias set lane http://silo:9000 codehull codehull123 && mc mb -p lane/codehull
+    depends_on:
+      silo:
+        condition: service_healthy
   bootstrap:
+    profiles: [stack]
     image: codehull-api:dev
+    labels: *lane
     build:
       context: ..
       dockerfile: Containerfile
@@ -27,19 +67,69 @@ services:
       pg:
         condition: service_healthy
   api:
+    profiles: [stack]
     image: codehull-api:dev
+    labels: *lane
     environment:
       API_STORE_KIND: "pg"
       API_STORE_URL: "host=pg port=5432 user=codehull password=codehull dbname=codehull"
       API_OIDC_ISSUER: "${API_OIDC_ISSUER:-}"
       API_OIDC_AUDIENCE: "codehull"
     command: ["serve", "/codehull"]
-    ports:
-      - "8840:3400"
     volumes:
       - ./codehull.toml:/codehull/codehull.toml:ro
+    healthcheck:
+      test:
+        - CMD
+        - bash
+        - -c
+        - exec 3<>/dev/tcp/127.0.0.1/3400 && printf 'GET /api/health HTTP/1.0\r\n\r\n' >&3 && head -n1 <&3 | grep -q ' 200 '
+      interval: 2s
+      timeout: 3s
+      retries: 20
     depends_on:
       bootstrap:
         condition: service_completed_successfully
+  # The acts on the lane's Postgres and Silo. The checkout is read-only and
+  # cargo writes only to lane volumes; API_FRESH wipes codehull_acts, never
+  # codehull.
+  runner:
+    profiles: [tools]
+    image: ghcr.io/perishlab/images:stable
+    labels: *lane
+    working_dir: /src
+    entrypoint: []
+    environment:
+      CARGO_TARGET_DIR: /target
+      API_STORE_URL: "host=pg port=5432 user=codehull password=codehull dbname=codehull_acts"
+      API_BLOB_ENDPOINT: "http://silo:9000"
+      API_BLOB_KEY: "codehull"
+      API_BLOB_SECRET: "codehull123"
+    volumes:
+      - ..:/src:ro
+      - target:/target
+      - registry:/usr/local/cargo/registry
+      - git:/usr/local/cargo/git
+    depends_on:
+      pg:
+        condition: service_healthy
+      bucket:
+        condition: service_completed_successfully
+
 volumes:
+  pg:
+    labels: *lane
+  blob:
+    labels: *lane
   custody:
+    labels: *lane
+  target:
+    labels: *lane
+  registry:
+    labels: *lane
+  git:
+    labels: *lane
+
+networks:
+  default:
+    labels: *lane

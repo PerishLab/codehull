@@ -129,6 +129,8 @@ dependencies = [
  "keel-relay",
  "locus",
  "plumb",
+ "rand 0.10.2",
+ "russh",
  "serde",
  "serde_json",
  "tempfile",
