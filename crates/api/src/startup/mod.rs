@@ -1,5 +1,7 @@
 pub(crate) mod observation;
+mod shell;
 mod store;
+use shell::mount;
 use store::memory;
 
 use crate::artifact::{self, Artifact};
@@ -240,31 +242,6 @@ async fn serve<W: Wire + 'static>(
     if let Err(err) = axum::serve(bound, router).await {
         halt("serve", &err.to_string());
     }
-}
-
-fn mount<W: Wire + 'static>(
-    core: Arc<Core<W>>,
-    store: Arc<codehull_repo::Store>,
-    runtime: &Runtime,
-) {
-    if runtime.ssh.key.is_empty() {
-        return;
-    }
-    let held = match codehull_ssh::key(Path::new(&runtime.ssh.key)) {
-        Ok(held) => held,
-        Err(err) => halt("ssh", &err),
-    };
-    let hall = Arc::new(crate::ground::port::Port::new(core, store));
-    let (host, port) = (runtime.ssh.host.clone(), runtime.ssh.port);
-    eprintln!(
-        "{}",
-        serde_json::json!({ "role": "ssh", "endpoint": format!("ssh://{host}:{port}") })
-    );
-    tokio::spawn(async move {
-        if let Err(err) = codehull_ssh::serve(hall, held, (&host, port)).await {
-            eprintln!("{}", serde_json::json!({ "role": "ssh", "halt": err }));
-        }
-    });
 }
 
 fn hoard<W: Wire + 'static>(core: &Arc<Core<W>>, runtime: &Runtime) -> Option<Vault<W>> {

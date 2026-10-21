@@ -1,6 +1,6 @@
 use super::exe;
 use super::git::{Client, Source};
-use super::stage::{Stage, port};
+use super::stage::Stage;
 use super::wire::{Seat, Wire};
 use serde_json::{Value, json};
 
@@ -39,7 +39,7 @@ impl Truth {
 
 #[test]
 fn ground() {
-    let mut stage = Stage::seat(exe(), port(), None);
+    let mut stage = Stage::seat(exe(), false);
     let client = Client::new(&stage.nest);
     let seed = Source::new(&client, &stage.nest, true);
     let (main, topic) = (seed.main.as_str(), seed.topic.as_deref().expect("topic"));
@@ -104,8 +104,13 @@ fn ground() {
     );
 
     stage.restart();
+    let truth = Truth {
+        wire: Wire::new(&stage.base),
+        ..truth
+    };
+    let head = &truth.seat.head;
     assert_eq!(
-        wire.get(&truth.path(""), head).status,
+        truth.wire.get(&truth.path(""), head).status,
         200,
         "seat lost across restart"
     );
