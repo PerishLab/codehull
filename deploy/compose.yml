@@ -23,7 +23,7 @@ services:
       - pg:/var/lib/postgresql/data
       - ./acts.sql:/docker-entrypoint-initdb.d/acts.sql:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U codehull"]
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U codehull"]
       interval: 2s
       timeout: 3s
       retries: 20
