@@ -135,3 +135,10 @@ impl Haul {
         );
     }
 }
+
+#[test]
+fn shell() {
+    let haul = Haul::new();
+    haul.plant("refs/heads/flat");
+    haul.shell();
+}

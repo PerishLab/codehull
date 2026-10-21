@@ -1,6 +1,15 @@
 use super::{Haul, MAIN};
 
 impl Haul {
+    fn grow(&self) {
+        let work = self.work("grown");
+        self.commit(&work, "probe", "grown\n");
+        assert!(
+            self.push(&work, &["origin", "main"]),
+            "growing main past its seed failed"
+        );
+    }
+
     pub fn fetch(&self) {
         let into = self.dir("clone");
         assert!(
@@ -125,4 +134,36 @@ impl Haul {
             "a deleted reference still reads"
         );
     }
+}
+
+#[test]
+fn fetch() {
+    Haul::new().fetch();
+}
+
+#[test]
+fn advance() {
+    Haul::new().advance();
+}
+
+#[test]
+fn bulk() {
+    Haul::new().bulk();
+}
+
+#[test]
+fn stale() {
+    let haul = Haul::new();
+    haul.grow();
+    haul.stale();
+}
+
+#[test]
+fn pen() {
+    Haul::new().pen();
+}
+
+#[test]
+fn retire() {
+    Haul::new().retire();
 }

@@ -6,7 +6,7 @@ use serde_json::{Value, json};
 use std::io::Write;
 
 impl Haul {
-    fn judge(&self, commit: &str, context: &str, state: &str) -> u16 {
+    pub fn judge(&self, commit: &str, context: &str, state: &str) -> u16 {
         let body = json!({ "commit": commit, "context": context, "state": state });
         self.wire
             .post(&self.path("/verdict"), body, &self.seat.head)
@@ -167,4 +167,26 @@ impl Haul {
             "a stranger pushed the seat"
         );
     }
+}
+
+#[test]
+fn shield() {
+    let haul = Haul::new();
+    haul.permit();
+    haul.shield();
+}
+
+#[test]
+fn verdicts() {
+    Haul::new().verdicts();
+}
+
+#[test]
+fn compressed() {
+    Haul::new().compressed();
+}
+
+#[test]
+fn thief() {
+    Haul::new().thief();
 }

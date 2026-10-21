@@ -2,6 +2,12 @@ use super::Haul;
 use serde_json::json;
 
 impl Haul {
+    pub fn plant(&self, name: &str) {
+        let body = json!({ "name": name, "after": self.main });
+        let res = self.wire.post(&self.path("/ref"), body, &self.seat.head);
+        assert_eq!(res.status, 200, "plant {name}");
+    }
+
     pub fn tags(&self) {
         let work = self.work("tags");
         self.at(&work, &["tag", "plain"]);
@@ -74,4 +80,19 @@ impl Haul {
         let res = self.wire.post(&self.path("/ref"), body, &self.seat.head);
         assert_eq!(res.status, 400, "a quoted reference name");
     }
+}
+
+#[test]
+fn tags() {
+    Haul::new().tags();
+}
+
+#[test]
+fn namespace() {
+    Haul::new().namespace();
+}
+
+#[test]
+fn quoted() {
+    Haul::new().quoted();
 }
