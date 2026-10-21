@@ -1,7 +1,10 @@
 # The owner is plumb.toml's [identity] ns; the lane comes from PERISH_LANE,
 # which a Runseal lane profile supplies. A lane holds nothing precious:
 # `down -v` then `up` rebuilds it, sudo included. Nothing publishes a host
-# port: reach a lane with `exec` or the `tools` profile.
+# port: reach a lane with `exec` or the `tools` profile. Only `api` joins
+# the shared lane network, as api.codehull.internal, and trusts the ensign
+# of the same lane: bring ensign's stack up first, since `api` refuses to
+# serve until its issuer answers.
 name: codehull-${PERISH_LANE:-main}
 
 x-lane: &lane
@@ -39,8 +42,10 @@ services:
       interval: 3s
       timeout: 3s
       retries: 20
-  # Bucket `codehull` exists before anything that writes blobs starts.
+  # Bucket `codehull` exists before the runner writes blobs. It is a one-shot,
+  # so it sits in `tools`: a default `up --wait` would read its exit as failure.
   bucket:
+    profiles: [tools]
     image: pgsty/silo:RELEASE.2026-10-18T00-00-00Z
     labels: *lane
     entrypoint: ["sh", "-c"]
@@ -73,9 +78,13 @@ services:
     environment:
       API_STORE_KIND: "pg"
       API_STORE_URL: "host=pg port=5432 user=codehull password=codehull dbname=codehull"
-      API_OIDC_ISSUER: "${API_OIDC_ISSUER:-}"
+      API_OIDC_ISSUER: "${API_OIDC_ISSUER:-http://api.ensign.internal:3500/api}"
       API_OIDC_AUDIENCE: "codehull"
     command: ["serve", "/codehull"]
+    networks:
+      default: {}
+      lane:
+        aliases: [api.codehull.internal]
     volumes:
       - ./codehull.toml:/codehull/codehull.toml:ro
     healthcheck:
@@ -133,3 +142,6 @@ volumes:
 networks:
   default:
     labels: *lane
+  lane:
+    name: perish-${PERISH_LANE:-main}
+    external: true

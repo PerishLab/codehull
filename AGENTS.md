@@ -131,7 +131,11 @@ names an issuer reachable from its container.
 `deploy/compose.yml` is the only compose entry. The project is
 `codehull-<lane>` from `PERISH_LANE` (default `main`), every service, volume
 and network carries `perish.owner` and `perish.lane`, and nothing publishes a
-host port; services answer by name inside the lane (`pg`, `silo`, `api`).
+host port; services answer by short name on the lane's private network
+(`pg`, `silo`, `api`). Only `api` also joins the shared lane network
+`perish-<lane>` as `api.codehull.internal`, and `API_OIDC_ISSUER` defaults
+to the same lane's ensign, `http://api.ensign.internal:3500/api`: bring
+ensign's stack up first, since `api` refuses to serve until it answers.
 Silo, the maintained fork of MinIO's community server, is the lane's object
 store, and a one-shot `bucket` service creates `codehull` on it. The acts are
 Rust integration tests; the `tools` profile's `runner` runs them on the
@@ -150,3 +154,10 @@ A lane is yours when its resources carry `perish.owner=codehull` and your
 rebuild it without asking. Host configuration, global toolchains,
 credentials, Integration checkouts and other lanes are outside it; stop and
 report instead of repairing them from inside a lane.
+
+Products meet on `perish-<lane>`, an external network labelled
+`perish.owner=perish` and `perish.lane=<lane>` that no product owns. Create
+it before `--profile stack up` with `docker network create --label
+perish.owner=perish --label perish.lane=<lane> perish-<lane>`, and remove
+it once no product's lane uses it. Joining it publishes an interface under
+`<component>.<ns>.internal`; databases and Silo never join it.
