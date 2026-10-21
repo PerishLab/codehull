@@ -124,6 +124,29 @@ services:
         condition: service_healthy
       bucket:
         condition: service_completed_successfully
+  # The handshake with the same lane's ensign, the way a real consumer meets
+  # it: exchange the key ensign declared for codehull, then drive codehull's
+  # api with the token. Needs ensign's stack up on the shared lane.
+  meet:
+    profiles: [tools]
+    image: ghcr.io/perishlab/images:stable
+    labels: *lane
+    working_dir: /src
+    entrypoint: []
+    command: ["cargo", "test", "--locked", "-p", "api", "--test", "meet"]
+    environment:
+      CARGO_TARGET_DIR: /target
+      ENSIGN_ISSUER: "http://api.ensign.internal:3500/api"
+      ENSIGN_KEY: "/perish/ensign/codehull.key"
+    networks:
+      default: {}
+      lane: {}
+    volumes:
+      - ..:/src:ro
+      - target:/target
+      - registry:/usr/local/cargo/registry
+      - git:/usr/local/cargo/git
+      - perish:/perish:ro
 
 volumes:
   pg:
@@ -138,6 +161,9 @@ volumes:
     labels: *lane
   git:
     labels: *lane
+  perish:
+    name: perish-${PERISH_LANE:-main}
+    external: true
 
 networks:
   default:

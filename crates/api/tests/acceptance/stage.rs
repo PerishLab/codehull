@@ -71,6 +71,15 @@ impl Stage {
         stage
     }
 
+    pub fn external(exe: &Path, issuer: &str) -> Self {
+        let port = port();
+        let config = format!(
+            "[listen]\nhost = \"127.0.0.1\"\nport = {port}\nprefix = \"\"\n\n[store]\nkind = \"memory\"\n\n[cache]\nkind = \"memory\"\n"
+        );
+        let env = vec![("API_OIDC_ISSUER".to_string(), issuer.to_string())];
+        Self::raise(exe, &config, port, env)
+    }
+
     pub fn seat(exe: &Path, port: u16, ssh: Option<u16>) -> Self {
         let mut config = format!(
             "[listen]\nhost = \"127.0.0.1\"\nport = {port}\nprefix = \"\"\n\n[store]\nkind = \"file\"\npath = \"codehull.sqlite\"\n\n[cache]\nkind = \"memory\"\n\n[repo]\npath = \"seats\"\n"
