@@ -134,7 +134,7 @@ and network carries `perish.owner` and `perish.lane`, and nothing publishes a
 host port; services answer by short name on the lane's private network
 (`pg`, `silo`, `api`). Only `api` also joins the shared lane network
 `perish-<lane>` as `api.codehull.internal`, and `API_OIDC_ISSUER` defaults
-to the same lane's ensign, `http://api.ensign.internal:3500/api`: bring
+to the same lane's ensign, `http://api.ensign.internal:8080/api`: bring
 ensign's stack up first, since `api` refuses to serve until it answers.
 Silo, the maintained fork of MinIO's community server, is the lane's object
 store, and a one-shot `bucket` service creates `codehull` on it. The acts are

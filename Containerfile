@@ -7,6 +7,6 @@ WORKDIR /codehull
 COPY codehull-api /usr/local/bin/codehull-api
 RUN chmod 0755 /usr/local/bin/codehull-api && mkdir -p .local && chown -R codehull:codehull /codehull
 USER codehull
-EXPOSE 3400
+EXPOSE 8080
 ENTRYPOINT ["codehull-api"]
 CMD ["serve", "/codehull"]

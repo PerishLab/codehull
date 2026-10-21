@@ -9,7 +9,7 @@ api:
   # api pod keeps honouring a grant this one revoked until it writes.
   # Raising this needs the keel cache off first — see keel docs/run/cache.md.
   replicas: 1
-  port: 3400
+  port: 8080
   # The git seat. Repository objects and refs are the api's own durable truth,
   # held beside the metadata store rather than inside it, so they need a volume
   # of their own. Turn this off and the ground plane never mounts: the api
