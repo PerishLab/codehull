@@ -1,5 +1,5 @@
+use super::issuer::Issuer;
 use super::open;
-use super::stage::Issuer;
 use super::wire::Head;
 use serde_json::json;
 

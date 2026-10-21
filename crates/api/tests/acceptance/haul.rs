@@ -5,9 +5,8 @@ mod shell;
 mod verdict;
 mod weld;
 
-use super::exe;
+use super::bench::Bench;
 use super::git::{Client, Source};
-use super::stage::Stage;
 use super::wire::{Seat, Wire};
 use serde_json::json;
 use std::path::{Path, PathBuf};
@@ -15,7 +14,7 @@ use std::path::{Path, PathBuf};
 pub const MAIN: &str = "refs/heads/main";
 
 pub struct Haul {
-    pub stage: Stage,
+    pub stage: Bench,
     pub wire: Wire,
     pub client: Client,
     pub seat: Seat,
@@ -28,7 +27,7 @@ pub struct Haul {
 
 impl Haul {
     fn new() -> Self {
-        let stage = Stage::seat(exe(), true);
+        let stage = Bench::seat(true);
         let client = Client::new(&stage.nest);
         let seed = Source::new(&client, &stage.nest, false);
         let wire = Wire::new(&stage.base);

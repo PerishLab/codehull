@@ -39,8 +39,9 @@ cargo run -p api -- serve .
 cargo test --locked -p api --test acceptance
 ```
 
-The acceptance suite runs the staged scenarios against a real process: every
-scenario boots `codehull-api` against a test-local OIDC issuer.
+The acceptance suite drives the production router, `api::router`, in-process
+against a test-local OIDC issuer; `--test smoke` boots the real `codehull-api`
+for a served health check and a restart.
 
 ## The seam
 

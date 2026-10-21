@@ -1,15 +1,5 @@
-mod artifact;
-mod door;
-mod ground;
-mod model;
-mod rig;
-mod runtime;
-mod seam;
-mod startup;
-mod warden;
-
+use api::{Seat, observation};
 use clap::{Parser, Subcommand};
-use startup::{Seat, observation};
 use std::process::exit;
 
 #[derive(Parser)]
@@ -60,9 +50,4 @@ async fn main() {
         Some(Command::Serve { root }) => Seat(&root).serve().await,
         None => Seat(&cli.root).serve().await,
     }
-}
-
-pub(crate) fn halt(seat: &str, note: &str) -> ! {
-    eprintln!("codehull: {seat}: {note}");
-    exit(1)
 }

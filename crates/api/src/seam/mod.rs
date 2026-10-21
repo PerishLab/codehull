@@ -1,5 +1,6 @@
+pub(crate) mod warden;
+
 use crate::rig::{ORG, hail};
-use crate::warden::{Bearer, Warden};
 use axum::extract::{Request, State};
 use axum::middleware::Next;
 use axum::response::Response;
@@ -8,6 +9,7 @@ use keel::{Core, Ends, Operator, Tie, Wire};
 use keel_gate::Gate;
 use std::collections::BTreeSet;
 use std::sync::Arc;
+use warden::{Bearer, Warden};
 
 pub(crate) struct Seam<W: Wire> {
     pub(crate) core: Arc<Core<W>>,
