@@ -155,9 +155,14 @@ rebuild it without asking. Host configuration, global toolchains,
 credentials, Integration checkouts and other lanes are outside it; stop and
 report instead of repairing them from inside a lane.
 
-Products meet on `perish-<lane>`, an external network labelled
-`perish.owner=perish` and `perish.lane=<lane>` that no product owns. Create
-it before `--profile stack up` with `docker network create --label
-perish.owner=perish --label perish.lane=<lane> perish-<lane>`, and remove
-it once no product's lane uses it. Joining it publishes an interface under
-`<component>.<ns>.internal`; databases and Silo never join it.
+Products meet on `perish-<lane>`, an external network and an external volume
+of that name, each labelled `perish.owner=perish` and `perish.lane=<lane>`
+and owned by no product. Create both before `--profile stack up` (`docker
+network create` and `docker volume create`, with those labels), and remove
+them once no product's lane uses them. Joining the network publishes an
+interface under `<component>.<ns>.internal`; databases and Silo never join
+it. codehull only reads the volume: ensign's bootstrap keeps codehull's key
+at `ensign/codehull.key`. With ensign's stack up, the `tools` profile's
+`meet` proves the handshake the way a real consumer meets ensign, exchanging
+that key for a `codehull` token and driving the api with it: `docker compose
+-f deploy/compose.yml --profile tools run --rm meet`.
