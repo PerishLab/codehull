@@ -1,5 +1,6 @@
 use super::point::{Held, Point, clash, sane};
 use super::{Dock, Fault, Reach, actor, admit, bad, deny, work};
+use crate::door::lift;
 use axum::extract::{Path, State};
 use axum::{Extension, Json};
 use codehull_repo::Object;
@@ -130,7 +131,7 @@ impl<W: Wire + 'static> Weld<'_, W> {
             .of(self.who)
             .query(&format!(r#"from Pull where id = "{id}""#))
             .await
-            .map_err(|_| deny())?;
+            .map_err(|error| lift(&error).unwrap_or_else(deny))?;
         let row = pack.rows().first().ok_or_else(deny)?;
         let (Some(base), Some(head)) = (row.text("base"), row.text("head")) else {
             return Err(deny());
@@ -159,7 +160,7 @@ impl<W: Wire + 'static> Weld<'_, W> {
             .of(self.who)
             .query(&format!(r#"from Issue where id = "{issue}""#))
             .await
-            .map_err(|_| deny())?;
+            .map_err(|error| lift(&error).unwrap_or_else(deny))?;
         let row = pack.rows().first().ok_or_else(deny)?;
         row.int("repo_id")
             .or_else(|| row.int("repo"))
@@ -172,7 +173,7 @@ impl<W: Wire + 'static> Weld<'_, W> {
             .of(self.who)
             .set("Pull", id, &[("weld", hex)])
             .await
-            .map_err(|_| deny())
+            .map_err(|error| lift(&error).unwrap_or_else(deny))
     }
 
     async fn shape(&self, id: u64, plan: Plan) -> Result<Object, Fault> {

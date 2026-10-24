@@ -1,5 +1,6 @@
 #![allow(dead_code)]
 
+use super::estate::shaky::{Knob, Shaky};
 use super::issuer::Issuer;
 use super::wire::{Head, Inside, Load, Reply, Wire, shape};
 use api::runtime::{Kind, Runtime};
@@ -42,14 +43,18 @@ struct Built {
 
 impl Bench {
     pub fn new() -> Self {
-        Self::raise(false, false)
+        Self::raise(false, false, None)
     }
 
     pub fn seat(socket: bool) -> Self {
-        Self::raise(true, socket)
+        Self::raise(true, socket, None)
     }
 
-    fn raise(repo: bool, socket: bool) -> Self {
+    pub fn shaky(knob: Arc<Knob>) -> Self {
+        Self::raise(true, false, Some(knob))
+    }
+
+    fn raise(repo: bool, socket: bool, knob: Option<Arc<Knob>>) -> Self {
         let room = tempfile::tempdir().expect("bench room");
         let nest = room.path().to_path_buf();
         std::fs::write(nest.join("codehull.toml"), "[store]\nkind = \"memory\"\n")
@@ -64,7 +69,7 @@ impl Bench {
         }
         let engine = builder.enable_all().build().expect("bench engine");
         let seats = repo.then(|| nest.join("seats"));
-        let built = engine.block_on(stock(&runtime, seats, socket));
+        let built = engine.block_on(stock(&runtime, seats, socket, knob));
         let origin = built.served.unwrap_or_default();
         Self {
             base: format!("{origin}/api"),
@@ -114,14 +119,25 @@ fn fill(field: &mut String, fallback: &str) {
     }
 }
 
-async fn stock(runtime: &Runtime, seats: Option<PathBuf>, socket: bool) -> Built {
+async fn stock(
+    runtime: &Runtime,
+    seats: Option<PathBuf>,
+    socket: bool,
+    knob: Option<Arc<Knob>>,
+) -> Built {
     if runtime.store.kind != Kind::Pg {
         let store = Sqlite::memory().await.expect("memory store");
-        return erect(store, runtime, seats, socket).await;
+        return match knob {
+            Some(knob) => erect(Shaky::new(store, knob), runtime, seats, socket).await,
+            None => erect(store, runtime, seats, socket).await,
+        };
     }
     let mut store = Postgres::at(&runtime.store.url).await.expect("pg store");
     store.wipe().await.expect("pg wipe");
-    erect(store, runtime, seats, socket).await
+    match knob {
+        Some(knob) => erect(Shaky::new(store, knob), runtime, seats, socket).await,
+        None => erect(store, runtime, seats, socket).await,
+    }
 }
 
 async fn erect<W: keel::Wire + 'static>(

@@ -1,4 +1,5 @@
 use super::{Dock, Fault, Reach, actor, admit, bad, deny};
+use crate::door::lift;
 use axum::extract::{Path, Query, State};
 use axum::{Extension, Json};
 use codehull_repo::Object;
@@ -123,7 +124,7 @@ impl<W: Wire + 'static> Court<'_, W> {
             })
             .await
             .map(drop)
-            .map_err(|_| deny())
+            .map_err(|error| lift(&error).unwrap_or_else(deny))
     }
 
     async fn at(&self, commit: &Object) -> Result<Vec<Ruling>, Fault> {
@@ -136,7 +137,7 @@ impl<W: Wire + 'static> Court<'_, W> {
                 r#"from Verdict where repo = "{id}" and commit = "{hex}""#
             ))
             .await
-            .map_err(|_| deny())?;
+            .map_err(|error| lift(&error).unwrap_or_else(deny))?;
         Ok(pack
             .rows()
             .iter()

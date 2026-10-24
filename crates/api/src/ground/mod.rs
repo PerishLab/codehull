@@ -7,6 +7,7 @@ mod take;
 mod verdict;
 mod weld;
 
+use crate::door::lift;
 use axum::body::{Body, Bytes};
 use axum::extract::{Path, State};
 use axum::http::{HeaderMap, StatusCode, header};
@@ -148,7 +149,7 @@ async fn admit<W: Wire + 'static>(
         .of(who)
         .query(&format!(r#"from Repo where id = "{id}""#))
         .await
-        .map_err(|_| deny())?;
+        .map_err(|error| lift(&error).unwrap_or_else(deny))?;
     let rows = held.rows();
     if rows.len() != 1 {
         return Err(deny());
