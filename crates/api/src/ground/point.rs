@@ -1,4 +1,5 @@
 use super::{Dock, Fault, Reach, actor, admit, bad, deny, fault, work};
+use crate::door::lift;
 use axum::extract::{Path, Query, State};
 use axum::http::StatusCode;
 use axum::{Extension, Json};
@@ -103,7 +104,7 @@ pub(super) async fn drop<W: Wire + 'static>(
         .of(who)
         .batch(async |tx| tx.end("Ref", key).await)
         .await
-        .map_err(|_| clash())?;
+        .map_err(|error| lift(&error).unwrap_or_else(clash))?;
     let store = dock.store.clone();
     let held = name.clone();
     work(move || store.repository(id)?.retire(&held)).await?;
@@ -176,7 +177,7 @@ impl<W: Wire + 'static> Point<'_, W> {
             })
             .await
             .map(|_| Held::Moved)
-            .map_err(|_| clash())
+            .map_err(|error| lift(&error).unwrap_or_else(clash))
     }
 
     pub(super) async fn welds(&self) -> Result<Vec<String>, Fault> {
@@ -187,7 +188,7 @@ impl<W: Wire + 'static> Point<'_, W> {
             .of(self.who)
             .query(&format!(r#"from Weld where repo = "{id}""#))
             .await
-            .map_err(|_| deny())?;
+            .map_err(|error| lift(&error).unwrap_or_else(deny))?;
         Ok(pack
             .rows()
             .iter()
@@ -213,7 +214,7 @@ impl<W: Wire + 'static> Point<'_, W> {
             .batch(async |tx| tx.end("Ref", key).await)
             .await
             .map(|_| ())
-            .map_err(|_| clash())
+            .map_err(|error| lift(&error).unwrap_or_else(clash))
     }
 
     pub(super) async fn cast(&self, name: &str, object: &Object) -> Result<(), Fault> {
@@ -266,7 +267,7 @@ impl<W: Wire + 'static> Point<'_, W> {
             .of(self.who)
             .query(&format!(r#"from Ref where repo = "{id}"{filter}"#))
             .await
-            .map_err(|_| deny())?;
+            .map_err(|error| lift(&error).unwrap_or_else(deny))?;
         Ok(pack.rows().to_vec())
     }
 }

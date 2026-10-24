@@ -5,4 +5,6 @@ mod guild;
 mod planning;
 mod reaction;
 mod review;
+pub mod shaky;
+mod store;
 mod trimmings;

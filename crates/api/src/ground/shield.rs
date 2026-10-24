@@ -1,5 +1,6 @@
 use super::weld::Weld;
 use super::{Fault, deny};
+use crate::door::lift;
 use axum::Json;
 use axum::http::StatusCode;
 use keel::Wire;
@@ -22,7 +23,7 @@ impl<W: Wire + 'static> Weld<'_, W> {
                 r#"from Shield where repo = "{id}" and branch = "{branch}""#
             ))
             .await
-            .map_err(|_| deny())?;
+            .map_err(|error| lift(&error).unwrap_or_else(deny))?;
         let Some(row) = pack.rows().first() else {
             return Ok(());
         };
@@ -39,7 +40,7 @@ impl<W: Wire + 'static> Weld<'_, W> {
             .of(self.who)
             .query(&format!(r#"from Demand where shield = "{shield}""#))
             .await
-            .map_err(|_| deny())?;
+            .map_err(|error| lift(&error).unwrap_or_else(deny))?;
         Ok(pack
             .rows()
             .iter()
@@ -56,7 +57,7 @@ impl<W: Wire + 'static> Weld<'_, W> {
                 r#"from Verdict where repo = "{id}" and commit = "{tip}" and context = "{context}""#
             ))
             .await
-            .map_err(|_| deny())?;
+            .map_err(|error| lift(&error).unwrap_or_else(deny))?;
         let held = pack.rows().first().and_then(|row| row.text("state"));
         match held {
             Some(SUCCESS) => Ok(()),
@@ -75,7 +76,7 @@ impl<W: Wire + 'static> Weld<'_, W> {
             .of(self.who)
             .query(&format!(r#"from Review where pull = "{pull}""#))
             .await
-            .map_err(|_| deny())?;
+            .map_err(|error| lift(&error).unwrap_or_else(deny))?;
         let held = pack
             .rows()
             .iter()

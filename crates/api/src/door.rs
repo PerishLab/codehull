@@ -1,23 +1,46 @@
 use axum::extract::{Path as Route, State};
 use axum::http::StatusCode;
+use axum::response::{IntoResponse, Response};
 use axum::{Extension, Json};
 use keel::Ends;
+use keel::adapt::{Error, Store};
 use keel::{Core, Operator, Wire};
 use serde_json::{Map, Value, json};
 use std::sync::Arc;
+
+pub(crate) fn lift(error: &Error) -> Option<(StatusCode, Json<Value>)> {
+    let Error::Store(store) = error else {
+        return None;
+    };
+    eprintln!("codehull: {store}: {}", store.detail());
+    let status = match store {
+        Store::Down(_) => StatusCode::SERVICE_UNAVAILABLE,
+        Store::Taken(_) => StatusCode::CONFLICT,
+        Store::Fault(_) => StatusCode::INTERNAL_SERVER_ERROR,
+    };
+    Some((status, Json(json!({ "error": store.to_string() }))))
+}
+
+fn code(status: StatusCode) -> Response {
+    status.into_response()
+}
+
+fn turn(error: &Error, other: StatusCode) -> Response {
+    lift(error).map_or_else(|| code(other), IntoResponse::into_response)
+}
 
 pub(crate) async fn found<W: Wire + 'static>(
     State(core): State<Arc<Core<W>>>,
     op: Option<Extension<Operator>>,
     Json(body): Json<Map<String, Value>>,
-) -> Result<(StatusCode, Json<Value>), StatusCode> {
+) -> Result<(StatusCode, Json<Value>), Response> {
     let Some(Extension(Operator(actor))) = op else {
-        return Err(StatusCode::UNAUTHORIZED);
+        return Err(code(StatusCode::UNAUTHORIZED));
     };
     let name = body
         .get("name")
         .and_then(Value::as_str)
-        .ok_or(StatusCode::BAD_REQUEST)?
+        .ok_or_else(|| code(StatusCode::BAD_REQUEST))?
         .to_string();
     let face = core.of(actor);
     let org = face
@@ -58,7 +81,7 @@ pub(crate) async fn found<W: Wire + 'static>(
             Ok(org)
         })
         .await
-        .map_err(|_| StatusCode::FORBIDDEN)?;
+        .map_err(|error| turn(&error, StatusCode::FORBIDDEN))?;
     Ok((StatusCode::CREATED, Json(json!({ "id": org }))))
 }
 
@@ -66,33 +89,36 @@ pub(crate) async fn propose<W: Wire + 'static>(
     State(core): State<Arc<Core<W>>>,
     op: Option<Extension<Operator>>,
     Json(body): Json<Map<String, Value>>,
-) -> Result<(StatusCode, Json<Value>), StatusCode> {
+) -> Result<(StatusCode, Json<Value>), Response> {
     let Some(Extension(Operator(actor))) = op else {
-        return Err(StatusCode::UNAUTHORIZED);
+        return Err(code(StatusCode::UNAUTHORIZED));
     };
     let issue = body
         .get("issue")
         .and_then(Value::as_i64)
-        .ok_or(StatusCode::BAD_REQUEST)?;
-    let base = text(&body, "base")?;
-    let head = text(&body, "head")?;
+        .ok_or_else(|| code(StatusCode::BAD_REQUEST))?;
+    let base = text(&body, "base").map_err(code)?;
+    let head = text(&body, "head").map_err(code)?;
     let pack = core
         .of(actor)
         .query(&format!(r#"from Issue where id = "{issue}""#))
         .await
-        .map_err(|_| StatusCode::FORBIDDEN)?;
-    let row = pack.rows().first().ok_or(StatusCode::NOT_FOUND)?;
+        .map_err(|error| turn(&error, StatusCode::FORBIDDEN))?;
+    let row = pack
+        .rows()
+        .first()
+        .ok_or_else(|| code(StatusCode::NOT_FOUND))?;
     let author = row
         .int("author_id")
         .or_else(|| row.int("author"))
-        .ok_or(StatusCode::FORBIDDEN)?;
+        .ok_or_else(|| code(StatusCode::FORBIDDEN))?;
     if author != actor {
-        return Err(StatusCode::FORBIDDEN);
+        return Err(code(StatusCode::FORBIDDEN));
     }
     let repo = row
         .int("repo_id")
         .or_else(|| row.int("repo"))
-        .ok_or(StatusCode::FORBIDDEN)?;
+        .ok_or_else(|| code(StatusCode::FORBIDDEN))?;
     let key = core
         .sudo()
         .put(
@@ -107,7 +133,7 @@ pub(crate) async fn propose<W: Wire + 'static>(
             ],
         )
         .await
-        .map_err(|_| StatusCode::CONFLICT)?;
+        .map_err(|error| turn(&error, StatusCode::CONFLICT))?;
     Ok((StatusCode::CREATED, Json(json!({ "id": key }))))
 }
 
@@ -155,12 +181,14 @@ pub(crate) async fn close<W: Wire + 'static>(
     State(core): State<Arc<Core<W>>>,
     Route(id): Route<i64>,
     op: Option<Extension<Operator>>,
-) -> Result<StatusCode, StatusCode> {
+) -> Result<StatusCode, Response> {
     let who = op
         .map(|Extension(Operator(id))| id)
-        .ok_or(StatusCode::UNAUTHORIZED)?;
+        .ok_or_else(|| code(StatusCode::UNAUTHORIZED))?;
     let face = core.of(who);
-    let orders = sweep(&face, id).await.map_err(|_| StatusCode::FORBIDDEN)?;
+    let orders = sweep(&face, id)
+        .await
+        .map_err(|error| turn(&error, StatusCode::FORBIDDEN))?;
     face.batch(async |tx| {
         for (unit, key) in &orders {
             tx.end(unit, *key).await?;
@@ -168,7 +196,7 @@ pub(crate) async fn close<W: Wire + 'static>(
         Ok(())
     })
     .await
-    .map_err(|_| StatusCode::CONFLICT)?;
+    .map_err(|error| turn(&error, StatusCode::CONFLICT))?;
     Ok(StatusCode::NO_CONTENT)
 }
 
