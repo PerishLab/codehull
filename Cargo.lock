@@ -1665,9 +1665,9 @@ dependencies = [
 
 [[package]]
 name = "keel"
-version = "0.23.0"
+version = "0.25.0"
 source = "sparse+https://cargo.perish.uk/"
-checksum = "f3a18e89026271aa7d1bacf387be5db61b8a04430f848ee21efa513b6986e1cc"
+checksum = "97a2f2b72b620662e1dce8e44c87f4c84ec647797f8098edf1c7051814393319"
 dependencies = [
  "axum",
  "getrandom 0.3.4",
@@ -1682,9 +1682,9 @@ dependencies = [
 
 [[package]]
 name = "keel-blob"
-version = "0.23.0"
+version = "0.25.0"
 source = "sparse+https://cargo.perish.uk/"
-checksum = "462dd50d3ef8a76427250463ec9f3a5e0cc841572994230b06d9fa042d10439e"
+checksum = "d6bb35989d39206d4e1c7cf20b26bbcb8899461ce1af8672af011f36aca1a5fd"
 dependencies = [
  "axum",
  "keel",
@@ -1695,9 +1695,9 @@ dependencies = [
 
 [[package]]
 name = "keel-gate"
-version = "0.23.0"
+version = "0.25.0"
 source = "sparse+https://cargo.perish.uk/"
-checksum = "c7ca5a5eec8558d5881421ba66514d7fe104313c70205607b4dbca0942596a93"
+checksum = "dedd215ed65ae690044a731c57f32578d417cad1670f2efc760dbf51796ddbe2"
 dependencies = [
  "axum",
  "getrandom 0.3.4",
@@ -1708,9 +1708,9 @@ dependencies = [
 
 [[package]]
 name = "keel-macro"
-version = "0.23.0"
+version = "0.25.0"
 source = "sparse+https://cargo.perish.uk/"
-checksum = "c7f179aa09feb6e7dd2ba740cb6aaf0a550edc92d5f227de0a08baa4efc65dd3"
+checksum = "1fcf6951f0511987d4fdce17a2a7def3fad508ac66f0b0a6b796fc7367e02eb6"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -1719,9 +1719,9 @@ dependencies = [
 
 [[package]]
 name = "keel-relay"
-version = "0.23.0"
+version = "0.25.0"
 source = "sparse+https://cargo.perish.uk/"
-checksum = "d258d05a4f5e00eb963a9db6e3641da2433ceb7750285eccee46e44683cb2dbd"
+checksum = "38d5dfcd0da78f7820fffd029be792323f08355bedb9159c4baa8a4119e60907"
 dependencies = [
  "keel",
  "serde_json",
@@ -1799,9 +1799,9 @@ dependencies = [
 
 [[package]]
 name = "locus"
-version = "0.14.0"
+version = "0.15.0"
 source = "sparse+https://cargo.perish.uk/"
-checksum = "8a4f1d63cdbc0d1dc563ab4e592b0f67ff3459bc007a3964db4b36aeb0c80d4b"
+checksum = "666bef82ecb121b251f10a2838a8515fb65c6a0ee7caf9fab676bd58b1060000"
 dependencies = [
  "getrandom 0.3.4",
  "locus-macro",
@@ -1811,9 +1811,9 @@ dependencies = [
 
 [[package]]
 name = "locus-macro"
-version = "0.14.0"
+version = "0.15.0"
 source = "sparse+https://cargo.perish.uk/"
-checksum = "0f6d8373393b62f4f2a2bdf7ea42b4bddf3b9a4719d7d52fb9679726c73130ce"
+checksum = "c8a95acd43d814089456d147d0d4d98d52b78f0ac2e85e1f08d5b5ee57739548"
 dependencies = [
  "proc-macro2",
  "quote",
