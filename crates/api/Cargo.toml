@@ -16,6 +16,7 @@ name = "codehull-api"
 path = "src/main.rs"
 
 [dependencies]
+radicula-config.workspace = true
 locus.workspace = true
 clap = { workspace = true }
 axum = { workspace = true }
