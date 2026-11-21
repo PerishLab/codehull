@@ -9,7 +9,7 @@ use std::process::exit;
     name = "codehull",
     version = plumb::version!("CODEHULL"),
     about = "the codehull operator client",
-    after_help = "Observation is off by default. Set [locus] enabled = true in config.toml under ~/.codehull on Unix or LOCALAPPDATA/codehull on Windows. Buffer is state/locus; endpoint overrides LOCUS_API, then http://127.0.0.1:43308. Help and version are never observed; a usage error finishes with its exit status and the usage fault."
+    after_help = "Observation is off by default. Set [locus] enabled = true in config.toml under ~/.codehull on Unix or LOCALAPPDATA/codehull on Windows. For HTTPS, set endpoint and an absolute writer key_file together in [locus]. The durable queue is state/locus.https/codehull under that home. On Unix, sender may name the trusted absolute locus executable. HTTP uses state/locus and defaults to http://127.0.0.1:43308. With no local transport fields, LOCUS_API and LOCUS_API_KEY_FILE can supply the endpoint and writer key path. Help and version are never observed; a usage error finishes with its exit status and the usage fault."
 )]
 struct Cli {}
 
