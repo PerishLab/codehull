@@ -68,3 +68,23 @@ binary = "codehull-api"
 registry = "ghcr.io"
 chart = "perishlab/codehull"
 account = "PerishLab"
+
+[[ectropy.grant]]
+paths = ["apps/web/vite.config.ts", "crates/api/src/runtime.rs"]
+syntax = "environment"
+
+[sidecar.project]
+name = "codehull"
+namespace = "codehull"
+root = "."
+
+[[sidecar.sidecars]]
+name = "api"
+command = "cargo"
+args = ["run", "--locked", "-p", "api", "--", "."]
+cwd = "."
+mode = "dev"
+port = 0
+env = { API_LISTEN_PORT = "{port}" }
+health_url = "http://127.0.0.1:{port}/api/health"
+ready = { role = "api" }
