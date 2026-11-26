@@ -79,5 +79,17 @@ name = "new_client"
 description = "Foreign futures Stream trait method; the fetch body implements it and cannot choose its name."
 name = "poll_next"
 
+[[vocabulary.term]]
+description = "Foreign Tokio AsyncWrite trait method for the bounded Git diagnostic sink."
+name = "poll_flush"
+
+[[vocabulary.term]]
+description = "Foreign Tokio AsyncWrite trait method for the bounded Git diagnostic sink."
+name = "poll_shutdown"
+
+[[vocabulary.term]]
+description = "Foreign Tokio AsyncWrite trait method for the bounded Git diagnostic sink."
+name = "poll_write"
+
 [word]
 single = true

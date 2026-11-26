@@ -1,8 +1,11 @@
 use crate::Hall;
+use radicula_process::Cancel;
+use radicula_process::asynchronous::{Limits, Runner, State, Streams};
 use std::path::Path;
+use std::process::Command;
 use std::sync::Arc;
-use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt, copy};
-use tokio::process::Command;
+use std::time::Duration;
+use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt, Sink};
 
 const SEAT: &str = "GIT_OBJECT_DIRECTORY";
 const SPARE: &str = "GIT_ALTERNATE_OBJECT_DIRECTORIES";
@@ -30,8 +33,10 @@ where
         let Some(hold) = hall.pen(who, path.clone()).await else {
             return 1;
         };
-        if index(&mut reader, &root, &hold).await.is_err() {
-            let _ = tokio::fs::remove_dir_all(&hold).await;
+        if let Err(settled) = index(reader, &root, &hold).await {
+            if settled {
+                let _ = tokio::fs::remove_dir_all(&hold).await;
+            }
             return 1;
         }
         pen = Some(hold);
@@ -73,29 +78,43 @@ async fn orders<R: AsyncRead + Unpin>(reader: &mut R) -> Result<Vec<String>, ()>
     }
 }
 
-async fn index<R: AsyncRead + Unpin>(reader: &mut R, root: &Path, pen: &Path) -> Result<(), ()> {
+async fn index<R: AsyncRead + Send + Unpin + 'static>(
+    mut reader: R,
+    root: &Path,
+    pen: &Path,
+) -> Result<(), bool> {
     let mut peek = [0u8; 1];
-    if reader.read(&mut peek).await.map_err(drop)? == 0 {
+    if reader.read(&mut peek).await.map_err(|_| true)? == 0 {
         return Ok(());
     }
-    let mut child = Command::new("git")
+    let mut command = Command::new("git");
+    command
         .arg("-C")
         .arg(root)
         .args(["index-pack", "--stdin", "--fix-thin"])
         .env(SEAT, pen)
-        .env(SPARE, root.join(OBJECTS))
-        .stdin(std::process::Stdio::piped())
-        .stdout(std::process::Stdio::null())
-        .stderr(std::process::Stdio::null())
-        .spawn()
-        .map_err(drop)?;
-    let mut sink = child.stdin.take().ok_or(())?;
-    sink.write_all(&peek).await.map_err(drop)?;
-    copy(reader, &mut sink).await.map_err(drop)?;
-    sink.shutdown().await.map_err(drop)?;
-    drop(sink);
-    match child.wait().await.map_err(drop)?.success() {
-        true => Ok(()),
-        false => Err(()),
+        .env(SPARE, root.join(OBJECTS));
+    let streams = Streams::<_, Sink, Sink> {
+        input: Some(std::io::Cursor::new(peek).chain(reader)),
+        stdout: None,
+        stderr: None,
+    };
+    let mut session = runner()?.start(command, streams, Cancel::new());
+    match session.wait().await {
+        Ok(held) if held.status.success() => Ok(()),
+        _ => Err(session.observer().state() == State::Settled),
     }
+}
+
+fn runner() -> Result<Runner, bool> {
+    let limits = Limits {
+        time: Duration::from_secs(600),
+        output: 0,
+    };
+    let held = if cfg!(target_os = "linux") {
+        Runner::group(limits)
+    } else {
+        Runner::new(limits)
+    };
+    held.map_err(|_| true)
 }

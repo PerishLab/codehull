@@ -2,6 +2,7 @@ mod git;
 mod mark;
 mod object;
 mod pen;
+mod pipe;
 mod repo;
 mod store;
 

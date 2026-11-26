@@ -114,6 +114,7 @@ dependencies = [
 name = "api"
 version = "0.0.0"
 dependencies = [
+ "async-compression",
  "axum",
  "base64",
  "clap",
@@ -121,7 +122,7 @@ dependencies = [
  "codehull-ssh",
  "flate2",
  "futures-core",
- "http-body-util",
+ "futures-util",
  "jsonwebtoken",
  "keel",
  "keel-blob",
@@ -130,12 +131,14 @@ dependencies = [
  "locus",
  "plumb",
  "radicula-config",
+ "radicula-process",
  "rand 0.10.2",
  "russh",
  "serde",
  "serde_json",
  "tempfile",
  "tokio",
+ "tokio-util",
  "tower",
  "ureq",
 ]
@@ -150,6 +153,18 @@ dependencies = [
  "blake2",
  "cpufeatures 0.3.0",
  "password-hash",
+]
+
+[[package]]
+name = "async-compression"
+version = "0.4.54"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0c31224bd2c09447484a1143f2fc1d871eb405789859c8e5470a3e7f95f40a18"
+dependencies = [
+ "compression-codecs",
+ "compression-core",
+ "pin-project-lite",
+ "tokio",
 ]
 
 [[package]]
@@ -467,11 +482,17 @@ dependencies = [
 [[package]]
 name = "codehull-repo"
 version = "0.0.0"
+dependencies = [
+ "radicula-process",
+ "tempfile",
+ "tokio",
+]
 
 [[package]]
 name = "codehull-ssh"
 version = "0.0.0"
 dependencies = [
+ "radicula-process",
  "rand 0.10.2",
  "russh",
  "tokio",
@@ -492,6 +513,23 @@ dependencies = [
  "bytes",
  "memchr",
 ]
+
+[[package]]
+name = "compression-codecs"
+version = "0.4.49"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f938fc0d88fbe2c8d6f0e1ba96ba1165d89ff698e98468cd019d92cff2ecd367"
+dependencies = [
+ "compression-core",
+ "flate2",
+ "memchr",
+]
+
+[[package]]
+name = "compression-core"
+version = "0.4.34"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2ebdda89edc534bf8d5dd2857562633b6495557e5846552ade994b99ed13c36a"
 
 [[package]]
 name = "concurrent-queue"
@@ -2561,9 +2599,9 @@ checksum = "b1baa35f4586162b2207c344f67bc91ef220a8a660f9bc990af6c2750de9b5e0"
 
 [[package]]
 name = "radicula-process"
-version = "0.19.0"
+version = "0.21.0"
 source = "sparse+https://cargo.perish.uk/"
-checksum = "30570efa84c73962e71a96f2ada5592321d60c30b45648c6b59e18bb42e1ffa9"
+checksum = "36e2c4e0f3a58920e83294fb70526681ea9abfbb8dcb8be5e4e2488c42657779"
 dependencies = [
  "libc",
  "serde",
@@ -2898,7 +2936,7 @@ dependencies = [
  "security-framework",
  "security-framework-sys",
  "webpki-root-certs",
- "windows-sys 0.52.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -3729,6 +3767,19 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "32da49809aab5c3bc678af03902d4ccddea2a87d028d86392a4b1560c6906c70"
 dependencies = [
  "futures-core",
+ "pin-project-lite",
+ "tokio",
+]
+
+[[package]]
+name = "tokio-util"
+version = "0.7.20"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e464cf451ba96ebfc6f9b6542f17ee8b8956e33f1e40d9690624e59d7a7f8a4b"
+dependencies = [
+ "bytes",
+ "futures-core",
+ "futures-sink",
  "pin-project-lite",
  "tokio",
 ]

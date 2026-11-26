@@ -6,3 +6,10 @@ license.workspace = true
 repository.workspace = true
 description = "the private Codehull repository kernel"
 publish = false
+
+[dependencies]
+radicula-process.workspace = true
+tokio.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true

@@ -1,19 +1,19 @@
 use super::line::{self, Order};
 use super::point::{Held, Point, sane};
 use super::{CEILING, Dock, Fault, GZIP, Reach, actor, admit, bad, work};
+use async_compression::tokio::bufread::GzipDecoder;
 use axum::Extension;
-use axum::body::{Body, Bytes};
+use axum::body::Body;
 use axum::http::{HeaderMap, HeaderValue, header};
 use axum::response::{IntoResponse, Response};
-use codehull_repo::{Object, Pen, Store};
-use flate2::read::GzDecoder;
-use http_body_util::BodyExt;
+use codehull_repo::{Object, Pen, Repository};
+use futures_util::TryStreamExt;
 use keel::{Operator, Wire};
-use std::io::{Cursor, Read};
-use std::sync::Arc;
-use tokio::sync::mpsc::{Receiver, channel};
-
-const FLOW: usize = 8;
+use radicula_process::Cancel;
+use std::io;
+use std::sync::{Arc, OnceLock};
+use tokio::io::{AsyncRead, AsyncReadExt};
+use tokio_util::io::StreamReader;
 
 pub(super) const RECEIVE: &str = "git-receive-pack";
 pub(super) const CAPS: &str = "report-status delete-refs";
@@ -169,23 +169,21 @@ fn weigh(order: &Order, seats: &[(i64, String, String)], gone: &[Object]) -> Res
     })
 }
 
-struct Bridge {
-    rx: Receiver<Bytes>,
-    held: Bytes,
+struct Lease(Cancel);
+
+impl Drop for Lease {
+    fn drop(&mut self) {
+        self.0.cancel();
+    }
 }
 
-impl Read for Bridge {
-    fn read(&mut self, out: &mut [u8]) -> std::io::Result<usize> {
-        while self.held.is_empty() {
-            match self.rx.blocking_recv() {
-                Some(next) => self.held = next,
-                None => return Ok(0),
-            }
+struct Pack(Option<Pen>);
+
+impl Drop for Pack {
+    fn drop(&mut self) {
+        if let Some(pen) = self.0.take() {
+            tokio::task::spawn_blocking(move || pen.wipe());
         }
-        let size = out.len().min(self.held.len());
-        out[..size].copy_from_slice(&self.held[..size]);
-        self.held = self.held.slice(size..);
-        Ok(size)
     }
 }
 
@@ -199,60 +197,54 @@ async fn intake<W: Wire + 'static>(
         .get(header::CONTENT_ENCODING)
         .and_then(|held| held.to_str().ok())
         .is_some_and(|held| held.contains(GZIP));
-    let (tx, rx) = channel(FLOW);
-    let store = dock.store.clone();
-    let task = tokio::task::spawn_blocking(move || sift(store, id, coded, rx));
-    let mut body = body;
-    while let Some(frame) = body.frame().await {
-        let frame = frame.map_err(|error| bad(format!("cannot read the request: {error}")))?;
-        let Ok(data) = frame.into_data() else {
-            continue;
-        };
-        if tx.send(data).await.is_err() {
-            break;
-        }
-    }
-    drop(tx);
-    task.await.map_err(|_| bad("the request was dropped"))?
-}
-
-fn sift(
-    store: Arc<Store>,
-    id: u64,
-    coded: bool,
-    rx: Receiver<Bytes>,
-) -> Result<(Vec<Order>, Option<Pen>), Fault> {
-    let bridge = Bridge {
-        rx,
-        held: Bytes::new(),
-    };
-    let mut src: Box<dyn Read> = match coded {
-        true => Box::new(GzDecoder::new(bridge)),
+    let fault = Arc::new(OnceLock::new());
+    let observed = fault.clone();
+    let data = body.into_data_stream().map_err(move |error| {
+        let _ = observed.set(format!("cannot read the request: {error}"));
+        io::Error::other(error)
+    });
+    let bridge = StreamReader::new(data);
+    let mut src: Box<dyn AsyncRead + Send + Unpin> = match coded {
+        true => Box::new(GzipDecoder::new(bridge)),
         false => Box::new(bridge),
     };
-    let (orders, rest) = heads(&mut src)?;
-    let repo = store.repository(id).map_err(super::fault)?;
-    let mut src = Cursor::new(rest).chain(src);
+    let (orders, rest) = heads(&mut src).await?;
+    let store = dock.store.clone();
+    let repo = work(move || store.repository(id)).await?;
+    let mut src = std::io::Cursor::new(rest).chain(src);
     let mut peek = [0u8; 1];
     if src
         .read(&mut peek)
+        .await
         .map_err(|error| bad(error.to_string()))?
         == 0
     {
         return Ok((orders, None));
     }
-    let pen = repo.pen().map_err(super::fault)?;
-    let mut src = Cursor::new(peek).chain(src);
-    match repo.index(&pen, &mut src) {
-        Ok(()) => Ok((orders, Some(pen))),
-        Err(error) => {
-            let _ = pen.wipe();
-            Err(super::fault(error))
-        }
-    }
+    let lease = Lease(Cancel::new());
+    let src = std::io::Cursor::new(peek).chain(src);
+    let mut pack = tokio::spawn(index(repo, src, lease.0.clone()))
+        .await
+        .map_err(|_| bad("the request was dropped"))?
+        .map_err(|error| match fault.get() {
+            Some(note) => bad(note),
+            None => error,
+        })?;
+    Ok((orders, pack.0.take()))
 }
 
-fn heads(src: &mut dyn Read) -> Result<(Vec<Order>, Vec<u8>), Fault> {
+async fn index(
+    repo: Repository,
+    src: impl AsyncRead + Send + Unpin + 'static,
+    cancel: Cancel,
+) -> Result<Pack, Fault> {
+    let seat = repo.clone();
+    let pen = work(move || seat.pen()).await?;
+    let held = repo.index(pen, src, cancel).await.map_err(super::fault)?;
+    Ok(Pack(Some(held)))
+}
+
+async fn heads(src: &mut (dyn AsyncRead + Send + Unpin)) -> Result<(Vec<Order>, Vec<u8>), Fault> {
     let mut held = Vec::new();
     let mut chunk = [0u8; 8192];
     loop {
@@ -265,6 +257,7 @@ fn heads(src: &mut dyn Read) -> Result<(Vec<Order>, Vec<u8>), Fault> {
         }
         let size = src
             .read(&mut chunk)
+            .await
             .map_err(|error| bad(format!("cannot read the request: {error}")))?;
         if size == 0 {
             return Err(bad("update request has no flush"));

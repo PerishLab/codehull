@@ -16,13 +16,16 @@ name = "codehull-api"
 path = "src/main.rs"
 
 [dependencies]
+async-compression.workspace = true
+futures-util.workspace = true
+radicula-process.workspace = true
+tokio-util.workspace = true
 radicula-config.workspace = true
 locus.workspace = true
 clap = { workspace = true }
 axum = { workspace = true }
 flate2 = { workspace = true }
 futures-core = { workspace = true }
-http-body-util = { workspace = true }
 base64 = { workspace = true }
 jsonwebtoken = { workspace = true }
 codehull-repo = { path = "../repo" }
