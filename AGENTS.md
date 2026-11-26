@@ -110,8 +110,8 @@ its verbs are `plumb release --help`, `plumb ship --help` and
 
 Both executables call `plumb::identity!("CODEHULL")` and print
 `<binary> <marker>` from `--version`. An unbound build answers `--version` with
-`<binary> unbound` and refuses every other operation. The server keeps package
-`api`, so its configuration cascade stays under the `API_` prefix over
+`<binary> unbound` and refuses every other operation. The server keeps package `api` and pins `#[plumb::config::prefix("CODEHULL")]`,
+so its configuration cascade stays under the `CODEHULL_` prefix over
 `codehull.toml`.
 
 The root `Containerfile` takes a build context of only itself and a
@@ -125,7 +125,7 @@ codehull-api`, copy `target/release/codehull-api` to the repository root
 trixie (glibc 2.41), at least the glibc of wharf's ubuntu-24.04 build runner
 (2.39), so a released binary starts in it; a local binary must be built
 against a glibc no newer than the image's. A `bootstrap` service runs before `api` and keeps sudo in a
-volume `api` never mounts; `api` refuses to serve until `API_OIDC_ISSUER`
+volume `api` never mounts; `api` refuses to serve until `CODEHULL_OIDC_ISSUER`
 names an issuer reachable from its container.
 
 `deploy/compose.yml` is the only compose entry. The project is
@@ -133,7 +133,7 @@ names an issuer reachable from its container.
 and network carries `perish.owner` and `perish.lane`, and nothing publishes a
 host port; services answer by short name on the lane's private network
 (`pg`, `silo`, `api`). Only `api` also joins the shared lane network
-`perish-<lane>` as `api.codehull.internal`, and `API_OIDC_ISSUER` defaults
+`perish-<lane>` as `api.codehull.internal`, and `CODEHULL_OIDC_ISSUER` defaults
 to the same lane's ensign, `http://api.ensign.internal:8080/api`: bring
 ensign's stack up first, since `api` refuses to serve until it answers.
 Silo, the maintained fork of MinIO's community server, is the lane's object

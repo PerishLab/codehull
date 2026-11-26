@@ -46,7 +46,7 @@ fn seam() {
 fn blob() {
     let (stage, wire) = open();
     if !stage.blob {
-        eprintln!("API_BLOB_ENDPOINT absent: the blob plane stays unproven this run");
+        eprintln!("CODEHULL_BLOB_ENDPOINT absent: the blob plane stays unproven this run");
         return;
     }
     let bob = wire.join(&stage.issuer, "bob", &[]);

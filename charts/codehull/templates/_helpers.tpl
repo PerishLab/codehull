@@ -10,7 +10,7 @@
 {{- if .Values.postgres.urlSecret.name -}}
 {{ .Values.postgres.urlSecret.key }}
 {{- else -}}
-API_STORE_URL
+CODEHULL_STORE_URL
 {{- end -}}
 {{- end -}}
 
@@ -26,33 +26,33 @@ API_STORE_URL
 {{- end -}}
 
 {{- define "codehull.seam" -}}
-- name: API_OIDC_ISSUER
+- name: CODEHULL_OIDC_ISSUER
   value: {{ .Values.oidc.issuer | quote }}
-- name: API_OIDC_AUDIENCE
+- name: CODEHULL_OIDC_AUDIENCE
   value: {{ .Values.oidc.audience | quote }}
 {{- end -}}
 
 {{- define "codehull.seat" -}}
 {{- if .Values.api.repo.enabled }}
-- name: API_REPO_PATH
+- name: CODEHULL_REPO_PATH
   value: {{ printf "%s/store" .Values.api.repo.mount | quote }}
 {{- end }}
 {{- end -}}
 
 {{- define "codehull.store" -}}
-- name: API_STORE_KIND
+- name: CODEHULL_STORE_KIND
   value: "pg"
-- name: API_STORE_URL
+- name: CODEHULL_STORE_URL
   valueFrom:
     secretKeyRef:
       name: {{ include "codehull.storeseat" . }}
       key: {{ include "codehull.storekey" . }}
 {{- if .Values.blob.endpoint }}
-- name: API_BLOB_ENDPOINT
+- name: CODEHULL_BLOB_ENDPOINT
   value: {{ .Values.blob.endpoint | quote }}
-- name: API_BLOB_KEY
+- name: CODEHULL_BLOB_KEY
   value: {{ .Values.blob.key | quote }}
-- name: API_BLOB_SECRET
+- name: CODEHULL_BLOB_SECRET
   valueFrom:
     secretKeyRef:
       name: {{ .Values.blob.secretName }}

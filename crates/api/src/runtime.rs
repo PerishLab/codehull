@@ -4,7 +4,7 @@ use std::path::Path;
 pub const NAME: &str = "codehull.toml";
 
 #[derive(Debug, Default, PartialEq, Cascade)]
-#[plumb::config::prefix]
+#[plumb::config::prefix("CODEHULL")]
 pub struct Runtime {
     #[cascade(section)]
     pub repo: Repo,
@@ -124,7 +124,8 @@ pub struct Oidc {
 
 pub fn load(start: &Path) -> Result<Runtime, radicula_config::Error> {
     let found = plumb::config::discover(start, NAME).ok();
-    Runtime::resolve(found.as_deref(), &Runtime::prefix(), &plumb::config::value)
+    let read = plumb::config::migrated(&Runtime::prefix(), "API", &plumb::config::value);
+    Runtime::resolve(found.as_deref(), &Runtime::prefix(), &read)
 }
 
 #[derive(Debug, Default, serde::Deserialize, PartialEq, Cascade)]
