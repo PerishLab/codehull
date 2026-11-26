@@ -62,8 +62,8 @@ services:
       context: ..
       dockerfile: Containerfile
     environment:
-      API_STORE_KIND: "pg"
-      API_STORE_URL: "host=pg port=5432 user=codehull password=codehull dbname=codehull"
+      CODEHULL_STORE_KIND: "pg"
+      CODEHULL_STORE_URL: "host=pg port=5432 user=codehull password=codehull dbname=codehull"
     command: ["bootstrap", "/codehull"]
     volumes:
       - ./codehull.toml:/codehull/codehull.toml:ro
@@ -76,10 +76,10 @@ services:
     image: codehull-api:dev
     labels: *lane
     environment:
-      API_STORE_KIND: "pg"
-      API_STORE_URL: "host=pg port=5432 user=codehull password=codehull dbname=codehull"
-      API_OIDC_ISSUER: "${API_OIDC_ISSUER:-http://api.ensign.internal:8080/api}"
-      API_OIDC_AUDIENCE: "codehull"
+      CODEHULL_STORE_KIND: "pg"
+      CODEHULL_STORE_URL: "host=pg port=5432 user=codehull password=codehull dbname=codehull"
+      CODEHULL_OIDC_ISSUER: "${CODEHULL_OIDC_ISSUER:-${API_OIDC_ISSUER:-http://api.ensign.internal:8080/api}}"
+      CODEHULL_OIDC_AUDIENCE: "codehull"
     command: ["serve", "/codehull"]
     networks:
       default: {}
@@ -100,7 +100,7 @@ services:
       bootstrap:
         condition: service_completed_successfully
   # The acts on the lane's Postgres and Silo. The checkout is read-only and
-  # cargo writes only to lane volumes; API_FRESH wipes codehull_acts, never
+  # cargo writes only to lane volumes; CODEHULL_FRESH wipes codehull_acts, never
   # codehull.
   runner:
     profiles: [tools]
@@ -110,10 +110,10 @@ services:
     entrypoint: []
     environment:
       CARGO_TARGET_DIR: /target
-      API_STORE_URL: "host=pg port=5432 user=codehull password=codehull dbname=codehull_acts"
-      API_BLOB_ENDPOINT: "http://silo:9000"
-      API_BLOB_KEY: "codehull"
-      API_BLOB_SECRET: "codehull123"
+      CODEHULL_STORE_URL: "host=pg port=5432 user=codehull password=codehull dbname=codehull_acts"
+      CODEHULL_BLOB_ENDPOINT: "http://silo:9000"
+      CODEHULL_BLOB_KEY: "codehull"
+      CODEHULL_BLOB_SECRET: "codehull123"
     volumes:
       - ..:/src:ro
       - target:/target

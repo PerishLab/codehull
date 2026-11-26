@@ -69,7 +69,7 @@ blob:
   # the blob plane stays off rather than half-wired.
   endpoint: ""
   key: ""
-  # The secret holding API_BLOB_SECRET. The chart never carries object storage
+  # The secret holding CODEHULL_BLOB_SECRET. The chart never carries object storage
   # credentials of its own.
   secretName: ""
   secretKey: ""

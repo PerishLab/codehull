@@ -32,30 +32,26 @@ pub struct Stage {
 
 impl Stage {
     pub fn live(exe: &Path) -> Self {
-        let store = std::env::var("API_STORE_URL")
-            .ok()
-            .filter(|url| !url.is_empty());
-        let shed = std::env::var("API_BLOB_ENDPOINT")
-            .ok()
-            .filter(|url| !url.is_empty());
+        let store = read("CODEHULL_STORE_URL", "API_STORE_URL");
+        let shed = read("CODEHULL_BLOB_ENDPOINT", "API_BLOB_ENDPOINT");
         let hold = store
             .as_ref()
             .map(|_| SERIAL.lock().unwrap_or_else(|poison| poison.into_inner()));
         let mut env = Vec::new();
         if let Some(url) = store {
-            env.push(("API_STORE_KIND".to_string(), "pg".to_string()));
-            env.push(("API_STORE_URL".to_string(), url));
-            env.push(("API_FRESH".to_string(), "true".to_string()));
+            env.push(("CODEHULL_STORE_KIND".to_string(), "pg".to_string()));
+            env.push(("CODEHULL_STORE_URL".to_string(), url));
+            env.push(("CODEHULL_FRESH".to_string(), "true".to_string()));
         }
         if let Some(url) = &shed {
-            env.push(("API_BLOB_ENDPOINT".to_string(), url.clone()));
+            env.push(("CODEHULL_BLOB_ENDPOINT".to_string(), url.clone()));
             env.push((
-                "API_BLOB_KEY".to_string(),
-                lookup("API_BLOB_KEY", "codehull"),
+                "CODEHULL_BLOB_KEY".to_string(),
+                lookup("CODEHULL_BLOB_KEY", "API_BLOB_KEY", "codehull"),
             ));
             env.push((
-                "API_BLOB_SECRET".to_string(),
-                lookup("API_BLOB_SECRET", "codehull123"),
+                "CODEHULL_BLOB_SECRET".to_string(),
+                lookup("CODEHULL_BLOB_SECRET", "API_BLOB_SECRET", "codehull123"),
             ));
         }
         let mut stage = Self::raise(exe, MEMORY, env);
@@ -65,7 +61,7 @@ impl Stage {
     }
 
     pub fn external(exe: &Path, issuer: &str) -> Self {
-        let env = vec![("API_OIDC_ISSUER".to_string(), issuer.to_string())];
+        let env = vec![("CODEHULL_OIDC_ISSUER".to_string(), issuer.to_string())];
         Self::raise(exe, MEMORY, env)
     }
 
@@ -196,8 +192,8 @@ impl Stage {
             .env("HOME", &self.nest)
             .env("USERPROFILE", &self.nest)
             .env("LOCALAPPDATA", &self.nest)
-            .env("API_OIDC_ISSUER", &self.issuer.url)
-            .env("API_OIDC_AUDIENCE", "codehull")
+            .env("CODEHULL_OIDC_ISSUER", &self.issuer.url)
+            .env("CODEHULL_OIDC_AUDIENCE", "codehull")
             .envs(self.env.iter().map(|(key, value)| (key, value)));
         for key in ["PATH", "SYSTEMROOT", "WINDIR"] {
             if let Some(value) = std::env::var_os(key) {
@@ -259,6 +255,13 @@ fn tail(at: &str) -> u16 {
         .unwrap_or_else(|| panic!("unreadable endpoint {at}"))
 }
 
-fn lookup(key: &str, fallback: &str) -> String {
-    std::env::var(key).unwrap_or_else(|_| fallback.to_string())
+fn read(primary: &str, legacy: &str) -> Option<String> {
+    std::env::var(primary)
+        .ok()
+        .filter(|value| !value.is_empty())
+        .or_else(|| std::env::var(legacy).ok().filter(|value| !value.is_empty()))
+}
+
+fn lookup(primary: &str, legacy: &str, fallback: &str) -> String {
+    read(primary, legacy).unwrap_or_else(|| fallback.to_string())
 }
