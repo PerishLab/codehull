@@ -1,4 +1,4 @@
-use crate::git::Git;
+use crate::git::{Draw, Git};
 use crate::pen::Pen;
 use crate::store::{sync, write};
 use crate::{Error, Object, io};
@@ -103,12 +103,29 @@ impl Repository {
         Pen::open(&self.root, hold)
     }
 
-    pub fn index(&self, pen: &Pen, src: &mut dyn std::io::Read) -> Result<(), Error> {
-        Git::pen(&self.root, pen.hold()).pour(
-            ["index-pack", "--stdin", "--fix-thin"],
-            src,
-            "cannot index objects",
-        )
+    pub async fn index(
+        &self,
+        pen: Pen,
+        src: impl tokio::io::AsyncRead + Send + Unpin + 'static,
+        cancel: radicula_process::Cancel,
+    ) -> Result<Pen, Error> {
+        let held = Git::pen(&self.root, pen.hold())
+            .pour(
+                ["index-pack", "--stdin", "--fix-thin"],
+                src,
+                cancel,
+                "cannot index objects",
+            )
+            .await;
+        match held {
+            Ok(()) => Ok(pen),
+            Err((error, settled)) => {
+                if settled {
+                    let _ = tokio::task::spawn_blocking(move || pen.wipe()).await;
+                }
+                Err(error)
+            }
+        }
     }
 
     pub fn ancestor(&self, old: &Object, new: &Object) -> Result<bool, Error> {
@@ -175,7 +192,7 @@ impl Repository {
         };
         let held = git.feed(
             ["cat-file", "--batch-check"],
-            ask.as_bytes(),
+            ask.into_bytes(),
             "cannot read objects",
         )?;
         let text = String::from_utf8_lossy(&held);
@@ -191,18 +208,24 @@ impl Repository {
     pub fn advertise(&self) -> Result<Vec<u8>, Error> {
         Git::at(&self.root).feed(
             ["upload-pack", "--stateless-rpc", "--advertise-refs", "."],
-            &[],
+            Vec::new(),
             "cannot advertise references",
         )
     }
 
-    pub fn upload(&self, want: &[u8], sink: &mut dyn std::io::Write) -> Result<(), Error> {
-        Git::at(&self.root).draw(
-            ["upload-pack", "--stateless-rpc", "."],
-            want,
-            sink,
-            "cannot upload objects",
-        )
+    pub async fn upload(
+        &self,
+        want: Vec<u8>,
+        sink: impl tokio::io::AsyncWrite + Send + Unpin + 'static,
+    ) -> Result<(), Error> {
+        Git::at(&self.root)
+            .draw(
+                ["upload-pack", "--stateless-rpc", "."],
+                want,
+                sink,
+                Draw::upload("cannot upload objects"),
+            )
+            .await
     }
 }
 

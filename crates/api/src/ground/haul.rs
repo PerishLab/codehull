@@ -7,15 +7,19 @@ use axum::body::{Body, Bytes};
 use axum::extract::{Path, Query, State};
 use axum::http::HeaderMap;
 use axum::response::Response;
+use codehull_repo::Error;
 use futures_core::Stream;
 use keel::{Operator, Wire};
 use serde::Deserialize;
-use std::io::Write;
+use std::future::Future;
+use std::io;
 use std::pin::Pin;
 use std::task::{Context, Poll};
-use tokio::sync::mpsc::{Receiver, Sender, channel};
+use tokio::io::{DuplexStream, duplex};
+use tokio::task::JoinHandle;
+use tokio_util::io::ReaderStream;
 
-const FLOW: usize = 8;
+const BUFFER: usize = 64 << 10;
 
 const OFFER: &str = "application/x-git-upload-pack-advertisement";
 const REPLY: &str = "application/x-git-upload-pack-result";
@@ -71,42 +75,50 @@ impl<W: Wire + 'static> Dock<W> {
         let id = admit(self, id, actor(op)?, Reach::See).await?;
         let want = thaw(&headers, want)?;
         let store = self.store.clone();
-        let (tx, rx) = channel(FLOW);
-        let seat = tx.clone();
-        tokio::task::spawn_blocking(move || {
-            let mut sink = Spout(seat);
-            let held = store
-                .repository(id)
-                .and_then(|repo| repo.upload(&want, &mut sink));
-            if let Err(error) = held {
-                let _ = tx.blocking_send(Err(std::io::Error::other(error.to_string())));
-            }
+        let (source, sink) = duplex(BUFFER);
+        let task = tokio::spawn(async move {
+            let repo = tokio::task::spawn_blocking(move || store.repository(id))
+                .await
+                .map_err(|error| Error::Io(format!("repository worker failed: {error}")))??;
+            repo.upload(want, sink).await
         });
-        Ok(sent(REPLY, Body::from_stream(Flow(rx))))
+        let flow = Flow {
+            source: ReaderStream::new(source),
+            task: Some(task),
+        };
+        Ok(sent(REPLY, Body::from_stream(flow)))
     }
 }
 
-struct Spout(Sender<Result<Bytes, std::io::Error>>);
-
-impl Write for Spout {
-    fn write(&mut self, held: &[u8]) -> std::io::Result<usize> {
-        match self.0.blocking_send(Ok(Bytes::copy_from_slice(held))) {
-            Ok(()) => Ok(held.len()),
-            Err(_) => Err(std::io::Error::other("the reader is gone")),
-        }
-    }
-
-    fn flush(&mut self) -> std::io::Result<()> {
-        Ok(())
-    }
+struct Flow {
+    source: ReaderStream<DuplexStream>,
+    task: Option<JoinHandle<Result<(), Error>>>,
 }
-
-struct Flow(Receiver<Result<Bytes, std::io::Error>>);
 
 impl Stream for Flow {
-    type Item = Result<Bytes, std::io::Error>;
+    type Item = Result<Bytes, io::Error>;
 
     fn poll_next(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
-        self.0.poll_recv(cx)
+        if let Some(chunk) = std::task::ready!(Pin::new(&mut self.source).poll_next(cx)) {
+            return Poll::Ready(Some(chunk));
+        }
+        let Some(task) = self.task.as_mut() else {
+            return Poll::Ready(None);
+        };
+        let result = std::task::ready!(Pin::new(task).poll(cx));
+        self.task = None;
+        Poll::Ready(match result {
+            Ok(Ok(())) => None,
+            Ok(Err(error)) => Some(Err(io::Error::other(error))),
+            Err(error) => Some(Err(io::Error::other(error))),
+        })
+    }
+}
+
+impl Drop for Flow {
+    fn drop(&mut self) {
+        if let Some(task) = &self.task {
+            task.abort();
+        }
     }
 }

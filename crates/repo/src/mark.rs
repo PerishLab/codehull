@@ -62,7 +62,7 @@ impl Repository {
         Git::at(&self.root)
             .feed(
                 ["update-ref", "--create-reflog", "-z", "--stdin"],
-                &held,
+                held,
                 "cannot write references",
             )
             .map(drop)

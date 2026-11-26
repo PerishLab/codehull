@@ -144,8 +144,8 @@ fn retention() {
     );
 }
 
-#[test]
-fn quarantine() {
+#[tokio::test]
+async fn quarantine() {
     let temp = Temp::new();
     let work = temp.path().join("work");
     std::fs::create_dir(&work).expect("work root");
@@ -161,7 +161,9 @@ fn quarantine() {
     let store = Store::create(&temp.path().join("store")).expect("store");
     let repo = store.provision(7).expect("repository");
     let pen = repo.pen().expect("pen");
-    repo.index(&pen, &mut pack.as_slice())
+    let pen = repo
+        .index(pen, std::io::Cursor::new(pack.clone()), Default::default())
+        .await
         .expect("index into the pen");
     assert!(repo.holds(&held).is_err());
     repo.sees(&pen, &held).expect("the pen carries the object");
@@ -171,7 +173,10 @@ fn quarantine() {
     assert!(repo.holds(&held).is_err());
 
     let pen = repo.pen().expect("second pen");
-    repo.index(&pen, &mut pack.as_slice()).expect("index again");
+    let pen = repo
+        .index(pen, std::io::Cursor::new(pack), Default::default())
+        .await
+        .expect("index again");
     let hold = pen.hold().to_path_buf();
     pen.keep().expect("keep the pen");
     assert!(!hold.exists());
