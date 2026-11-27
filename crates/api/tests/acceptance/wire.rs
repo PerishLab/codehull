@@ -129,8 +129,12 @@ impl Wire {
             .unwrap_or_else(|| reply(dress(self.agent.delete(url), head).call()))
     }
 
-    pub fn upload(&self, url: &str, bytes: &[u8]) -> Reply {
-        reply(self.agent.put(url).send(bytes))
+    pub fn upload(&self, url: &str, head: &Head, bytes: &[u8]) -> Reply {
+        let mut ask = self.agent.put(url);
+        for (key, value) in head {
+            ask = ask.header(key, value);
+        }
+        reply(ask.send(bytes))
     }
 
     pub fn carry(&self, url: &str, head: &Head, bytes: &[u8]) -> Reply {

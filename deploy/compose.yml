@@ -100,8 +100,7 @@ services:
       bootstrap:
         condition: service_completed_successfully
   # The acts on the lane's Postgres and Silo. The checkout is read-only and
-  # cargo writes only to lane volumes; CODEHULL_FRESH wipes codehull_acts, never
-  # codehull.
+  # cargo writes only to lane volumes; each run creates its own scratch database.
   runner:
     profiles: [tools]
     image: ghcr.io/perishlab/images:stable

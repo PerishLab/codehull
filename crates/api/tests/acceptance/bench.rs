@@ -1,5 +1,8 @@
 #![allow(dead_code)]
 
+#[path = "../smoke/scratch.rs"]
+mod scratch;
+
 use super::estate::shaky::{Knob, Shaky};
 use super::issuer::Issuer;
 use super::wire::{Head, Inside, Load, Reply, Wire, shape};
@@ -10,15 +13,12 @@ use axum::body::{Body, to_bytes};
 use axum::http::Request;
 use keel::adapt::db::Sqlite;
 use keel::adapt::pg::Postgres;
+use scratch::Scratch;
 use std::path::{Path, PathBuf};
-use std::sync::{Arc, Mutex, MutexGuard};
+use std::sync::Arc;
 use tokio::net::TcpListener;
 use tokio::runtime::{Builder, Handle, Runtime as Engine};
 use tower::ServiceExt;
-
-struct Unit;
-
-static SERIAL: Mutex<Unit> = Mutex::new(Unit);
 
 pub struct Bench {
     pub origin: String,
@@ -31,7 +31,7 @@ pub struct Bench {
     sudo: String,
     engine: Engine,
     room: tempfile::TempDir,
-    hold: Option<MutexGuard<'static, Unit>>,
+    _scratch: Option<Scratch>,
 }
 
 struct Built {
@@ -60,9 +60,11 @@ impl Bench {
         std::fs::write(nest.join("codehull.toml"), "[store]\nkind = \"memory\"\n")
             .expect("bench config");
         let issuer = Issuer::new();
-        let runtime = plan(&nest, &issuer);
-        let hold = (runtime.store.kind == Kind::Pg)
-            .then(|| SERIAL.lock().unwrap_or_else(|poison| poison.into_inner()));
+        let mut runtime = plan(&nest, &issuer);
+        let scratch = (runtime.store.kind == Kind::Pg).then(|| Scratch::at(&runtime.store.url));
+        if let Some(scratch) = &scratch {
+            runtime.store.url = scratch.url().to_string();
+        }
         let mut builder = Builder::new_multi_thread();
         if !socket {
             builder.worker_threads(2);
@@ -82,7 +84,7 @@ impl Bench {
             sudo: built.sudo,
             engine,
             room,
-            hold,
+            _scratch: scratch,
         }
     }
 
@@ -104,7 +106,6 @@ fn plan(nest: &Path, issuer: &Issuer) -> Runtime {
     runtime.oidc.audience = "codehull".to_string();
     if !runtime.store.url.is_empty() {
         runtime.store.kind = Kind::Pg;
-        runtime.fresh = true;
     }
     if !runtime.blob.endpoint.is_empty() {
         fill(&mut runtime.blob.key, "codehull");
@@ -132,8 +133,7 @@ async fn stock(
             None => erect(store, runtime, seats, socket).await,
         };
     }
-    let mut store = Postgres::at(&runtime.store.url).await.expect("pg store");
-    store.wipe().await.expect("pg wipe");
+    let store = Postgres::at(&runtime.store.url).await.expect("pg store");
     match knob {
         Some(knob) => erect(Shaky::new(store, knob), runtime, seats, socket).await,
         None => erect(store, runtime, seats, socket).await,
