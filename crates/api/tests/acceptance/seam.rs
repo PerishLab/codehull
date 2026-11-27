@@ -53,11 +53,23 @@ fn blob() {
     let cy = wire.join(&stage.issuer, "cy", &[]);
     let made = wire.want(
         "/asset",
-        json!({ "name": "logo.png", "mime": "image/png", "size": 5, "hash": "h1", "owner": bob.id }),
+        json!({
+            "name": "logo.png",
+            "mime": "image/png",
+            "size": 5,
+            "hash": "74f81fe167d99b4cb41d6d0ccda82278caee9f3e2f25d5e5a3936ff3dcec60d0",
+            "owner": bob.id,
+        }),
         &bob.head,
     );
     let put = made["put"].as_str().expect("presigned put");
-    let up = wire.upload(put, &[1, 2, 3, 4, 5]);
+    let headers: Vec<(String, String)> = made["headers"]
+        .as_object()
+        .expect("presigned headers")
+        .iter()
+        .map(|(k, v)| (k.clone(), v.as_str().expect("header value").to_string()))
+        .collect();
+    let up = wire.upload(put, &headers, &[1, 2, 3, 4, 5]);
     assert!(up.ok(), "presigned put {}", up.status);
     let path = format!("/asset/{}", made["id"].as_i64().expect("asset id"));
     let seen = wire.get(&path, &bob.head);

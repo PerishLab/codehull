@@ -1,16 +1,16 @@
 #![allow(dead_code)]
 
+#[path = "scratch.rs"]
+mod scratch;
+
 pub use super::issuer::Issuer;
+use scratch::Scratch;
 use serde_json::Value;
 use std::io::{BufRead, BufReader, Lines};
 use std::path::{Path, PathBuf};
 use std::process::{Child, ChildStderr, Command, Stdio};
-use std::sync::{Arc, Mutex, MutexGuard};
+use std::sync::{Arc, Mutex};
 use std::time::Duration;
-
-struct Unit;
-
-static SERIAL: Mutex<Unit> = Mutex::new(Unit);
 
 const MEMORY: &str = "[listen]\nhost = \"127.0.0.1\"\nport = 0\nprefix = \"\"\n\n[store]\nkind = \"memory\"\n\n[cache]\nkind = \"memory\"\n";
 
@@ -27,21 +27,17 @@ pub struct Stage {
     child: Option<Child>,
     shell: bool,
     room: tempfile::TempDir,
-    hold: Option<MutexGuard<'static, Unit>>,
+    _scratch: Option<Scratch>,
 }
 
 impl Stage {
     pub fn live(exe: &Path) -> Self {
-        let store = read("CODEHULL_STORE_URL", "API_STORE_URL");
+        let scratch = Scratch::open();
         let shed = read("CODEHULL_BLOB_ENDPOINT", "API_BLOB_ENDPOINT");
-        let hold = store
-            .as_ref()
-            .map(|_| SERIAL.lock().unwrap_or_else(|poison| poison.into_inner()));
         let mut env = Vec::new();
-        if let Some(url) = store {
+        if let Some(scratch) = &scratch {
             env.push(("CODEHULL_STORE_KIND".to_string(), "pg".to_string()));
-            env.push(("CODEHULL_STORE_URL".to_string(), url));
-            env.push(("CODEHULL_FRESH".to_string(), "true".to_string()));
+            env.push(("CODEHULL_STORE_URL".to_string(), scratch.url().to_string()));
         }
         if let Some(url) = &shed {
             env.push(("CODEHULL_BLOB_ENDPOINT".to_string(), url.clone()));
@@ -54,15 +50,14 @@ impl Stage {
                 lookup("CODEHULL_BLOB_SECRET", "API_BLOB_SECRET", "codehull123"),
             ));
         }
-        let mut stage = Self::raise(exe, MEMORY, env);
-        stage.hold = hold;
+        let mut stage = Self::raise(exe, MEMORY, env, scratch);
         stage.blob = shed.is_some();
         stage
     }
 
     pub fn external(exe: &Path, issuer: &str) -> Self {
         let env = vec![("CODEHULL_OIDC_ISSUER".to_string(), issuer.to_string())];
-        Self::raise(exe, MEMORY, env)
+        Self::raise(exe, MEMORY, env, None)
     }
 
     pub fn seat(exe: &Path, ssh: bool) -> Self {
@@ -70,15 +65,21 @@ impl Stage {
         if ssh {
             config.push_str("\n[ssh]\nkey = \"host.key\"\nhost = \"127.0.0.1\"\nport = 0\n");
         }
-        Self::raise(exe, &config, Vec::new())
+        Self::raise(exe, &config, Vec::new(), None)
     }
 
-    fn raise(exe: &Path, config: &str, env: Vec<(String, String)>) -> Self {
+    fn raise(
+        exe: &Path,
+        config: &str,
+        env: Vec<(String, String)>,
+        scratch: Option<Scratch>,
+    ) -> Self {
         let room = tempfile::tempdir().expect("stage room");
         let nest = room.path().to_path_buf();
         std::fs::write(nest.join("codehull.toml"), config).expect("stage config");
         let issuer = Issuer::new();
         let log = Arc::new(Mutex::new(String::new()));
+        let boot = config.contains("[repo]") || scratch.is_some();
         let mut stage = Self {
             base: String::new(),
             origin: String::new(),
@@ -92,9 +93,9 @@ impl Stage {
             child: None,
             shell: config.contains("[ssh]"),
             room,
-            hold: None,
+            _scratch: scratch,
         };
-        if config.contains("[repo]") {
+        if boot {
             let done = stage
                 .command()
                 .arg("bootstrap")

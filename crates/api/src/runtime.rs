@@ -8,7 +8,6 @@ pub const NAME: &str = "codehull.toml";
 pub struct Runtime {
     #[cascade(section)]
     pub repo: Repo,
-    pub fresh: bool,
     #[cascade(section)]
     pub listen: Listen,
     #[cascade(section)]

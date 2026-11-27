@@ -4,7 +4,7 @@ use axum::response::{IntoResponse, Response};
 use axum::{Extension, Json};
 use keel::Ends;
 use keel::adapt::{Error, Store};
-use keel::{Core, Operator, Wire};
+use keel::{Core, Grant, Operator, Wire};
 use serde_json::{Map, Value, json};
 use std::sync::Arc;
 
@@ -68,15 +68,12 @@ pub(crate) async fn found<W: Wire + 'static>(
                 &[],
             )
             .await?;
-            tx.put(
-                "@grant",
-                &[
-                    ("who", &format!("team {team}")),
-                    ("verb", "*"),
-                    ("unit", "Actor"),
-                    ("scope", &format!("row {org}")),
-                ],
-            )
+            tx.grant(Grant::new(
+                &format!("team {team}"),
+                "*",
+                "Actor",
+                &format!("row {org}"),
+            ))
             .await?;
             Ok(org)
         })

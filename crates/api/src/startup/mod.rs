@@ -44,10 +44,7 @@ impl Seat<'_> {
 
     pub async fn serve(&self) {
         let runtime = self.read();
-        if runtime.fresh && runtime.store.kind == Kind::File {
-            halt("fresh", "wipe is supported only on postgres and memory");
-        }
-        let born = runtime.fresh || runtime.store.kind == Kind::Memory;
+        let born = runtime.store.kind == Kind::Memory;
         let repo = self.repo(&runtime);
         match runtime.store.kind {
             Kind::Pg => {
@@ -107,16 +104,10 @@ impl Seat<'_> {
 }
 
 async fn open(runtime: &Runtime) -> Postgres {
-    let mut store = match Postgres::at(&runtime.store.url).await {
+    match Postgres::at(&runtime.store.url).await {
         Ok(store) => store,
         Err(err) => halt("pg", &err.to_string()),
-    };
-    if runtime.fresh
-        && let Err(err) = store.wipe().await
-    {
-        halt("fresh", &err.to_string());
     }
-    store
 }
 
 pub(super) async fn custody<W: Wire + 'static>(
@@ -166,7 +157,7 @@ pub async fn router<W: Wire + 'static>(
     if let Some(store) = repo {
         base = base.merge(crate::ground::routes(core.clone(), store));
     }
-    let shelved = match hoard(&core, runtime)? {
+    let shelved = match hoard(&core, runtime).await? {
         Some(vault) => vault.shelf(base),
         None => base,
     };
@@ -181,7 +172,7 @@ pub async fn router<W: Wire + 'static>(
     Ok(Router::new().nest(PREFIX, api))
 }
 
-fn hoard<W: Wire + 'static>(
+async fn hoard<W: Wire + 'static>(
     core: &Arc<Core<W>>,
     runtime: &Runtime,
 ) -> Result<Option<Vault<W>>, Refusal> {
@@ -196,6 +187,7 @@ fn hoard<W: Wire + 'static>(
         secret: &runtime.blob.secret,
     };
     Vault::open(core.clone(), shed)
+        .await
         .map(Some)
         .map_err(|err| ("vault", err.to_string()))
 }
