@@ -1,3 +1,4 @@
+imagePullSecrets: []
 api:
   image: ghcr.io/perishlab/codehull
   # tag defaults to Chart.appVersion; override only to pin a different image
