@@ -78,7 +78,7 @@ services:
     environment:
       CODEHULL_STORE_KIND: "pg"
       CODEHULL_STORE_URL: "host=pg port=5432 user=codehull password=codehull dbname=codehull"
-      CODEHULL_OIDC_ISSUER: "${CODEHULL_OIDC_ISSUER:-${API_OIDC_ISSUER:-http://api.ensign.internal:8080/api}}"
+      CODEHULL_OIDC_ISSUER: "${CODEHULL_OIDC_ISSUER:-http://api.ensign.internal:8080/api}"
       CODEHULL_OIDC_AUDIENCE: "codehull"
     command: ["serve", "/codehull"]
     networks:

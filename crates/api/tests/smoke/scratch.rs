@@ -61,10 +61,9 @@ async fn change(url: &str, sql: &str) -> Result<(), keel::adapt::Error> {
 }
 
 fn store() -> Option<String> {
-    ["CODEHULL_STORE_URL", "API_STORE_URL"]
-        .into_iter()
-        .filter_map(|key| std::env::var(key).ok())
-        .find(|url| !url.is_empty())
+    std::env::var("CODEHULL_STORE_URL")
+        .ok()
+        .filter(|url| !url.is_empty())
 }
 
 fn retarget(url: &str, name: &str) -> String {

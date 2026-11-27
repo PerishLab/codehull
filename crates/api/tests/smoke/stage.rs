@@ -33,7 +33,7 @@ pub struct Stage {
 impl Stage {
     pub fn live(exe: &Path) -> Self {
         let scratch = Scratch::open();
-        let shed = read("CODEHULL_BLOB_ENDPOINT", "API_BLOB_ENDPOINT");
+        let shed = read("CODEHULL_BLOB_ENDPOINT");
         let mut env = Vec::new();
         if let Some(scratch) = &scratch {
             env.push(("CODEHULL_STORE_KIND".to_string(), "pg".to_string()));
@@ -43,11 +43,11 @@ impl Stage {
             env.push(("CODEHULL_BLOB_ENDPOINT".to_string(), url.clone()));
             env.push((
                 "CODEHULL_BLOB_KEY".to_string(),
-                lookup("CODEHULL_BLOB_KEY", "API_BLOB_KEY", "codehull"),
+                lookup("CODEHULL_BLOB_KEY", "codehull"),
             ));
             env.push((
                 "CODEHULL_BLOB_SECRET".to_string(),
-                lookup("CODEHULL_BLOB_SECRET", "API_BLOB_SECRET", "codehull123"),
+                lookup("CODEHULL_BLOB_SECRET", "codehull123"),
             ));
         }
         let mut stage = Self::raise(exe, MEMORY, env, scratch);
@@ -256,13 +256,10 @@ fn tail(at: &str) -> u16 {
         .unwrap_or_else(|| panic!("unreadable endpoint {at}"))
 }
 
-fn read(primary: &str, legacy: &str) -> Option<String> {
-    std::env::var(primary)
-        .ok()
-        .filter(|value| !value.is_empty())
-        .or_else(|| std::env::var(legacy).ok().filter(|value| !value.is_empty()))
+fn read(key: &str) -> Option<String> {
+    std::env::var(key).ok().filter(|value| !value.is_empty())
 }
 
-fn lookup(primary: &str, legacy: &str, fallback: &str) -> String {
-    read(primary, legacy).unwrap_or_else(|| fallback.to_string())
+fn lookup(key: &str, fallback: &str) -> String {
+    read(key).unwrap_or_else(|| fallback.to_string())
 }
