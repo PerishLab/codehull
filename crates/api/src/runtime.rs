@@ -123,8 +123,7 @@ pub struct Oidc {
 
 pub fn load(start: &Path) -> Result<Runtime, radicula_config::Error> {
     let found = plumb::config::discover(start, NAME).ok();
-    let read = plumb::config::migrated(&Runtime::prefix(), "API", &plumb::config::value);
-    Runtime::resolve(found.as_deref(), &Runtime::prefix(), &read)
+    Runtime::resolve(found.as_deref(), &Runtime::prefix(), &plumb::config::value)
 }
 
 #[derive(Debug, Default, serde::Deserialize, PartialEq, Cascade)]

@@ -14,10 +14,8 @@ stringData:
   PGPASSWORD: {{ $pass | quote }}
   {{- if .Values.postgres.url }}
   CODEHULL_STORE_URL: {{ .Values.postgres.url | quote }}
-  API_STORE_URL: {{ .Values.postgres.url | quote }}
   {{- else }}
   {{- $url := printf "host=%s-pg port=5432 user=%s password=%s dbname=%s" .Release.Name .Values.postgres.user $pass .Values.postgres.db }}
   CODEHULL_STORE_URL: {{ $url | quote }}
-  API_STORE_URL: {{ $url | quote }}
   {{- end }}
 {{- end }}
